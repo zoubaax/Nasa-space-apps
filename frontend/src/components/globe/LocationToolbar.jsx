@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { TbCurrentLocation, TbLoader2, TbPlant } from 'react-icons/tb';
-import { PILOT_LOCATIONS } from '../../constants/satellites';
+import { TbCurrentLocation, TbLoader2 } from 'react-icons/tb';
 
 export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
   const [isLocating, setIsLocating] = useState(false);
@@ -16,7 +15,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
         return {
           latitude: data.latitude,
           longitude: data.longitude,
-          name: `${data.city || 'Detected City'}, ${data.country || 'Detected Region'}`,
+          name: `${data.city || 'Detected Farm'}, ${data.country || 'Detected Region'}`,
         };
       }
     } catch (e1) {
@@ -27,11 +26,11 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
       const res = await fetch('https://ipapi.co/json/');
       if (!res.ok) throw new Error('ipapi.co failed');
       const data = await res.json();
-      if (data.latitude && data.longitude) {
+      if (data && data.latitude && data.longitude) {
         return {
           latitude: data.latitude,
           longitude: data.longitude,
-          name: `${data.city || 'Detected City'}, ${data.country_name || ''}`,
+          name: `${data.city || 'Detected Farm'}, ${data.country_name || ''}`,
         };
       }
     } catch (e2) {
@@ -41,7 +40,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
     return null;
   };
 
-  // ─── Google Maps Style "Get My Location" ──────────────────────────────────
+  // ─── Get My Farm Location ─────────────────────────────────────────────────
   const handleGetMyLocation = () => {
     setIsLocating(true);
     setErrorMsg(null);
@@ -52,7 +51,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
         name,
         coordinates: [lng, lat],
         zoom: 14.5,
-        pitch: 35,
+        pitch: 45,
         bearing: 0,
       });
     };
@@ -61,21 +60,21 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          triggerFlight(longitude, latitude, 'My Location (Laptop)');
+          triggerFlight(longitude, latitude, 'My Farm (Detected GPS)');
         },
         async (error) => {
-          console.warn('Browser GPS unavailable/blocked, using IP location:', error);
+          console.warn('Browser GPS unavailable/blocked, using IP fallback:', error);
           const ipData = await fetchIpLocation();
           if (ipData) {
             triggerFlight(ipData.longitude, ipData.latitude, ipData.name);
           } else {
             setIsLocating(false);
-            setErrorMsg('Location blocked. Please allow location access or pick a farm.');
+            setErrorMsg('Location blocked. Please allow location access.');
             setTimeout(() => setErrorMsg(null), 4000);
           }
         },
         {
-          enableHighAccuracy: false, // Fast Wi-Fi lookup on laptops (no GPS hang)
+          enableHighAccuracy: false, // Fast Wi-Fi lookup on laptops
           timeout: 3500,
           maximumAge: 300000,
         }
@@ -95,43 +94,31 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
 
   return (
     <div className="flex flex-col items-end gap-2 select-none">
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl">
-        {/* Get My Location Button (Google Maps Style) */}
+      <div className="p-1 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl">
+        {/* Single Primary Action: Get My Location */}
         <button
           onClick={handleGetMyLocation}
           disabled={isLocating || isFlying}
           type="button"
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all duration-200 cursor-pointer ${
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all duration-300 cursor-pointer ${
             isLocating
-              ? 'bg-blue-600 text-white animate-pulse'
-              : 'bg-blue-600/80 hover:bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+              ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)] animate-pulse'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)]'
           }`}
-          title="Zoom to your current location"
+          title="Zoom to your farm location"
         >
           {isLocating ? (
-            <TbLoader2 className="w-4 h-4 animate-spin text-white" />
+            <TbLoader2 className="w-4 h-4 animate-spin text-black" />
           ) : (
-            <TbCurrentLocation className="w-4 h-4 text-white" />
+            <TbCurrentLocation className="w-4 h-4 text-black animate-pulse" />
           )}
-          <span>{isLocating ? 'Locating...' : 'Get My Location'}</span>
-        </button>
-
-        {/* Pilot Farm Button */}
-        <button
-          onClick={() => onFlyToLocation(PILOT_LOCATIONS[0])}
-          disabled={isFlying}
-          type="button"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-850 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-medium transition-all cursor-pointer shadow-lg"
-          title="Jump directly to Morocco Pilot Farm"
-        >
-          <TbPlant className="w-4 h-4 text-emerald-400" />
-          <span>Pilot Farm (Morocco)</span>
+          <span>{isLocating ? 'Locating Field...' : 'Get My Location'}</span>
         </button>
       </div>
 
       {/* Notice Pill */}
       {errorMsg && (
-        <div className="px-3 py-1.5 rounded-lg bg-amber-950/80 border border-amber-500/40 text-amber-300 text-[11px] font-mono backdrop-blur-md shadow-lg">
+        <div className="px-3 py-1.5 rounded-lg bg-amber-950/90 border border-amber-500/40 text-amber-300 text-[11px] font-mono backdrop-blur-md shadow-lg">
           ⚠️ {errorMsg}
         </div>
       )}
