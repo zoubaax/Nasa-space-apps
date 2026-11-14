@@ -66,7 +66,8 @@ class Settings(BaseSettings):
     smap_earliest_date: date = date(2015, 3, 31)
 
     # Google Earth Engine NASA SMAP Level-4 SPL4SMGP V008 Integration
-    gee_project_id: str = "fieldshift-514709"
+    gee_project_id: str = "constant-autumn-466917-r9"
+    gee_service_account_key: str | None = None
     smap_l4_gee_dataset: str = "NASA/SMAP/SPL4SMGP/008"
     smap_gee_scale: int = 11000
     smap_gee_max_date_range_days: int = 3660

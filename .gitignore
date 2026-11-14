@@ -5,6 +5,10 @@
 backend/.env
 backend/.env.*
 !backend/.env.example
+*.key.json
+*credentials*.json
+gee-key.json
+backend/gee-key.json
 
 # Python
 __pycache__/

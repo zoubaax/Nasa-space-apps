@@ -10,12 +10,14 @@ import asyncio
 import calendar
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+import json
 import logging
 import math
+from pathlib import Path
 import time
 from typing import Any
 
-from app.core.config import Settings
+from app.core.config import PROJECT_ROOT, Settings
 from app.core.exceptions import InvalidRequestError, SmapError
 from app.models.climate import LocationInfo
 from app.models.smap_gee import (
@@ -77,11 +79,34 @@ class SmapGeeService:
         try:
             import ee
             self._ee = ee
-            # Check if Earth Engine is already initialized
+
+            # Check for configured service account credentials
+            credentials = None
+            key_file = self._settings.gee_service_account_key
+            if not key_file and (PROJECT_ROOT / "gee-key.json").is_file():
+                key_file = "gee-key.json"
+
+            if key_file:
+                key_path = Path(key_file)
+                if not key_path.is_absolute():
+                    key_path = (PROJECT_ROOT / key_path).resolve()
+                if key_path.is_file():
+                    try:
+                        key_data = json.loads(key_path.read_text(encoding="utf-8"))
+                        email = key_data.get("client_email")
+                        credentials = ee.ServiceAccountCredentials(email, str(key_path))
+                        logger.info("Loaded Google Earth Engine service account credentials for %s", email)
+                    except Exception as ce:
+                        logger.warning("Failed loading service account key from %s: %s", key_path, ce)
+
+            # Initialize Earth Engine
             try:
-                ee.Initialize(project=self._settings.gee_project_id)
+                if credentials:
+                    ee.Initialize(credentials, project=self._settings.gee_project_id)
+                else:
+                    ee.Initialize(project=self._settings.gee_project_id)
                 self._ee_initialized = True
-                logger.info("Google Earth Engine initialized with project %s", self._settings.gee_project_id)
+                logger.info("Google Earth Engine initialized successfully with project %s", self._settings.gee_project_id)
             except Exception as e:
                 # Try initializing without project if default credentials exist
                 try:
