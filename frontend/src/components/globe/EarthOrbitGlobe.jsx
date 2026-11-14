@@ -11,17 +11,13 @@ import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
-// Guaranteed to resolve in Vite dev & build with zero worker loading errors
 if (typeof maplibregl.setWorkerUrl === 'function') {
   maplibregl.setWorkerUrl('/maplibre-gl-worker.js');
 }
 
-const DEFAULT_INITIAL_CENTER = [0, 20];
-const DEFAULT_INITIAL_ZOOM = 1.6;
-
 export default function EarthOrbitGlobe({
-  initialCenter = DEFAULT_INITIAL_CENTER,
-  initialZoom = DEFAULT_INITIAL_ZOOM,
+  initialCenter = [0, 20],
+  initialZoom = 1.6,
   onLocationSelect = null,
 }) {
   const containerRef = useRef(null);
@@ -33,8 +29,16 @@ export default function EarthOrbitGlobe({
   // Synchronous spin guard
   const isSpinningRef = useRef(true);
   const isInteractingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const mouseDownPosRef = useRef({ x: 0, y: 0 });
 
-  // Direct DOM refs for zero-rerender telemetry
+  // Keep onLocationSelect in a ref so changes NEVER trigger map re-renders/unmounts
+  const onLocationSelectRef = useRef(onLocationSelect);
+  useEffect(() => {
+    onLocationSelectRef.current = onLocationSelect;
+  }, [onLocationSelect]);
+
+  // Direct DOM refs for zero-rerender telemetry HUD
   const coordsRef = useRef(null);
   const altitudeRef = useRef(null);
 
@@ -43,23 +47,30 @@ export default function EarthOrbitGlobe({
   const [environmentalData, setEnvironmentalData] = useState(null);
   const [showTelemetryCard, setShowTelemetryCard] = useState(false);
   const [currentPitch, setCurrentPitch] = useState(0);
-  const onLocationSelectRef = useRef(onLocationSelect);
 
-  // Keep the map lifecycle independent from parent callback identity changes.
-  useEffect(() => {
-    onLocationSelectRef.current = onLocationSelect;
-  }, [onLocationSelect]);
-
-  // ─── Google Maps Style Pulsing Blue Dot ────────────────────────────────────
-  const createLocationMarker = (label = 'My Location') => {
+  // ─── Modern Location Pin Marker ───────────────────────────────────────────
+  const createLocationPinMarker = (label = 'My Farm') => {
     const el = document.createElement('div');
-    el.className = 'relative flex items-center justify-center cursor-pointer';
+    el.className = 'relative flex flex-col items-center cursor-pointer select-none';
     el.innerHTML = `
-      <div class="absolute -top-7 px-2.5 py-0.5 rounded-full bg-zinc-950/90 border border-blue-500/50 text-blue-300 font-mono text-[10px] whitespace-nowrap shadow-xl pointer-events-none">
-        ${label}
+      <!-- Location Label Badge -->
+      <div class="mb-1 px-3 py-1 rounded-full bg-zinc-950/95 border border-cyan-400/60 text-cyan-300 font-mono text-[11px] font-semibold whitespace-nowrap shadow-[0_0_20px_rgba(6,182,212,0.5)] backdrop-blur-md flex items-center gap-1.5 animate-fade-in">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>${label}</span>
       </div>
-      <span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-blue-500 opacity-60"></span>
-      <span class="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-white shadow-[0_0_15px_#3b82f6]"></span>
+
+      <!-- High-Definition Map Pin Icon -->
+      <div class="relative flex items-center justify-center filter drop-shadow-[0_4px_12px_rgba(6,182,212,0.7)]">
+        <svg class="w-8 h-8 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+
+      <!-- Radar Ground Ripple under Pin Tip -->
+      <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-4 flex items-center justify-center pointer-events-none">
+        <span class="absolute w-8 h-4 rounded-full bg-cyan-400/50 animate-ping"></span>
+        <span class="w-3 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#06b6d4]"></span>
+      </div>
     `;
     return el;
   };
@@ -68,8 +79,8 @@ export default function EarthOrbitGlobe({
     if (!mapRef.current) return;
     if (markerRef.current) markerRef.current.remove();
     markerRef.current = new maplibregl.Marker({
-      element: createLocationMarker(label),
-      anchor: 'center',
+      element: createLocationPinMarker(label),
+      anchor: 'bottom', // Pointy tip of pin touches exact coordinates!
     })
       .setLngLat(coords)
       .addTo(mapRef.current);
@@ -81,7 +92,7 @@ export default function EarthOrbitGlobe({
       const map = mapRef.current;
       if (!map) return;
 
-      // 1. Immediately kill auto-spin
+      // 1. Immediately halt auto-rotation so background frames NEVER interrupt the flight
       isSpinningRef.current = false;
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
@@ -91,19 +102,21 @@ export default function EarthOrbitGlobe({
       setShowTelemetryCard(false);
 
       const targetCoords = loc.coordinates; // [lng, lat]
-      const targetZoom = loc.zoom || 14;
+      const targetZoom = loc.zoom || 14.5;
+      const targetPitch = loc.pitch !== undefined ? loc.pitch : 45;
+      const targetBearing = loc.bearing || 0;
 
-      // 2. Drop location marker
-      setMarkerAt(targetCoords, loc.name || 'Selected Field');
+      // 2. Drop pin immediately
+      setMarkerAt(targetCoords, loc.name || 'My Farm');
 
-      // 3. Cinematic 3D Fly-To Animation (Parabolic NASA dive)
+      // 3. Cinematic 3D Fly-To Animation (Parabolic Space-to-Ground Descent)
       map.flyTo({
         center: targetCoords,
         zoom: targetZoom,
-        pitch: 50,                  // 3D camera tilt angle
-        bearing: -15,               // Heading rotation
-        duration: 4200,             // 4.2s smooth descent
-        curve: 1.42,                // Parabolic trajectory arc
+        pitch: targetPitch,
+        bearing: targetBearing,
+        duration: 3800,      // 3.8s smooth descent
+        curve: 1.42,         // Parabolic NASA dive
         speed: 0.8,
         essential: true,
       });
@@ -120,10 +133,12 @@ export default function EarthOrbitGlobe({
           coordinates: targetCoords,
         };
         setSelectedLocation(resolved);
-        if (onLocationSelectRef.current) onLocationSelectRef.current(resolved, estTelemetry);
+        if (onLocationSelectRef.current) {
+          onLocationSelectRef.current(resolved, estTelemetry);
+        }
       });
 
-      // 5. Open telemetry card when arrived
+      // 5. Reveal telemetry card upon touchdown
       map.once('moveend', () => {
         setShowTelemetryCard(true);
       });
@@ -131,7 +146,12 @@ export default function EarthOrbitGlobe({
     [setMarkerAt]
   );
 
-  // ─── Map Initialization ───────────────────────────────────────────────────
+  const flyToLocationRef = useRef(flyToLocation);
+  useEffect(() => {
+    flyToLocationRef.current = flyToLocation;
+  }, [flyToLocation]);
+
+  // ─── Map Initialization (MOUNT ONLY - NEVER DESTROY ON RE-RENDER) ──────────
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -209,15 +229,21 @@ export default function EarthOrbitGlobe({
               `${lat >= 0 ? lat.toFixed(3) + '°N' : Math.abs(lat).toFixed(3) + '°S'}, ` +
               `${lng >= 0 ? lng.toFixed(3) + '°E' : Math.abs(lng).toFixed(3) + '°W'}`;
           } else {
-            coordsRef.current.textContent = 'Deep Space';
+            coordsRef.current.textContent = 'Orbiting Deep Space';
           }
         }
       });
     });
 
+    map.on('mousedown', (e) => {
+      mouseDownPosRef.current = { x: e.point.x, y: e.point.y };
+      hasDraggedRef.current = false;
+    });
+
     map.on('dragstart', () => {
       isInteractingRef.current = true;
       isSpinningRef.current = false;
+      hasDraggedRef.current = true;
       setIsRotating(false);
       if (map.getCanvas()) map.getCanvas().style.cursor = 'grabbing';
     });
@@ -225,14 +251,25 @@ export default function EarthOrbitGlobe({
     map.on('dragend', () => {
       isInteractingRef.current = false;
       if (map.getCanvas()) map.getCanvas().style.cursor = 'default';
+      // Keep hasDraggedRef true for 200ms to block the trailing click event after release
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 200);
     });
 
-    // Click anywhere to zoom into a farm location
+    // Click anywhere on Earth to zoom into a farm location (ONLY on true stationary clicks)
     map.on('click', (e) => {
+      if (hasDraggedRef.current) return;
+
+      const dx = e.point.x - mouseDownPosRef.current.x;
+      const dy = e.point.y - mouseDownPosRef.current.y;
+      if (Math.hypot(dx, dy) > 6) return; // Ignored if user was dragging/turning the Earth!
+
       if (e.lngLat && !isNaN(e.lngLat.lat) && !isNaN(e.lngLat.lng)) {
-        flyToLocation({
+        flyToLocationRef.current?.({
           coordinates: [Number(e.lngLat.lng.toFixed(5)), Number(e.lngLat.lat.toFixed(5))],
-          zoom: Math.max(map.getZoom(), 14),
+          zoom: Math.max(map.getZoom(), 14.5),
+          pitch: 45,
         });
       }
     });
@@ -248,13 +285,10 @@ export default function EarthOrbitGlobe({
       map.remove();
       mapRef.current = null;
     };
-  // Map creation is a mount-time operation. Keep it from restarting when a
-  // parent passes fresh array/callback identities during ordinary rerenders.
-  // The current initialCenter/initialZoom values remain available to reset.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flyToLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // <── EMPTY ARRAY: Map initializes once and is NEVER unmounted by state updates!
 
-  // ─── Smooth Orbit Spin ─────────────────────────────────────────────────────
+  // ─── Smooth Orbit Spin (requestAnimationFrame) ─────────────────────────────
   useEffect(() => {
     isSpinningRef.current = isRotating;
     if (!isRotating) {
@@ -265,11 +299,11 @@ export default function EarthOrbitGlobe({
       return;
     }
 
-    let last = performance.now();
+    let lastTime = performance.now();
     const loop = (now) => {
       if (!isSpinningRef.current) return;
-      const dt = (now - last) / 1000;
-      last = now;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
 
       if (mapRef.current && !isInteractingRef.current) {
         const z = mapRef.current.getZoom();
@@ -336,7 +370,7 @@ export default function EarthOrbitGlobe({
         />
       </div>
 
-      {/* Top-Right: Location Toolbar */}
+      {/* Top-Right: Single Hero Action "Get My Location" */}
       <div className="absolute top-5 right-5 z-20">
         <LocationToolbar onFlyToLocation={flyToLocation} isFlying={false} />
       </div>
