@@ -4,12 +4,15 @@ import {
   TbDroplet,
   TbCloudRain,
   TbSun,
-  TbCpu,
   TbX,
   TbArrowRight,
   TbCheck,
   TbInfoCircle,
   TbLayersLinked,
+  TbLoader2,
+  TbAlertTriangle,
+  TbPlant,
+  TbTemperature,
 } from 'react-icons/tb';
 
 export default function FieldTelemetryCard({
@@ -22,7 +25,8 @@ export default function FieldTelemetryCard({
 
   const lat = locationData.lat;
   const lng = locationData.lng;
-  const name = locationData.name || 'Selected Farm Plot';
+  const name = locationData.name || 'Selected Field Coordinate';
+  const isLoading = telemetry?.isLoading;
 
   return (
     <div className="absolute top-20 right-5 z-30 w-96 max-w-[calc(100vw-2.5rem)] max-h-[calc(100vh-6.5rem)] flex flex-col rounded-3xl bg-zinc-950/90 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] text-white font-sans animate-fade-in-right overflow-hidden select-none">
@@ -38,13 +42,27 @@ export default function FieldTelemetryCard({
           <TbX className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex flex-wrap items-center gap-1.5 mb-1">
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
             <TbCheck className="w-3 h-3" /> Field Locked
           </span>
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-            <TbLayersLinked className="w-3 h-3" /> SMAP 9km Grid Active
+            <TbLayersLinked className="w-3 h-3" /> SMAP 9km EASE-Grid
           </span>
+          {isLoading ? (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+              <TbLoader2 className="w-3 h-3 animate-spin text-cyan-400" />
+              <span>Acquiring NASA…</span>
+            </span>
+          ) : telemetry?.isLiveBackend ? (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live NASA Feed
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Observation Notice
+            </span>
+          )}
         </div>
 
         <h2 className="text-base font-bold text-zinc-100 truncate pr-6">{name}</h2>
@@ -58,107 +76,185 @@ export default function FieldTelemetryCard({
       {/* ── Scrollable Body ── */}
       <div className="p-5 space-y-4 overflow-y-auto max-h-[60vh] custom-scrollbar text-xs">
         
-        {/* Environmental Summary Banner */}
-        <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 font-mono text-[11px] text-zinc-300 flex items-start gap-2.5">
-          <TbInfoCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold text-cyan-300">Target Climate Zone:</span>{' '}
-            {telemetry?.climateZone || 'Semi-Arid Agricultural Plain'}
-            <p className="text-zinc-400 text-[10px] mt-0.5">
-              Assimilated regional satellite observations fused for crop feasibility.
-            </p>
-          </div>
-        </div>
-
-        {/* 3 NASA Satellite Evidence Tiles */}
-        <div className="space-y-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold block">
-            NASA Earth Observations (Regional Baseline)
-          </span>
-
-          {/* SMAP L4 Tile */}
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-cyan-500/20 hover:border-cyan-500/40 transition">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400">
-                  <TbDroplet className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-semibold text-zinc-200">SMAP L4 Soil Moisture</span>
-                  <span className="text-[9px] font-mono text-zinc-400 block">SPL4SMGP V8 · 9 km EASE-Grid</span>
-                </div>
-              </div>
-              <span className="text-cyan-300 font-mono font-bold text-sm">
-                {telemetry?.smapMoistureM3 || 0.18} <span className="text-[10px] font-normal text-zinc-400">m³/m³</span>
-              </span>
+        {/* Loading Skeleton */}
+        {isLoading && (
+          <div className="space-y-3 py-4">
+            <div className="flex items-center justify-center gap-2 text-cyan-400 font-mono text-xs animate-pulse">
+              <TbLoader2 className="w-4 h-4 animate-spin" />
+              <span>Querying NASA Earth Observation API…</span>
             </div>
-            <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-amber-500 via-cyan-400 to-emerald-400 h-1.5 rounded-full"
-                style={{ width: `${Math.min(100, ((telemetry?.smapMoistureM3 || 0.18) / 0.45) * 100)}%` }}
-              ></div>
-            </div>
-            <span className="text-[9px] font-mono text-zinc-400 mt-1 block">
-              Root-zone estimate (0–100 cm depth)
-            </span>
+            <div className="h-14 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
+            <div className="h-20 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
+            <div className="h-20 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
           </div>
+        )}
 
-          {/* GPM IMERG Rainfall Tile */}
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-blue-500/20 hover:border-blue-500/40 transition">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded-md bg-blue-500/10 text-blue-400">
-                  <TbCloudRain className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-semibold text-zinc-200">GPM IMERG Precipitation</span>
-                  <span className="text-[9px] font-mono text-zinc-400 block">V07 Calibrated Rainfall</span>
-                </div>
-              </div>
-              <span className="text-blue-300 font-mono font-bold text-sm">
-                {telemetry?.annualRainfallMm || 380} <span className="text-[10px] font-normal text-zinc-400">mm/yr</span>
-              </span>
+        {/* Observation Warning / Offline Notice */}
+        {!isLoading && !telemetry?.isLiveBackend && (
+          <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-2.5">
+            <TbAlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block text-amber-300">Observation Notice</span>
+              <p className="text-[11px] text-zinc-300 mt-0.5">
+                {telemetry?.error || 'No land-based NASA agroclimatology observations at this coordinate.'}
+              </p>
+              <p className="text-[10px] text-zinc-400 mt-1">
+                Tip: Click on terrestrial agricultural land or use the location search bar to fly to a farm.
+              </p>
             </div>
           </div>
+        )}
 
-          {/* NASA POWER Climate Tile */}
-          <div className="p-3 rounded-xl bg-zinc-900/50 border border-amber-500/20 hover:border-amber-500/40 transition">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded-md bg-amber-500/10 text-amber-400">
-                  <TbSun className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-semibold text-zinc-200">NASA POWER Temperature</span>
-                  <span className="text-[9px] font-mono text-zinc-400 block">Daily 10-Yr Agrometeorology</span>
-                </div>
-              </div>
-              <span className="text-amber-300 font-mono font-bold text-sm">
-                {telemetry?.meanTempC || 19.4} <span className="text-[10px] font-normal text-zinc-400">°C</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Local IoT Telemetry Status */}
-        <div className="p-3 rounded-xl bg-zinc-900/40 border border-emerald-500/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400">
-                <TbCpu className="w-4 h-4" />
-              </div>
+        {/* Live Satellite Indicators */}
+        {!isLoading && telemetry?.isLiveBackend && (
+          <>
+            {/* Environmental Summary Banner */}
+            <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 font-mono text-[11px] text-zinc-300 flex items-start gap-2.5">
+              <TbInfoCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-zinc-200">Local ESP32 Soil Sensor</span>
-                <span className="text-[9px] font-mono text-emerald-400 block">
-                  ● Endpoint Ready: /api/v1/sensors/readings
-                </span>
+                <span className="font-semibold text-cyan-300">Climatic Classification:</span>{' '}
+                <span className="text-zinc-200 font-bold">{telemetry.climateZone}</span>
+                <p className="text-zinc-400 text-[10px] mt-0.5">
+                  Assimilated from NASA POWER daily agroclimatology & SMAP L4 observations.
+                </p>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
-              Uncalibrated ADC
-            </span>
-          </div>
-        </div>
+
+            {/* 3 NASA Satellite Evidence Tiles */}
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold block">
+                NASA Earth Observations (Assimilated)
+              </span>
+
+              {/* SMAP L4 Tile */}
+              {telemetry.smapMoistureM3 !== null ? (
+                <div className="p-3 rounded-xl bg-zinc-900/50 border border-cyan-500/20 hover:border-cyan-500/40 transition">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400">
+                        <TbDroplet className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-zinc-200">SMAP L4 Soil Moisture</span>
+                        <span className="text-[9px] font-mono text-zinc-400 block">SPL4SMGP V8 · 9 km EASE-Grid</span>
+                      </div>
+                    </div>
+                    <span className="text-cyan-300 font-mono font-bold text-sm">
+                      {telemetry.smapMoistureM3} <span className="text-[10px] font-normal text-zinc-400">m³/m³</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-amber-500 via-cyan-400 to-emerald-400 h-1.5 rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, Math.max(5, (telemetry.smapMoistureM3 / 0.45) * 100))}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 mt-1">
+                    <span>Root-zone (0–100 cm depth)</span>
+                    {telemetry.droughtPercentile !== null && (
+                      <span className="text-cyan-400 font-semibold">Drought Pctl: {telemetry.droughtPercentile}%</span>
+                    )}
+                  </div>
+                  {telemetry.surfaceMoistureM3 !== null && (
+                    <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 mt-0.5 border-t border-zinc-800/60 pt-1">
+                      <span>Surface (0–5 cm): {telemetry.surfaceMoistureM3} m³/m³</span>
+                      {telemetry.soilTempLayer1 !== null && (
+                        <span>Seedbed Temp: {telemetry.soilTempLayer1}°C</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* NASA POWER / GPM Rainfall Tile */}
+              {telemetry.annualRainfallMm !== null ? (
+                <div className="p-3 rounded-xl bg-zinc-900/50 border border-blue-500/20 hover:border-blue-500/40 transition">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-md bg-blue-500/10 text-blue-400">
+                        <TbCloudRain className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-zinc-200">NASA POWER Precipitation</span>
+                        <span className="text-[9px] font-mono text-zinc-400 block">
+                          {telemetry.dryDays !== null
+                            ? `${telemetry.dryDays} Dry Days (<1mm)`
+                            : 'Daily Agrometeorology'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-blue-300 font-mono font-bold text-sm">
+                      {telemetry.annualRainfallMm} <span className="text-[10px] font-normal text-zinc-400">mm/yr</span>
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* NASA POWER Temperature & Radiation Tile */}
+              {telemetry.meanTempC !== null ? (
+                <div className="p-3 rounded-xl bg-zinc-900/50 border border-amber-500/20 hover:border-amber-500/40 transition">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-md bg-amber-500/10 text-amber-400">
+                        <TbSun className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-zinc-200">NASA POWER Temperature</span>
+                        <span className="text-[9px] font-mono text-zinc-400 block">
+                          {telemetry.hotDays !== null
+                            ? `${telemetry.hotDays} Heat Days (≥30°C)`
+                            : 'Mean Air Temperature'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-amber-300 font-mono font-bold text-sm">
+                      {telemetry.meanTempC} <span className="text-[10px] font-normal text-zinc-400">°C</span>
+                    </span>
+                  </div>
+                  {(telemetry.minTempC !== null || telemetry.maxTempC !== null) && (
+                    <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 mt-1 border-t border-zinc-800/60 pt-1">
+                      <span>Min: {telemetry.minTempC}°C • Max: {telemetry.maxTempC}°C</span>
+                      {telemetry.solarRadiation !== null && (
+                        <span>Solar: {telemetry.solarRadiation} MJ/m²</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Satellite Vegetation / Canopy State */}
+              {(telemetry.vegetationGreenness !== null || telemetry.leafAreaIndex !== null) && (
+                <div className="p-3 rounded-xl bg-zinc-900/50 border border-emerald-500/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400">
+                        <TbPlant className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-zinc-200">Vegetation Canopy</span>
+                        <span className="text-[9px] font-mono text-zinc-400 block">
+                          NASA SMAP L4 Biosphere Fluxes
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {telemetry.vegetationGreenness !== null && (
+                        <span className="text-emerald-300 font-mono font-bold text-xs block">
+                          {telemetry.vegetationGreenness}% Greenness
+                        </span>
+                      )}
+                      {telemetry.leafAreaIndex !== null && (
+                        <span className="text-zinc-400 font-mono text-[10px]">
+                          LAI: {telemetry.leafAreaIndex} m²/m²
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
       </div>
 
@@ -166,8 +262,9 @@ export default function FieldTelemetryCard({
       <div className="p-4 pt-3 border-t border-zinc-800/80 bg-zinc-950/60">
         <button
           onClick={() => onEvaluateRotation(locationData, telemetry)}
+          disabled={isLoading}
           type="button"
-          className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-mono text-xs font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer"
+          className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-mono text-xs font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer disabled:opacity-50"
         >
           <TbLeaf className="w-4 h-4" />
           <span>Evaluate Climate-Adaptive Rotations</span>

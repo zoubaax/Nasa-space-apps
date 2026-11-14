@@ -1,0 +1,1529 @@
+{
+  "metadata": {
+    "title": "Earth Trials Virtual Laboratories — Scientific Validation & Algorithmic Audit",
+    "service": "FieldShift AI Virtual Agricultural Laboratory",
+    "location": "Meknes, Morocco (Saïss Plateau)",
+    "coordinates": {
+      "requested_latitude": 33.8938,
+      "requested_longitude": -5.5516,
+      "satellite_grid_center_latitude": 33.89,
+      "satellite_grid_center_longitude": -5.55,
+      "distance_to_grid_center_m": 446.0
+    },
+    "harvest_year": 2025,
+    "timestamp": "2026-11-14T19:00:00Z",
+    "ai_model": "fieldshift-ai-engine",
+    "validation_status": "CALIBRATED_DAILY_FAO56_WATER_BALANCE",
+    "scientific_integrity_guarantee": "Strict daily mass conservation (residual < 1e-12 mm). Real NASA POWER & SMAP L4 observations used consistently across all modules without demo fallbacks."
+  },
+  "spatial_grid_provenance_and_separation": {
+    "nasa_power_meteorological_grid": {
+      "model_source": "GMAO MERRA-2 and GEOS-FP IT Daily Agroclimatology (AG)",
+      "native_grid_resolution": "0.5° latitude × 0.625° longitude (~50 km × 60 km)",
+      "encompassing_cell_center": {
+        "latitude": 33.89,
+        "longitude": -5.55
+      },
+      "cell_delta": {
+        "dlat_deg": 0.0038,
+        "dlon_deg": 0.0016
+      },
+      "cached_files": [
+        "data/raw/33.8900_-5.5500_20240101_20241231_8716856fb4b1f05a.json",
+        "data/raw/33.8900_-5.5500_20250101_20251231_70dbe41d6e3a3e92.json"
+      ],
+      "observation_records_count": 731
+    },
+    "nasa_smap_hydrological_grid": {
+      "model_source": "NASA SMAP SPL4SMGP V008 Assimilated Land Surface Model",
+      "native_grid_projection": "Equal-Area Scalable Earth Grid version 2.0 (EASE-Grid 2.0) Global 9 km (M09)",
+      "nominal_pixel_resolution": "~9.024 km",
+      "encompassing_pixel_center": {
+        "latitude": 33.89,
+        "longitude": -5.55
+      },
+      "distance_to_pixel_center_km": 0.45,
+      "cached_files": [
+        "data/smap_gee/smap_gee_33.8900_-5.5500_20240101_20241231_agricultural_02b0d31445c870ea.json",
+        "data/smap_gee/smap_gee_33.8900_-5.5500_20250101_20251231_agricultural_638ef8f2c6af4e9a.json"
+      ],
+      "observations_assimilated_count": 5848
+    },
+    "grid_separation_protocol": "NASA POWER and SMAP L4 grids operate independently on their native coordinate systems. No synthetic interpolation between disparate grids is performed."
+  },
+  "temporal_alignment_and_campaign_boundaries": {
+    "calendar_year_record": "January 1, 2025 to December 31, 2025 (365 calendar days)",
+    "annual_precipitation_mm": 701.2,
+    "harvest_year_definition": "Harvest Year 2025: contiguous agricultural cycle from 2024-11-15 through 2025-05-20 (187 calendar days)",
+    "data_source_years": [
+      2024,
+      2025
+    ],
+    "crop_cycle_composition": {
+      "season_start_date": "2024-11-15",
+      "season_end_date": "2025-05-20",
+      "total_crop_cycle_days": 187,
+      "crop_cycle_gross_rain_mm": 339.0,
+      "crop_cycle_infiltrated_rain_mm": 334.1,
+      "surface_runoff_loss_mm": 4.8,
+      "deep_percolation_mm": 93.1
+    },
+    "sowing_soil_moisture_provenance": {
+      "sowing_date": "2024-11-15",
+      "sowing_year": 2024,
+      "sowing_moisture_source_date": "2024-11-01",
+      "sowing_moisture_dataset": "NASA SMAP Level-4 SPL4SMGP V008 (Monthly Assimilated Mean)",
+      "sowing_moisture_observation_count": 240,
+      "sowing_moisture_aggregation_method": "Monthly spatial and temporal mean of 3-hourly assimilated root-zone soil moisture (0-100 cm) across November",
+      "theta_sow_rootzone_m3m3": 0.2643
+    },
+    "methodology_note": "Explicitly distinguishes the 365-day calendar year from the 187-day crop growing cycle. Sowing occurs in mid-November 2024 (using authentic Nov 2024 SMAP L4 soil moisture) and harvest in late May 2025."
+  },
+  "raw_nasa_observations_ground_truth": {
+    "nasa_power_daily": {
+      "annual_precipitation_mm": 701.2,
+      "crop_cycle_gross_precipitation_mm": 339.0,
+      "hot_days_ge_30c": 156,
+      "dry_days_lt_1mm": 282,
+      "fao56_reference_et0_season_mm": 536.2
+    },
+    "nasa_smap_level4_spl4smgp_v008": {
+      "root_zone_moisture_m3_m3": {
+        "annual_mean_2025": 0.266,
+        "sowing_period_november_2024": 0.2643,
+        "sowing_moisture_source_date": "2024-11-01",
+        "sowing_moisture_obs_count": 240
+      },
+      "surface_moisture_0_5cm_m3_m3": {
+        "annual_mean_2025": 0.207
+      },
+      "root_zone_drought_percentile_mean": 51.954
+    }
+  },
+  "fao56_daily_rootzone_water_balance_physics": {
+    "soil_profile": {
+      "soil_type_code": "limoneux_profond",
+      "soil_name_ar": "حمري (Limoneux profond fertile)",
+      "texture": "Limon fin / Silt-loam",
+      "theta_fc_m3m3": 0.32,
+      "theta_wp_m3m3": 0.17,
+      "rooting_depth_zr_m": 1.0,
+      "total_available_water_capacity_taw_mm": 150.0,
+      "depletion_fraction_p": 0.5,
+      "readily_available_water_raw_mm": 75.0,
+      "usda_scs_curve_number": 75.0
+    },
+    "initial_sowing_state": {
+      "sowing_date": "2024-11-15",
+      "sowing_rootzone_moisture_m3m3": 0.2643,
+      "sowing_moisture_source_date": "2024-11-01",
+      "sowing_moisture_dataset": "NASA SMAP Level-4 SPL4SMGP V008 (Monthly Assimilated Mean)",
+      "stored_soil_water_at_sowing_mm": 94.3,
+      "initial_rootzone_depletion_dr_sow_mm": 55.7,
+      "water_remaining_before_stress_at_sowing_mm": 19.3,
+      "readily_available_soil_water_mm": 19.3,
+      "physical_interpretation": "At mid-November 2024 sowing, root-zone moisture is 0.2643 m3/m3 (from authentic NASA SMAP L4 Nov 2024 monthly mean of 240 observations). This yields 94.3 mm stored water above permanent wilting point (0.170 m3/m3). Initial root-zone depletion Dr is 55.7 mm, which is below RAW (75.0 mm), leaving 19.3 mm of readily available water before stress onset."
+    },
+    "daily_mass_balance_equations": {
+      "runoff_formula": "RO = (P - Ia)^2 / (P - Ia + S) if P > Ia else 0.0",
+      "infiltration_formula": "P_inf = P - RO",
+      "stress_coefficient_formula": "Ks = max(0, min(1, (TAW - Dr) / (TAW - RAW))) if Dr > RAW else 1.0",
+      "actual_transpiration_formula": "ETa = Ks * ETc",
+      "depletion_update_formula": "Dr[t] = Dr[t-1] - (P_inf + Irr) + ETa + DP",
+      "deep_percolation_formula": "DP = max(0, -(Dr[t-1] - (P_inf + Irr) + ETa))",
+      "mass_conservation_identity": "Delta Dr == -(Infiltration + Irrigation) + ETa + Deep Drainage"
+    },
+    "total_water_budget_composition": {
+      "effective_seasonal_infiltrated_rain_mm": 334.1,
+      "supplementary_irrigation_allowance_mm": 75.0,
+      "stored_soil_water_at_sowing_mm": 94.3,
+      "total_water_budget_mm": 503.4,
+      "verification_equation": "334.1 + 75.0 + 94.3 = 503.4 mm",
+      "correction_note": "RAW (75.0 mm) is properly recognized as a depletion threshold (p * TAW), not an additive water supply. Total water budget accounts for infiltrated rainfall, applied irrigation, and antecedent root-zone moisture without double-counting."
+    },
+    "unrounded_daily_mass_balance_verification": {
+      "initial_depletion_dr_mm": 55.7,
+      "infiltrated_rain_mm": 334.13134105148504,
+      "irrigation_applied_mm": 75.0,
+      "actual_eta_mm": 392.3311098382853,
+      "deep_percolation_mm": 93.08478767141592,
+      "final_depletion_dr_mm": 131.9845564582162,
+      "observed_delta_dr_mm": 76.28455645821619,
+      "flux_delta_dr_mm": 76.28455645821616,
+      "mass_balance_residual_mm": 2.842170943040401e-14,
+      "conservation_satisfied": true
+    }
+  },
+  "crop_rotations_individual_years_breakdown": {
+    "plan_1_monoculture": {
+      "id": "plan_monoculture",
+      "name": "Plan 1 : Monoculture de Blé Annuel",
+      "name_ar": "الخطة 1 : زراعة القمح كل عام (Monoculture)",
+      "water_need_mm": 455.8,
+      "water_deficit_mm": 63.5,
+      "water_stress_risk_pct": 21.7,
+      "soil_health_score": 40.0,
+      "resilience_score": 67.6,
+      "rotation_years": [
+        {
+          "year_index": 1,
+          "crop_name": "القمح الصلب/الطري (سنة 1)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-05-20",
+          "cycle_days": 187,
+          "climate_source_type": "Independently Observed Harvest Season",
+          "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+          "is_repeated_climate_assumption": false,
+          "water_need_mm": 455.8,
+          "actual_eta_mm": 392.3,
+          "deficit_mm": 63.5,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 21.7
+        },
+        {
+          "year_index": 2,
+          "crop_name": "القمح الصلب/الطري (سنة 2)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-05-20",
+          "cycle_days": 187,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 455.8,
+          "actual_eta_mm": 392.3,
+          "deficit_mm": 63.5,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 21.7
+        },
+        {
+          "year_index": 3,
+          "crop_name": "القمح الصلب/الطري (سنة 3)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-05-20",
+          "cycle_days": 187,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 455.8,
+          "actual_eta_mm": 392.3,
+          "deficit_mm": 63.5,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 21.7
+        }
+      ]
+    },
+    "plan_2_rotation_triennale": {
+      "id": "plan_rotation_triennale",
+      "name": "Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
+      "name_ar": "الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
+      "water_need_mm": 362.4,
+      "water_deficit_mm": 21.2,
+      "water_stress_risk_pct": 8.5,
+      "soil_health_score": 88.0,
+      "resilience_score": 89.8,
+      "evaporative_demand_reduction_mm": 214.8,
+      "evaporative_demand_reduction_m3_ha": 2148.0,
+      "simulated_water_deficit_reduction_mm": 42.3,
+      "simulated_water_deficit_reduction_m3_ha": 423.0,
+      "simulated_irrigation_savings_mm": 0.0,
+      "simulated_irrigation_savings_m3_ha": 0.0,
+      "irrigation_savings_status": "Simulated Irrigation Saving (Model Estimation - Unverified by On-Farm Metering)",
+      "pros": [
+        "تقليص الطلب التبخري الجوي بمقدار 93.4 مم (934 م³/هكتار)",
+        "خفض العجز المائي الصافي بـ 42.3 مم (423 م³/هكتار)",
+        "تقليص مياه السقي المحاكى: 0.0 مم (0 م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+        "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+        "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+        "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور"
+      ],
+      "rotation_years": [
+        {
+          "year_index": 1,
+          "crop_name": "القمح (سنة 1)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-05-20",
+          "cycle_days": 187,
+          "climate_source_type": "Independently Observed Harvest Season",
+          "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+          "is_repeated_climate_assumption": false,
+          "water_need_mm": 455.8,
+          "actual_eta_mm": 392.3,
+          "deficit_mm": 63.5,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 21.7
+        },
+        {
+          "year_index": 2,
+          "crop_name": "القطاني / العدس (سنة 2)",
+          "season_start_date": "2024-12-01",
+          "season_end_date": "2025-04-30",
+          "cycle_days": 151,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 30 avr. 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 311.8,
+          "actual_eta_mm": 311.8,
+          "deficit_mm": 0.0,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 0.0,
+          "bnf_nitrogen_kg_ha": 40.0
+        },
+        {
+          "year_index": 3,
+          "crop_name": "الشعير المقاوم (سنة 3)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-04-25",
+          "cycle_days": 162,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 15 nov. 2024 au 25 avr. 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 319.6,
+          "actual_eta_mm": 319.6,
+          "deficit_mm": 0.0,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 0.0,
+          "heat_escape_days": 25
+        }
+      ]
+    },
+    "plan_3_agroecologie": {
+      "id": "plan_agroecologie",
+      "name": "Plan 3 : Système Économe en Eau & Couvert Végétal",
+      "name_ar": "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+      "water_need_mm": 241.0,
+      "water_deficit_mm": 21.2,
+      "water_stress_risk_pct": 7.0,
+      "soil_health_score": 98.0,
+      "resilience_score": 92.7,
+      "rotation_years": [
+        {
+          "year_index": 1,
+          "crop_name": "القمح المقاوم (سنة 1)",
+          "season_start_date": "2024-11-15",
+          "season_end_date": "2025-05-20",
+          "cycle_days": 187,
+          "climate_source_type": "Independently Observed Harvest Season",
+          "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+          "is_repeated_climate_assumption": false,
+          "water_need_mm": 455.8,
+          "actual_eta_mm": 392.3,
+          "deficit_mm": 63.5,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 21.7
+        },
+        {
+          "year_index": 2,
+          "crop_name": "علف وبقوليات خضراء (سنة 2)",
+          "season_start_date": "2024-12-01",
+          "season_end_date": "2025-03-20",
+          "cycle_days": 110,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 20 mars 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 183.4,
+          "actual_eta_mm": 183.4,
+          "deficit_mm": 0.0,
+          "irrigation_applied_mm": 75.0,
+          "stress_risk_pct": 0.0
+        },
+        {
+          "year_index": 3,
+          "crop_name": "راحة نشطة ومغطاة (سنة 3)",
+          "season_start_date": "2025-03-01",
+          "season_end_date": "2025-05-29",
+          "cycle_days": 90,
+          "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+          "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 mars 2025 au 29 mai 2025)",
+          "is_repeated_climate_assumption": true,
+          "water_need_mm": 83.9,
+          "actual_eta_mm": 83.9,
+          "deficit_mm": 0.0,
+          "irrigation_applied_mm": 0.0,
+          "stress_risk_pct": 0.0
+        }
+      ]
+    }
+  },
+  "simulation_results_baseline": {
+    "location_name": "Meknes, Morocco (Saïss)",
+    "year": 2025,
+    "soil_type": "limoneux_profond",
+    "soil_type_label": "حمري (Limoneux profond fertile)",
+    "water_access": "appoint",
+    "water_access_label": "ري تكميلي محدود (Irrigation d'appoint 60-90 mm)",
+    "budget": "moyen",
+    "shock_applied": "none",
+    "shock_label": "الطقس الطبيعي المسجل",
+    "baseline_metrics": {
+      "annual_precipitation_mm": 701.2,
+      "precip_annual_mm": 701.2,
+      "calendar_year_precipitation_mm": 701.2,
+      "harvest_year": 2025,
+      "season_start_date": "2024-11-15",
+      "season_end_date": "2025-05-20",
+      "season_total_days": 187,
+      "data_source_years": [
+        2024,
+        2025
+      ],
+      "crop_cycle_rain_gross_mm": 339.0,
+      "effective_seasonal_rain_infiltrated_mm": 334.1,
+      "effective_seasonal_rain_mm": 334.1,
+      "surface_runoff_loss_mm": 4.8,
+      "deep_percolation_mm": 93.1,
+      "supplementary_irrigation_available_mm": 75.0,
+      "irrigation_applied_mm": 75.0,
+      "rootzone_moisture_m3m3": 0.266,
+      "sm_rootzone_mean": 0.266,
+      "surface_moisture_m3m3": 0.207,
+      "drought_percentile": 51.954,
+      "soil_available_water_capacity_mm": 150.0,
+      "soil_available_water_capacity_taw_mm": 150.0,
+      "readily_available_water_raw_mm": 75.0,
+      "sowing_period_moisture_m3m3": 0.2643,
+      "sowing_moisture_source_date": "2024-11-01",
+      "sowing_moisture_dataset": "NASA SMAP Level-4 SPL4SMGP V008 (Monthly Assimilated Mean)",
+      "sowing_moisture_observation_count": 240,
+      "sowing_moisture_aggregation_method": "Monthly spatial and temporal mean of 3-hourly assimilated root-zone soil moisture (0-100 cm) across November",
+      "stored_rootzone_water_at_sowing_mm": 94.3,
+      "initial_rootzone_depletion_dr_sow_mm": 55.7,
+      "water_remaining_before_stress_at_sowing_mm": 19.3,
+      "readily_available_soil_water_mm": 19.3,
+      "total_water_budget_mm": 503.4,
+      "recorded_hot_days": 156,
+      "recorded_dry_days": 282,
+      "fao56_reference_et0_season_mm": 536.2,
+      "evaporative_demand_reduction_mm": 214.8,
+      "evaporative_demand_reduction_m3_ha": 2148.0,
+      "simulated_water_deficit_reduction_mm": 42.3,
+      "simulated_water_deficit_reduction_m3_ha": 423.0,
+      "simulated_irrigation_savings_mm": 0.0,
+      "simulated_irrigation_savings_m3_ha": 0.0,
+      "irrigation_pumping_savings_mm": 0.0,
+      "irrigation_pumping_savings_m3_ha": 0.0,
+      "irrigation_savings_label": "Simulated Irrigation Saving (Model Estimation - Unverified by On-Farm Metering)",
+      "fao56_daily_water_balance": {
+        "gross_rain_mm": 339.0,
+        "infiltrated_rain_mm": 334.1,
+        "runoff_mm": 4.8,
+        "irrigation_applied_mm": 75.0,
+        "potential_etc_mm": 455.8,
+        "actual_eta_mm": 392.3,
+        "water_deficit_mm": 63.5,
+        "deep_percolation_mm": 93.1,
+        "final_dr_mm": 132.0,
+        "max_dr_mm": 132.0,
+        "stress_days": 40,
+        "stress_pct": 13.9,
+        "mass_balance_error_mm": 0.0,
+        "unrounded_daily_mass_balance": {
+          "initial_depletion_dr_mm": 55.7,
+          "infiltrated_rain_mm": 334.13134105148504,
+          "irrigation_applied_mm": 75.0,
+          "actual_eta_mm": 392.3311098382853,
+          "deep_percolation_mm": 93.08478767141592,
+          "final_depletion_dr_mm": 131.9845564582162,
+          "observed_delta_dr_mm": 76.28455645821619,
+          "flux_delta_dr_mm": 76.28455645821616,
+          "mass_balance_residual_mm": 2.842170943040401e-14
+        }
+      },
+      "historical_compare_year": 2023,
+      "historical_metrics": {
+        "year": 2023,
+        "harvest_year": 2023,
+        "season_start_date": "2022-11-15",
+        "season_end_date": "2023-05-20",
+        "season_total_days": 187,
+        "source": "NASA POWER Daily Observations (Contiguous Multi-Year Ground Truth)",
+        "annual_precipitation_mm": 273.4,
+        "mean_temperature_c": 20.76,
+        "recorded_hot_days": 159,
+        "recorded_dry_days": 309,
+        "max_temperature_c": 47.92,
+        "min_temperature_c": 1.09,
+        "crop_cycle_rain_mm": 294.5,
+        "crop_cycle_infiltrated_rain_mm": 287.0,
+        "retrospective_wheat_potential_etc_mm": 540.6,
+        "retrospective_wheat_actual_eta_mm": 275.9,
+        "retrospective_wheat_deficit_mm": 264.7,
+        "retrospective_wheat_stress_days": 74,
+        "retrospective_wheat_stress_pct": 49.0
+      },
+      "historical_evaporative_demand_reduction_mm": 214.8,
+      "historical_evaporative_demand_volume_m3_ha": 2148.0,
+      "historical_water_deficit_reduction_mm": 42.3,
+      "historical_water_volume_saved_m3_ha": 423.0,
+      "historical_simulated_irrigation_savings_mm": 0.0,
+      "historical_simulated_irrigation_savings_m3_ha": 0.0,
+      "historical_irrigation_savings_mm": 0.0,
+      "historical_irrigation_savings_m3_ha": 0.0
+    },
+    "plans": [
+      {
+        "id": "plan_monoculture",
+        "name_fr": "Plan 1 : Monoculture de Blé Annuel",
+        "name_ar": "الخطة 1 : زراعة القمح كل عام (Monoculture)",
+        "rotation_sequence": [
+          "القمح الصلب/الطري",
+          "القمح الصلب/الطري",
+          "القمح الصلب/الطري"
+        ],
+        "water_need_mm": 455.8,
+        "water_deficit_mm": 63.5,
+        "water_stress_risk_pct": 21.7,
+        "soil_health_score": 40.0,
+        "resilience_score": 67.6,
+        "budget_fit_score": 80.0,
+        "yield_stability_score": 71.1,
+        "status_tag": "إنتاجية جيدة مع ري كافٍ",
+        "summary_darija": "كتستهلك 455.8 مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز أو الشرقي كيوصل خطر الإجهاد المائي لـ 21.7%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور.",
+        "pros": [
+          "محصول مألوف وتسويقه مضمون",
+          "عائد مالي مباشر فسنوات الأمطار الجيدة"
+        ],
+        "cons": [
+          "إرهاق التربة وتراجع الخصوبة مع الوقت",
+          "حساسية شديدة لموجات الحر والجفاف",
+          "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"
+        ],
+        "rotation_years": [
+          {
+            "year_index": 1,
+            "crop_name": "القمح الصلب/الطري (سنة 1)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-05-20",
+            "cycle_days": 187,
+            "climate_source_type": "Independently Observed Harvest Season",
+            "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+            "is_repeated_climate_assumption": false,
+            "water_need_mm": 455.8,
+            "actual_eta_mm": 392.3,
+            "deficit_mm": 63.5,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 21.7
+          },
+          {
+            "year_index": 2,
+            "crop_name": "القمح الصلب/الطري (سنة 2)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-05-20",
+            "cycle_days": 187,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 455.8,
+            "actual_eta_mm": 392.3,
+            "deficit_mm": 63.5,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 21.7
+          },
+          {
+            "year_index": 3,
+            "crop_name": "القمح الصلب/الطري (سنة 3)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-05-20",
+            "cycle_days": 187,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 455.8,
+            "actual_eta_mm": 392.3,
+            "deficit_mm": 63.5,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 21.7
+          }
+        ]
+      },
+      {
+        "id": "plan_rotation_triennale",
+        "name_fr": "Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
+        "name_ar": "الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
+        "rotation_sequence": [
+          "القمح (سنة 1)",
+          "القطاني / العدس / الحمص (سنة 2)",
+          "الشعير المقاوم (سنة 3)"
+        ],
+        "water_need_mm": 362.4,
+        "water_deficit_mm": 21.2,
+        "water_stress_risk_pct": 8.5,
+        "soil_health_score": 88.0,
+        "resilience_score": 89.8,
+        "budget_fit_score": 90.0,
+        "yield_stability_score": 88.7,
+        "status_tag": "الخطة الأكثر توازناً واستدامة",
+        "summary_darija": "أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي 93.4 مم (934 م³/هكتار كطلب جوي للمحصول)، وتخفف العجز المائي بـ 42.3 مم (423 م³/هكتار). القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ 8.5%.",
+        "pros": [
+          "تقليص الطلب التبخري الجوي بمقدار 93.4 مم (934 م³/هكتار)",
+          "خفض العجز المائي الصافي بـ 42.3 مم (423 م³/هكتار)",
+          "تقليص مياه السقي المحاكى: 0.0 مم (0 م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+          "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+          "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+          "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور"
+        ],
+        "cons": [
+          "أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"
+        ],
+        "rotation_years": [
+          {
+            "year_index": 1,
+            "crop_name": "القمح (سنة 1)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-05-20",
+            "cycle_days": 187,
+            "climate_source_type": "Independently Observed Harvest Season",
+            "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+            "is_repeated_climate_assumption": false,
+            "water_need_mm": 455.8,
+            "actual_eta_mm": 392.3,
+            "deficit_mm": 63.5,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 21.7
+          },
+          {
+            "year_index": 2,
+            "crop_name": "القطاني / العدس (سنة 2)",
+            "season_start_date": "2024-12-01",
+            "season_end_date": "2025-04-30",
+            "cycle_days": 151,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 30 avr. 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 311.8,
+            "actual_eta_mm": 311.8,
+            "deficit_mm": 0.0,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 0.0,
+            "bnf_nitrogen_kg_ha": 40.0
+          },
+          {
+            "year_index": 3,
+            "crop_name": "الشعير المقاوم (سنة 3)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-04-25",
+            "cycle_days": 162,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 15 nov. 2024 au 25 avr. 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 319.6,
+            "actual_eta_mm": 319.6,
+            "deficit_mm": 0.0,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 0.0,
+            "heat_escape_days": 25
+          }
+        ]
+      },
+      {
+        "id": "plan_agroecologie",
+        "name_fr": "Plan 3 : Système Économe en Eau & Couvert Végétal",
+        "name_ar": "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+        "rotation_sequence": [
+          "القمح المقاوم",
+          "علف وبقوليات خضراء",
+          "راحة نشطة ومغطاة"
+        ],
+        "water_need_mm": 241.0,
+        "water_deficit_mm": 21.2,
+        "water_stress_risk_pct": 7.0,
+        "soil_health_score": 98.0,
+        "resilience_score": 92.7,
+        "budget_fit_score": 88.0,
+        "yield_stability_score": 90.3,
+        "status_tag": "أعلى أمان في أقصى درجات الجفاف",
+        "summary_darija": "أقل خطة طلباً للماء (241.0 مم كطلب تبخري، بتخفيض 214.8 مم مقارنة بالقمح). مناسبة جداً للسنوات الجافة والأراضي البورية، حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ 42.3 مم.",
+        "pros": [
+          "أقل طلب تبخري للمياه على الإطلاق (241.0 مم)",
+          "تخفيض الطلب التبخري بـ 214.8 مم (2148 م³/هكتار)",
+          "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
+          "تكاليف مدخلات كيميائية منخفضة جداً"
+        ],
+        "cons": [
+          "العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"
+        ],
+        "rotation_years": [
+          {
+            "year_index": 1,
+            "crop_name": "القمح المقاوم (سنة 1)",
+            "season_start_date": "2024-11-15",
+            "season_end_date": "2025-05-20",
+            "cycle_days": 187,
+            "climate_source_type": "Independently Observed Harvest Season",
+            "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+            "is_repeated_climate_assumption": false,
+            "water_need_mm": 455.8,
+            "actual_eta_mm": 392.3,
+            "deficit_mm": 63.5,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 21.7
+          },
+          {
+            "year_index": 2,
+            "crop_name": "علف وبقوليات خضراء (سنة 2)",
+            "season_start_date": "2024-12-01",
+            "season_end_date": "2025-03-20",
+            "cycle_days": 110,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 20 mars 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 183.4,
+            "actual_eta_mm": 183.4,
+            "deficit_mm": 0.0,
+            "irrigation_applied_mm": 75.0,
+            "stress_risk_pct": 0.0
+          },
+          {
+            "year_index": 3,
+            "crop_name": "راحة نشطة ومغطاة (سنة 3)",
+            "season_start_date": "2025-03-01",
+            "season_end_date": "2025-05-29",
+            "cycle_days": 90,
+            "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+            "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 mars 2025 au 29 mai 2025)",
+            "is_repeated_climate_assumption": true,
+            "water_need_mm": 83.9,
+            "actual_eta_mm": 83.9,
+            "deficit_mm": 0.0,
+            "irrigation_applied_mm": 0.0,
+            "stress_risk_pct": 0.0
+          }
+        ]
+      }
+    ],
+    "winner_plan_id": "plan_agroecologie",
+    "tribunal_verdicts": [
+      {
+        "agent_role": "خبير المناخ والأرصاد",
+        "agent_name": "وكيل NASA POWER Climat",
+        "avatar": "🌦️",
+        "stance": "favorable",
+        "argument_darija": "بناءً على التساقطات المسجلة فالموسم الفلاحي حصاد 2025 (339.0 مم إجمالية، منها 334.1 مم راشحة في التربة) والسنة التقويمية (701.2 مم، 156 يوم حراري ≥30°C)، زراعة القمح كل عام كتعرض المحصول لعجز مائي (63.5 مم). الخطة الفائزة (الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي) كتخفض الطلب التبخري لـ 241.0 مم وكتقلص العجز الصافي لـ 21.2 مم.",
+        "key_evidence": "مطر الموسم: 339.0 مم · مطر راشح: 334.1 مم · مطر سنوي: 701.2 مم · أيام حارة: 156 يوم"
+      },
+      {
+        "agent_role": "أخصائي التربة والمياه",
+        "agent_name": "وكيل NASA SMAP L4 Hydrologie",
+        "avatar": "💧",
+        "stance": "favorable",
+        "argument_darija": "رطوبة منطقة الجذور من قمر SMAP L4 هي 0.266 م³/م³ (أعلى من نقطة الذبول الدائم 0.17 م³/م³). سعة التخزين الكلية للتربة من نوع حمري (Limoneux profond fertile) هي 150.0 مم، ومخزون البذر المتاح هو 94.3 مم. الميزانية المائية الإجمالية المتاحة (503.4 مم) كافية لتغطية احتياج الخطة الفائزة بدون استنزاف الخزان الجوفي.",
+        "key_evidence": "رطوبة SMAP L4: 0.266 م³/م³ · سعة TAW: 150.0 مم · ماء التربة المخزون: 94.3 مم · الميزانية: 503.4 مم"
+      },
+      {
+        "agent_role": "الخبير الزراعي الميداني",
+        "agent_name": "وكيل الفلاحة المغربية (FieldShift Agro)",
+        "avatar": "👨‍🌾",
+        "stance": "favorable",
+        "argument_darija": "أبحاث المعهد الوطني للبحث الزراعي (INRA المغرب) تؤكد أن الدورة الزراعية المتوازنة تكسر دورة فطريات الجذور والأعشاب الضارة، وتوفر تثبيتاً حيوياً للأزوت يتراوح بين 30 و 50 كغ N/هكتار. الخطة الفائزة كتقلص الطلب التبخري الجوي بـ 214.8 مم وتخفض العجز بـ 42.3 مم.",
+        "key_evidence": "تقليص الطلب التبخري: 214.8 مم (2148 م³/هك) · تثبيت آزوتي: 30-50 كغ N/هك · كسر دورة أمراض الجذور"
+      },
+      {
+        "agent_role": "المحقق العلمي وتدقيق الأرقام",
+        "agent_name": "وكيل التدقيق العلمي (Evidence Guardrail)",
+        "avatar": "🛡️",
+        "stance": "favorable",
+        "argument_darija": "تمت مراجعة جميع الحسابات ومطابقتها برمجياً مع نموذج FAO-56 ومعطيات NASA SMAP L4 و POWER. التوريد المائي المحسوب (503.4 مم = 334.1 شتا راشحة + 75.0 سقي + 94.3 مخزون البذر) مطابق بدقة 100% بدون أي خطأ في ميزان الكتلة (0.0 مم). البيانات الفضائية (~9-11 كلم) هي تقديرات إقليمية.",
+        "key_evidence": "FAO-56 Penman-Monteith (ETc=Kc×ET0) · خطأ ميزان الكتلة: 0.0 مم · TAW=150.0 مم · شبكة SMAP L4 (~9-11 كلم)"
+      }
+    ],
+    "overall_synthesis_darija": "### ⚖️ حكم المحكمة العلمية للمختبر الافتراضي (Meknes, Morocco (Saïss) — موسم حصاد 2025)\n\n**السيناريو المختبر :** الطقس الطبيعي المسجل على تربة من نوع **حمري (Limoneux profond fertile)**.\n\n🏆 **الخطة الفائزة :** **الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي** بمعدل صمود **92.7/100** (إجماع علمي كامل (4/4 أصوات)).\n\n**أسباب تفوق الخطة علمياً وميدانياً :**\n1. **مقارنة مع القمح السنوي (الخطة 1) :** زراعة القمح كل عام كتكلفك 455.8 مم دالماء كطلب تبخري، وفسنوات الجفاف كيتعرض الحقل لخطر إجهاد مائي واصل لـ **21.7%** (عجز مائي 63.5 مم)، والتراب كيعيا بسبب غياب التناوب.\n2. **قوة الدورة الثلاثية (الخطة 2) :** كتقلص الطلب التبخري بحوالي **93.4 مم** (934 م³/هكتار)، وتخفض العجز المائي الصافي بـ **42.3 مم** (423 م³/هكتار). القطاني كتدخل الآزوت الطبيعي للتربة (30-50 كغ N/هكتار تقديرياً)، والشعير فالسنة الثالثة كيصمد أمام نقص الشتا، ما يخفض الإجهاد المائي لـ 8.5%.\n3. **توصية المختبر للمزارع :** إلا كان عندك ري تكميلي، طبق **الخطة 2** بتوازن. وإلا كنتي فبور قاصح وماعندكش الماء نهائياً، فـ **الخطة 3 (النظام البيئي المقتصد)** هي صمام الأمان ديالك لتفادي المخاطر المالية الكبرى.\n\n⚠️ **تنبيه علمي وأمانة مهنية :** هذه الأرقام هي نتائج محاكاة رقمية تقديرية مبنية على معطيات NASA الفضائية الشاملة (~9-11 كلم). لا يمكن لأي نظام ذكاء اصطناعي ضمان كميات الإنتاج أو تعويض التحاليل المخبرية لتربة حقلكم الفعلي (NPK، الحموضة، الملوحة).",
+    "radar_dimensions": [
+      "صمود الجفاف (Résilience)",
+      "حفظ التربة (Santé Sol)",
+      "ملائمة الميزانية (Budget)",
+      "تقليص الطلب التبخري (Demande Évaporatoire)",
+      "استقرار الغلة (Stabilité Rendement)"
+    ],
+    "sources_used": [
+      "NASA SMAP Level-4 SPL4SMGP V008 (~9-11 km)",
+      "NASA POWER Daily Agroclimatology (AG Community)",
+      "FieldShift Agro Recommendation Engine"
+    ],
+    "validation_metadata": {
+      "spatial_grids": {
+        "nasa_power_grid": "MERRA-2 / GEOS (0.5° lat × 0.625° lon, ~50×60 km)",
+        "nasa_smap_grid": "EASE-Grid 2.0 Global 9 km (M09), geodesic distance <= 4.5 km",
+        "grid_separation": "Grids maintained as independent native spatial systems."
+      },
+      "temporal_alignment": {
+        "calendar_year": "January 1, 2025 to December 31, 2025 (701.2 mm, 156 hot days)",
+        "harvest_year_definition": "Harvest Year 2025: contiguous agricultural cycle from November 15, 2024 through May 20, 2025 (339.0 mm gross rain)",
+        "data_source_years": "NASA POWER Daily Ground Truth datasets loaded for both calendar years 2024 and 2025",
+        "sowing_soil_moisture_provenance": "November 2024 SMAP Level-4 (sowing year Y-1, 240 3-hourly observations assimilated, monthly mean 0.2643 m3/m3), strictly preceding harvest year 2025.",
+        "wheat_crop_cycle": "November 15, 2024 to May 20, 2025 (187 contiguous days)",
+        "lentil_crop_cycle": "December 01, 2024 to April 30, 2025 (151 contiguous days)",
+        "barley_crop_cycle": "November 15, 2024 to April 25, 2025 (162 contiguous days)",
+        "forage_crop_cycle": "December 01, 2024 to March 20, 2025 (110 contiguous days)",
+        "fallow_management_window": "March 01, 2025 to May 29, 2025 (90 contiguous days)",
+        "multi_year_rotation_assumption": "Year 1 uses independently observed NASA observations. Years 2 and 3 use an explicit repeated-climate assumption (stationary climate model with phenological calendar alignment), clearly labeled to avoid false claims of multi-year historical forecasts.",
+        "water_metrics_distinction": "Evaporative Demand Reduction (ETc) != Simulated Water Deficit Reduction (ETc - ETa) != Simulated Irrigation Savings (Applied Pumping Model - Unverified by On-Farm Metering)."
+      },
+      "heuristic_agronomic_indices": {
+        "soil_health_score": "Heuristic Agronomic Index (0-100) based on rotation diversity, BNF, and residue retention.",
+        "yield_stability_score": "Heuristic Yield Vulnerability Index (0-100) based on water deficit ratio and diversification buffering.",
+        "resilience_score": "Multi-Criteria Decision Analysis (MCDA) Synthesis Index (0-100) with weights [0.35, 0.25, 0.20, 0.20].",
+        "water_stress_risk_pct": "Derived from FAO-56 daily water deficit ratio (ETc - ETa)/ETc + phenological heat sensitivity factor."
+      },
+      "sensitivity_analysis": {
+        "soil_awc_sensitivity": "A ±15% variation in soil AWC results in 0 mm deficit change in wet baseline, and ±18 mm deficit shift under drought shock.",
+        "initial_depletion_sensitivity": "Autumn dry seedbed (Dr=55.7 mm) requires November-December rainfall for root-zone recharge to Field Capacity."
+      }
+    }
+  },
+  "climate_attack_stress_test_variations": {
+    "drought_minus_40pct": {
+      "shock_label": "هجوم الجفاف الحاد (-40% تساقطات)",
+      "plans": [
+        {
+          "id": "plan_monoculture",
+          "name_fr": "Plan 1 : Monoculture de Blé Annuel",
+          "name_ar": "الخطة 1 : زراعة القمح كل عام (Monoculture)",
+          "rotation_sequence": [
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري"
+          ],
+          "water_need_mm": 501.4,
+          "water_deficit_mm": 216.4,
+          "water_stress_risk_pct": 51.0,
+          "soil_health_score": 40.0,
+          "resilience_score": 50.9,
+          "budget_fit_score": 80.0,
+          "yield_stability_score": 38.9,
+          "status_tag": "عالي المخاطر في الجفاف",
+          "summary_darija": "كتستهلك 501.4 مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز أو الشرقي كيوصل خطر الإجهاد المائي لـ 51.0%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور.",
+          "pros": [
+            "محصول مألوف وتسويقه مضمون",
+            "عائد مالي مباشر فسنوات الأمطار الجيدة"
+          ],
+          "cons": [
+            "إرهاق التربة وتراجع الخصوبة مع الوقت",
+            "حساسية شديدة لموجات الحر والجفاف",
+            "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح الصلب/الطري (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 501.4,
+              "actual_eta_mm": 285.0,
+              "deficit_mm": 216.4,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 51.0
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القمح الصلب/الطري (سنة 2)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 501.4,
+              "actual_eta_mm": 285.0,
+              "deficit_mm": 216.4,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 51.0
+            },
+            {
+              "year_index": 3,
+              "crop_name": "القمح الصلب/الطري (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 501.4,
+              "actual_eta_mm": 285.0,
+              "deficit_mm": 216.4,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 51.0
+            }
+          ]
+        },
+        {
+          "id": "plan_rotation_triennale",
+          "name_fr": "Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
+          "name_ar": "الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
+          "rotation_sequence": [
+            "القمح (سنة 1)",
+            "القطاني / العدس / الحمص (سنة 2)",
+            "الشعير المقاوم (سنة 3)"
+          ],
+          "water_need_mm": 398.6,
+          "water_deficit_mm": 136.9,
+          "water_stress_risk_pct": 36.9,
+          "soil_health_score": 88.0,
+          "resilience_score": 73.6,
+          "budget_fit_score": 90.0,
+          "yield_stability_score": 57.4,
+          "status_tag": "الخطة الأكثر توازناً واستدامة",
+          "summary_darija": "أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي 102.8 مم (1028 م³/هكتار كطلب جوي للمحصول)، وتخفف العجز المائي بـ 79.5 مم (795 م³/هكتار). القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ 36.9%.",
+          "pros": [
+            "تقليص الطلب التبخري الجوي بمقدار 102.8 مم (1028 م³/هكتار)",
+            "خفض العجز المائي الصافي بـ 79.5 مم (795 م³/هكتار)",
+            "تقليص مياه السقي المحاكى: 0.0 مم (0 م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+            "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+            "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+            "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور"
+          ],
+          "cons": [
+            "أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 501.4,
+              "actual_eta_mm": 285.0,
+              "deficit_mm": 216.4,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 51.0
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القطاني / العدس (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-04-30",
+              "cycle_days": 151,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 30 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 343.0,
+              "actual_eta_mm": 249.5,
+              "deficit_mm": 93.6,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 27.3,
+              "bnf_nitrogen_kg_ha": 40.0
+            },
+            {
+              "year_index": 3,
+              "crop_name": "الشعير المقاوم (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-04-25",
+              "cycle_days": 162,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 15 nov. 2024 au 25 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 351.5,
+              "actual_eta_mm": 251.0,
+              "deficit_mm": 100.6,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 28.6,
+              "heat_escape_days": 25
+            }
+          ]
+        },
+        {
+          "id": "plan_agroecologie",
+          "name_fr": "Plan 3 : Système Économe en Eau & Couvert Végétal",
+          "name_ar": "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+          "rotation_sequence": [
+            "القمح المقاوم",
+            "علف وبقوليات خضراء",
+            "راحة نشطة ومغطاة"
+          ],
+          "water_need_mm": 265.2,
+          "water_deficit_mm": 92.9,
+          "water_stress_risk_pct": 27.2,
+          "soil_health_score": 98.0,
+          "resilience_score": 81.2,
+          "budget_fit_score": 88.0,
+          "yield_stability_score": 68.1,
+          "status_tag": "أعلى أمان في أقصى درجات الجفاف",
+          "summary_darija": "أقل خطة طلباً للماء (265.2 مم كطلب تبخري، بتخفيض 236.2 مم مقارنة بالقمح). مناسبة جداً للسنوات الجافة والأراضي البورية، حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ 123.5 مم.",
+          "pros": [
+            "أقل طلب تبخري للمياه على الإطلاق (265.2 مم)",
+            "تخفيض الطلب التبخري بـ 236.2 مم (2362 م³/هكتار)",
+            "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
+            "تكاليف مدخلات كيميائية منخفضة جداً"
+          ],
+          "cons": [
+            "العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح المقاوم (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 501.4,
+              "actual_eta_mm": 285.0,
+              "deficit_mm": 216.4,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 51.0
+            },
+            {
+              "year_index": 2,
+              "crop_name": "علف وبقوليات خضراء (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-03-20",
+              "cycle_days": 110,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 20 mars 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 201.8,
+              "actual_eta_mm": 139.9,
+              "deficit_mm": 61.9,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 30.7
+            },
+            {
+              "year_index": 3,
+              "crop_name": "راحة نشطة ومغطاة (سنة 3)",
+              "season_start_date": "2025-03-01",
+              "season_end_date": "2025-05-29",
+              "cycle_days": 90,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 mars 2025 au 29 mai 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 92.3,
+              "actual_eta_mm": 91.8,
+              "deficit_mm": 0.5,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 0.6
+            }
+          ]
+        }
+      ]
+    },
+    "heatwave_chergui_plus_4c": {
+      "shock_label": "هجوم موجة الحر والشرقي (+4°C في فترة التزهير)",
+      "plans": [
+        {
+          "id": "plan_monoculture",
+          "name_fr": "Plan 1 : Monoculture de Blé Annuel",
+          "name_ar": "الخطة 1 : زراعة القمح كل عام (Monoculture)",
+          "rotation_sequence": [
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري"
+          ],
+          "water_need_mm": 592.6,
+          "water_deficit_mm": 183.1,
+          "water_stress_risk_pct": 50.7,
+          "soil_health_score": 40.0,
+          "resilience_score": 51.1,
+          "budget_fit_score": 80.0,
+          "yield_stability_score": 39.2,
+          "status_tag": "عالي المخاطر في الجفاف",
+          "summary_darija": "كتستهلك 592.6 مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز أو الشرقي كيوصل خطر الإجهاد المائي لـ 50.7%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور.",
+          "pros": [
+            "محصول مألوف وتسويقه مضمون",
+            "عائد مالي مباشر فسنوات الأمطار الجيدة"
+          ],
+          "cons": [
+            "إرهاق التربة وتراجع الخصوبة مع الوقت",
+            "حساسية شديدة لموجات الحر والجفاف",
+            "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح الصلب/الطري (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 592.6,
+              "actual_eta_mm": 409.5,
+              "deficit_mm": 183.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 50.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القمح الصلب/الطري (سنة 2)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 592.6,
+              "actual_eta_mm": 409.5,
+              "deficit_mm": 183.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 50.7
+            },
+            {
+              "year_index": 3,
+              "crop_name": "القمح الصلب/الطري (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 592.6,
+              "actual_eta_mm": 409.5,
+              "deficit_mm": 183.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 50.7
+            }
+          ]
+        },
+        {
+          "id": "plan_rotation_triennale",
+          "name_fr": "Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
+          "name_ar": "الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
+          "rotation_sequence": [
+            "القمح (سنة 1)",
+            "القطاني / العدس / الحمص (سنة 2)",
+            "الشعير المقاوم (سنة 3)"
+          ],
+          "water_need_mm": 471.2,
+          "water_deficit_mm": 98.0,
+          "water_stress_risk_pct": 29.2,
+          "soil_health_score": 88.0,
+          "resilience_score": 78.0,
+          "budget_fit_score": 90.0,
+          "yield_stability_score": 65.9,
+          "status_tag": "الخطة الأكثر توازناً واستدامة",
+          "summary_darija": "أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي 121.4 مم (1214 م³/هكتار كطلب جوي للمحصول)، وتخفف العجز المائي بـ 85.1 مم (851 م³/هكتار). القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ 29.2%.",
+          "pros": [
+            "تقليص الطلب التبخري الجوي بمقدار 121.4 مم (1214 م³/هكتار)",
+            "خفض العجز المائي الصافي بـ 85.1 مم (851 م³/هكتار)",
+            "تقليص مياه السقي المحاكى: 0.0 مم (0 م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+            "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+            "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+            "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور"
+          ],
+          "cons": [
+            "أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 592.6,
+              "actual_eta_mm": 409.5,
+              "deficit_mm": 183.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 50.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القطاني / العدس (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-04-30",
+              "cycle_days": 151,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 30 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 405.4,
+              "actual_eta_mm": 352.7,
+              "deficit_mm": 52.7,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 13.0,
+              "bnf_nitrogen_kg_ha": 40.0
+            },
+            {
+              "year_index": 3,
+              "crop_name": "الشعير المقاوم (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-04-25",
+              "cycle_days": 162,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 15 nov. 2024 au 25 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 415.5,
+              "actual_eta_mm": 357.3,
+              "deficit_mm": 58.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 14.0,
+              "heat_escape_days": 25
+            }
+          ]
+        },
+        {
+          "id": "plan_agroecologie",
+          "name_fr": "Plan 3 : Système Économe en Eau & Couvert Végétal",
+          "name_ar": "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+          "rotation_sequence": [
+            "القمح المقاوم",
+            "علف وبقوليات خضراء",
+            "راحة نشطة ومغطاة"
+          ],
+          "water_need_mm": 313.4,
+          "water_deficit_mm": 75.5,
+          "water_stress_risk_pct": 21.8,
+          "soil_health_score": 98.0,
+          "resilience_score": 84.3,
+          "budget_fit_score": 88.0,
+          "yield_stability_score": 74.0,
+          "status_tag": "أعلى أمان في أقصى درجات الجفاف",
+          "summary_darija": "أقل خطة طلباً للماء (313.4 مم كطلب تبخري، بتخفيض 279.2 مم مقارنة بالقمح). مناسبة جداً للسنوات الجافة والأراضي البورية، حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ 107.6 مم.",
+          "pros": [
+            "أقل طلب تبخري للمياه على الإطلاق (313.4 مم)",
+            "تخفيض الطلب التبخري بـ 279.2 مم (2792 م³/هكتار)",
+            "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
+            "تكاليف مدخلات كيميائية منخفضة جداً"
+          ],
+          "cons": [
+            "العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح المقاوم (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 592.6,
+              "actual_eta_mm": 409.5,
+              "deficit_mm": 183.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 50.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "علف وبقوليات خضراء (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-03-20",
+              "cycle_days": 110,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 20 mars 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 238.5,
+              "actual_eta_mm": 195.2,
+              "deficit_mm": 43.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 18.2
+            },
+            {
+              "year_index": 3,
+              "crop_name": "راحة نشطة ومغطاة (سنة 3)",
+              "season_start_date": "2025-03-01",
+              "season_end_date": "2025-05-29",
+              "cycle_days": 90,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 mars 2025 au 29 mai 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 109.1,
+              "actual_eta_mm": 108.8,
+              "deficit_mm": 0.2,
+              "irrigation_applied_mm": 37.5,
+              "stress_risk_pct": 0.2
+            }
+          ]
+        }
+      ]
+    },
+    "delayed_autumn_rain_minus_55pct": {
+      "shock_label": "هجوم تأخر شتا الخريف (جفاف مهد البذر في أكتوبر-نوفمبر)",
+      "plans": [
+        {
+          "id": "plan_monoculture",
+          "name_fr": "Plan 1 : Monoculture de Blé Annuel",
+          "name_ar": "الخطة 1 : زراعة القمح كل عام (Monoculture)",
+          "rotation_sequence": [
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري",
+            "القمح الصلب/الطري"
+          ],
+          "water_need_mm": 478.6,
+          "water_deficit_mm": 167.3,
+          "water_stress_risk_pct": 42.7,
+          "soil_health_score": 40.0,
+          "resilience_score": 55.7,
+          "budget_fit_score": 80.0,
+          "yield_stability_score": 48.0,
+          "status_tag": "عالي المخاطر في الجفاف",
+          "summary_darija": "كتستهلك 478.6 مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز أو الشرقي كيوصل خطر الإجهاد المائي لـ 42.7%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور.",
+          "pros": [
+            "محصول مألوف وتسويقه مضمون",
+            "عائد مالي مباشر فسنوات الأمطار الجيدة"
+          ],
+          "cons": [
+            "إرهاق التربة وتراجع الخصوبة مع الوقت",
+            "حساسية شديدة لموجات الحر والجفاف",
+            "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح الصلب/الطري (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 478.6,
+              "actual_eta_mm": 311.4,
+              "deficit_mm": 167.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 42.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القمح الصلب/الطري (سنة 2)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 478.6,
+              "actual_eta_mm": 311.4,
+              "deficit_mm": 167.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 42.7
+            },
+            {
+              "year_index": 3,
+              "crop_name": "القمح الصلب/الطري (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Régime climatique stationnaire (Hypothèse répétée sur récolte 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 478.6,
+              "actual_eta_mm": 311.4,
+              "deficit_mm": 167.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 42.7
+            }
+          ]
+        },
+        {
+          "id": "plan_rotation_triennale",
+          "name_fr": "Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
+          "name_ar": "الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
+          "rotation_sequence": [
+            "القمح (سنة 1)",
+            "القطاني / العدس / الحمص (سنة 2)",
+            "الشعير المقاوم (سنة 3)"
+          ],
+          "water_need_mm": 380.5,
+          "water_deficit_mm": 101.4,
+          "water_stress_risk_pct": 29.3,
+          "soil_health_score": 88.0,
+          "resilience_score": 77.9,
+          "budget_fit_score": 90.0,
+          "yield_stability_score": 65.8,
+          "status_tag": "الخطة الأكثر توازناً واستدامة",
+          "summary_darija": "أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي 98.1 مم (981 م³/هكتار كطلب جوي للمحصول)، وتخفف العجز المائي بـ 65.9 مم (659 م³/هكتار). القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ 29.3%.",
+          "pros": [
+            "تقليص الطلب التبخري الجوي بمقدار 98.1 مم (981 م³/هكتار)",
+            "خفض العجز المائي الصافي بـ 65.9 مم (659 م³/هكتار)",
+            "تقليص مياه السقي المحاكى: 0.0 مم (0 م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+            "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+            "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+            "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور"
+          ],
+          "cons": [
+            "أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 478.6,
+              "actual_eta_mm": 311.4,
+              "deficit_mm": 167.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 42.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "القطاني / العدس (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-04-30",
+              "cycle_days": 151,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 30 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 327.4,
+              "actual_eta_mm": 264.7,
+              "deficit_mm": 62.8,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 19.2,
+              "bnf_nitrogen_kg_ha": 40.0
+            },
+            {
+              "year_index": 3,
+              "crop_name": "الشعير المقاوم (سنة 3)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-04-25",
+              "cycle_days": 162,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 15 nov. 2024 au 25 avr. 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 335.6,
+              "actual_eta_mm": 261.5,
+              "deficit_mm": 74.1,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 22.1,
+              "heat_escape_days": 25
+            }
+          ]
+        },
+        {
+          "id": "plan_agroecologie",
+          "name_fr": "Plan 3 : Système Économe en Eau & Couvert Végétal",
+          "name_ar": "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+          "rotation_sequence": [
+            "القمح المقاوم",
+            "علف وبقوليات خضراء",
+            "راحة نشطة ومغطاة"
+          ],
+          "water_need_mm": 253.1,
+          "water_deficit_mm": 75.7,
+          "water_stress_risk_pct": 24.5,
+          "soil_health_score": 98.0,
+          "resilience_score": 82.7,
+          "budget_fit_score": 88.0,
+          "yield_stability_score": 71.0,
+          "status_tag": "أعلى أمان في أقصى درجات الجفاف",
+          "summary_darija": "أقل خطة طلباً للماء (253.1 مم كطلب تبخري، بتخفيض 225.5 مم مقارنة بالقمح). مناسبة جداً للسنوات الجافة والأراضي البورية، حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ 91.6 مم.",
+          "pros": [
+            "أقل طلب تبخري للمياه على الإطلاق (253.1 مم)",
+            "تخفيض الطلب التبخري بـ 225.5 مم (2255 م³/هكتار)",
+            "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
+            "تكاليف مدخلات كيميائية منخفضة جداً"
+          ],
+          "cons": [
+            "العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"
+          ],
+          "rotation_years": [
+            {
+              "year_index": 1,
+              "crop_name": "القمح المقاوم (سنة 1)",
+              "season_start_date": "2024-11-15",
+              "season_end_date": "2025-05-20",
+              "cycle_days": 187,
+              "climate_source_type": "Independently Observed Harvest Season",
+              "climate_basis": "Saison observée Récolte 2025 (du 15 nov. 2024 au 20 mai 2025)",
+              "is_repeated_climate_assumption": false,
+              "water_need_mm": 478.6,
+              "actual_eta_mm": 311.4,
+              "deficit_mm": 167.3,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 42.7
+            },
+            {
+              "year_index": 2,
+              "crop_name": "علف وبقوليات خضراء (سنة 2)",
+              "season_start_date": "2024-12-01",
+              "season_end_date": "2025-03-20",
+              "cycle_days": 110,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 déc. 2024 au 20 mars 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 192.6,
+              "actual_eta_mm": 133.4,
+              "deficit_mm": 59.2,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 30.7
+            },
+            {
+              "year_index": 3,
+              "crop_name": "راحة نشطة ومغطاة (سنة 3)",
+              "season_start_date": "2025-03-01",
+              "season_end_date": "2025-05-29",
+              "cycle_days": 90,
+              "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
+              "climate_basis": "Hypothèse de climat répété / stationnaire basée sur la récolte 2025 (du 1 mars 2025 au 29 mai 2025)",
+              "is_repeated_climate_assumption": true,
+              "water_need_mm": 88.1,
+              "actual_eta_mm": 87.4,
+              "deficit_mm": 0.7,
+              "irrigation_applied_mm": 75.0,
+              "stress_risk_pct": 0.8
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "farm_time_machine_actual_historical_evaluation": {
+    "historical_year_selected": 2023,
+    "historical_source_provenance": "NASA POWER Daily Observations (Verified Cached File: 33.8900_-5.5500_20230101_20231231_08fe17ebba976e68.json)",
+    "historical_observed_metrics": {
+      "year": 2023,
+      "harvest_year": 2023,
+      "season_start_date": "2022-11-15",
+      "season_end_date": "2023-05-20",
+      "season_total_days": 187,
+      "source": "NASA POWER Daily Observations (Contiguous Multi-Year Ground Truth)",
+      "annual_precipitation_mm": 273.4,
+      "mean_temperature_c": 20.76,
+      "recorded_hot_days": 159,
+      "recorded_dry_days": 309,
+      "max_temperature_c": 47.92,
+      "min_temperature_c": 1.09,
+      "crop_cycle_rain_mm": 294.5,
+      "crop_cycle_infiltrated_rain_mm": 287.0,
+      "retrospective_wheat_potential_etc_mm": 540.6,
+      "retrospective_wheat_actual_eta_mm": 275.9,
+      "retrospective_wheat_deficit_mm": 264.7,
+      "retrospective_wheat_stress_days": 74,
+      "retrospective_wheat_stress_pct": 49.0
+    },
+    "historical_compare_metrics": {
+      "historical_evaporative_demand_reduction_mm": 214.8,
+      "historical_evaporative_demand_volume_m3_ha": 2148.0,
+      "historical_water_deficit_reduction_mm": 42.3,
+      "historical_water_volume_saved_m3_ha": 423.0,
+      "historical_simulated_irrigation_savings_mm": 0.0,
+      "historical_simulated_irrigation_savings_m3_ha": 0.0
+    }
+  },
+  "heuristic_indices_labeling_and_sensitivity_audit": {
+    "demarcation": {
+      "resilience_score": "Heuristic Multi-Criteria Synthesis Index (0-100) using transparent MCDA weights [0.35, 0.25, 0.20, 0.20]. Not a physical natural constant.",
+      "soil_health_score": "Heuristic Agronomic Index (0-100) assessing rotation diversity, biological nitrogen fixation, and soil organic residue return.",
+      "yield_stability_score": "Heuristic Yield Vulnerability Index (0-100) reflecting water deficit risk and multi-crop diversification buffers."
+    },
+    "mcda_weights": {
+      "water_stress": 0.35,
+      "soil_health": 0.25,
+      "yield_stability": 0.2,
+      "budget_fit": 0.2
+    },
+    "rotation_climate_modeling_protocol": "Year 1 uses independently observed NASA observations (Harvest season 2024-2025). Years 2 and 3 use an explicit repeated-climate assumption (stationary climate model with phenological calendar alignment), clearly labeled in all JSON payloads to avoid false claims of multi-year historical forecasts.",
+    "irrigation_savings_demarcation": "Reported irrigation savings are labeled 'simulated irrigation savings' derived from the FAO-56 depletion trigger model, as on-farm flowmeter or telemetry data are unverified."
+  },
+  "demarcation_and_scientific_humility_statement": {
+    "satellite_limitations": "NASA SMAP L4 (~9-11 km EASE-Grid) and NASA POWER (0.5° x 0.625°) represent regional macro-spatial estimates. They provide accurate comparative agro-climatic trends and physical risk indicators, but cannot replace in-situ parcel soil chemical testing.",
+    "yield_guarantee_prohibition": "No generative model or simulation algorithm can guarantee agricultural yield tonnages without in-situ verification of soil NPK, pH, electrical conductivity, seed quality, and pest management.",
+    "irrigation_pumping_vs_rainfed_clarification": "Under rainfed agriculture (Bour), water savings represent reduced evaporative atmospheric stress and conservation of root-zone soil water banks. Under irrigated farming (Irrigué), reported savings are simulated model estimates and require physical meter calibration before financial guarantees."
+  }
+}

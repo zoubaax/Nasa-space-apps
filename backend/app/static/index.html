@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FIELDShift AI — NASA SMAP & Climate Scientific Explorer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛰️</text></svg>">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js: Local first with CDN fallback for zero-latency & offline resilience -->
+  <script src="/static/chart.umd.min.js"></script>
+  <script>if (typeof Chart === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"><\/script>');</script>
+</head>
+<body>
+
+  <!-- Top Global Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-badge">FIELDShift AI</div>
+      <div class="brand-title">
+        <h1>NASA SMAP L4 & Climate Scientific Explorer</h1>
+        <p class="subtitle">Analyse agro-climatique avancée par satellite NASA SMAP & NASA POWER · Explications en Darija Marocaine</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="status-indicator" id="gee-status-indicator">
+        <span class="dot live"></span>
+        <span class="status-label" id="gee-status-text">Earth Engine: fieldshift-514709</span>
+      </div>
+      <a class="nav-btn ghost" href="/docs" target="_blank" rel="noopener">Swagger Docs</a>
+      <a class="nav-btn ghost" href="/health" target="_blank" rel="noopener">Santé API</a>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE : NASA SMAP EXPLORER -->
+  <main class="tab-content active" id="tab-smap-explorer">
+
+    <!-- Global Processing Loader -->
+    <div id="smap-loader" class="loader-box" hidden>
+      <div class="spinner"></div>
+      <p id="smap-loader-text">Interrogation de Google Earth Engine pour le dataset NASA/SMAP/SPL4SMGP/008...</p>
+      <small>Calcul des moyennes spatiales et temporelles sur la grille EASE-Grid 2.0 (~9-11 km)</small>
+    </div>
+
+    <!-- Global Error State -->
+    <div id="smap-error" class="error-box" hidden>
+      <div class="error-icon">⚠️</div>
+      <div class="error-content">
+        <h3 id="error-title">Erreur d'extraction satellite</h3>
+        <p id="error-message">Message d'erreur détaillé.</p>
+        <button type="button" class="btn-sm" id="btn-error-dismiss" style="margin-top:0.5rem">Fermer</button>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         PAGE / VUE 1 : ACCUEIL & ENTRÉE (Simple & Inviting Landing)
+         ========================================================================= -->
+    <section id="smap-view-welcome" class="smap-view-page active">
+      <div class="welcome-hero-card">
+        <div class="hero-tag">🛰️ Données Satellitaires Officielles NASA SMAP Level-4 (V008)</div>
+        <h2 class="hero-title">Explorateur Agro-Climatique Satellitaire</h2>
+        <p class="hero-lead">
+          Analysez avec précision l'humidité du sol, le stress hydrique et le climat agricole sur toute zone géographique, 
+          avec un système interactif complet d'explications scientifiques en <strong>Darija Marocaine (الدارجة المغربية)</strong>.
+        </p>
+
+        <div class="hero-pillars-grid">
+          <div class="pillar-card">
+            <div class="pillar-icon">🌾</div>
+            <h3>Mode Agricole (16 variables)</h3>
+            <p>Humidité racinaire (0-100 cm), sécheresse, saturation, température du lit de semence et évapotranspiration pour les cultures.</p>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-icon">🔬</div>
+            <h3>Mode Scientifique (46 variables)</h3>
+            <p>Toutes les bandes physiques SMAP L4 en 10 catégories : profils thermiques 6 couches, flux énergétiques et comparateur croisé.</p>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-icon">🇲🇦</div>
+            <h3>Explications en Darija</h3>
+            <p>Cliquez sur n'importe quel chiffre, carte ou graphique pour obtenir une explication claire et vulgarisée en Darija marocaine.</p>
+          </div>
+        </div>
+
+        <div class="hero-action-container">
+          <button type="button" id="btn-hero-start" class="btn-hero-start">
+            <span class="btn-sparkle">🚀</span>
+            <span>Commencer l'Exploration</span>
+          </button>
+          <p class="hero-note">📍 Détection automatique de votre position GPS ou sélection par ville</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 2 : SÉLECTION DE LOCALISATION & CHOIX DU MODE
+         ========================================================================= -->
+    <section id="smap-view-choice" class="smap-view-page" hidden>
+
+      <!-- Location Card (100% Dynamique : Position Actuelle de l'Utilisateur) -->
+      <div class="choice-location-card">
+        <div class="choice-card-header">
+          <div class="location-current-display">
+            <span class="loc-pin-icon">📍</span>
+            <div>
+              <span class="loc-label">Votre Localisation d'Analyse :</span>
+              <h3 id="choice-display-city">Position Actuelle Détectée</h3>
+              <span class="loc-coords" id="choice-display-coords">Coordonnées GPS réelles (EASE-Grid 2.0 ~9-11 km)</span>
+            </div>
+          </div>
+          <div class="location-quick-actions">
+            <button type="button" id="choice-btn-gps" class="btn-gps-action active-gps">
+              <span class="gps-pulse"></span>
+              <span>📍 Détecter / Réactualiser Ma Position Actuelle (GPS)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Bar & Year -->
+        <div class="choice-location-controls">
+          <div class="choice-search-row">
+            <div class="search-input-group">
+              <input type="text" id="choice-search-city" placeholder="Ou recherchez une commune, ville ou coordonnées GPS personnalisées..." autocomplete="off">
+              <button type="button" id="choice-btn-search" class="btn-search-city">Rechercher 🔍</button>
+            </div>
+            <div class="choice-year-group">
+              <label for="choice-year-select">Année :</label>
+              <select id="choice-year-select">
+                <option value="2025" selected>2025 (Année de référence)</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="choice-gps-feedback" class="choice-gps-feedback" hidden>
+          <span id="choice-gps-status-text">Détection GPS en cours...</span>
+        </div>
+      </div>
+
+      <!-- Mode Selection Header -->
+      <div class="choice-modes-header">
+        <h3>Choisissez votre Mode d'Analyse</h3>
+        <p>Trois espaces dédiés et sans encombrement, selon vos objectifs opérationnels.</p>
+      </div>
+
+      <!-- The 3 Mode Cards -->
+      <div class="choice-modes-grid three-modes">
+
+        <!-- BOUTON 1 : MODE AGRICOLE -->
+        <div class="mode-choice-card mode-agri-card" id="card-agri-selection">
+          <div class="mode-card-badge agri">🌾 Pour Agriculteurs, Coopératives & Agronomes</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle agri">🌾</div>
+            <div class="mode-title-block">
+              <h4>Mode Agricole</h4>
+              <span class="mode-var-count">16 Variables Essentielles</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            Visualisez directement l'état de l'eau utile aux racines, le risque de stress hydrique et le bilan évapotranspiratoire pour guider vos décisions culturales.
+          </p>
+          <ul class="mode-feature-list">
+            <li>💧 <strong>Humidité racinaire</strong> (0-100 cm) & surface (0-5 cm)</li>
+            <li>🌵 <strong>Percentiles de sécheresse</strong> & niveau de saturation</li>
+            <li>🌡️ <strong>Température du lit de semence</strong> (0-10 cm pour la levée)</li>
+            <li>🌊 <strong>Bilan hydrique agricole</strong> (Évapotranspiration vs Infiltration)</li>
+            <li>🇲🇦 <strong>Explications en Darija Marocaine</strong> sur chaque chiffre au clic</li>
+          </ul>
+          <button type="button" id="btn-choose-agri" class="btn-open-mode agri">
+            <span>🌾 Accéder au Mode Agricole (16 variables)</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
+        <!-- BOUTON 2 : MODE SCIENTIFIQUE -->
+        <div class="mode-choice-card mode-sci-card" id="card-sci-selection">
+          <div class="mode-card-badge sci">🔬 Pour Chercheurs, Météorologues & Hydrologues</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle sci">🔬</div>
+            <div class="mode-title-block">
+              <h4>Mode Scientifique Complet</h4>
+              <span class="mode-var-count">46 Variables SMAP L4</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            L'intégralité du produit NASA SPL4SMGP V008 classé en 10 catégories scientifiques : profils thermiques 6 couches, bilan radiatif, flux énergétiques et comparateur.
+          </p>
+          <ul class="mode-feature-list">
+            <li>🛰️ <strong>Les 46 variables SMAP L4</strong> réparties en 10 catégories</li>
+            <li>🌡️ <strong>Profil thermique multicouches</strong> (Surface, C1, C2, C3, C4, Bedrock)</li>
+            <li>⚡ <strong>Flux d'énergie & radiatifs</strong> (chaleur latente, sensible, rayonnement)</li>
+            <li>🔄 <strong>Comparateur croisé bi-variable</strong> multi-axes</li>
+            <li>📊 <strong>Tableau scientifique intégral & Export</strong> CSV / JSON</li>
+          </ul>
+          <button type="button" id="btn-choose-sci" class="btn-open-mode sci">
+            <span>🔬 Accéder au Mode Scientifique (46 variables)</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
+        <!-- BOUTON 3 : MODE CONSEILLER IA & PLAN D'ACTION (شنو تزرع + خطة المختبر) -->
+        <div class="mode-choice-card mode-ai-card" id="card-ai-selection">
+          <div class="mode-card-badge ai">🤖 Intelligence Artificielle & Plan Labo</div>
+          <div class="mode-card-header">
+            <div class="mode-icon-circle ai">🤖</div>
+            <div class="mode-title-block">
+              <h4>Conseiller IA & Plan d'Action</h4>
+              <span class="mode-var-count">FieldShift IA</span>
+            </div>
+          </div>
+          <p class="mode-desc">
+            Diagnostic intelligent pour votre sol : <strong>شنو تزرع</strong> (cultures adaptées, semis, irrigation) et génération immédiate du <strong>plan d'action laboratoire</strong>.
+          </p>
+          <ul class="mode-feature-list">
+            <li>🌾 <strong>شنو تزرع :</strong> Recommandations selon l'eau utile et la météo réelle</li>
+            <li>🧪 <strong>Plan Laboratoire :</strong> Protocole d'échantillonnage de sol (NPK, pH, salinité)</li>
+            <li>💧 <strong>Gestion de l'irrigation :</strong> Calcul du stress hydrique et calendrier</li>
+            <li>🇲🇦 <strong>Dialogue en Darija :</strong> Réponses intelligentes complètes en pleine page</li>
+            <li>🛡️ <strong>Garde-fou scientifique :</strong> Zéro chiffre inventé, indexé 100% NASA</li>
+          </ul>
+          <button type="button" id="btn-choose-ai" class="btn-open-mode ai">
+            <span>🤖 Ouvrir le Conseiller IA & Plan Labo</span>
+            <span class="arrow-icon">➔</span>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="choice-footer-back">
+        <button type="button" id="btn-back-to-welcome" class="btn-text-back">
+          <span>⬅ Revenir à la page d'accueil</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 3 : PAGE DÉDIÉE : MODE AGRICOLE (16 variables)
+         ========================================================================= -->
+    <section id="smap-view-agri" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar agri-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-agri">
+            <span>⬅ Changer de mode / Localisation</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot agri"></span>
+            <span id="agri-current-loc">📍 Ma Position Actuelle</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="agri-year-select">Année :</label>
+            <select id="agri-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-agri-to-ai">
+            <span>🤖 Conseiller IA & Plan Labo</span>
+          </button>
+          <button type="button" class="btn-switch-direct" id="btn-switch-to-sci">
+            <span>🔬 Mode Scientifique (46)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip">
+        <span class="strip-item status-ok">✅ Mode Agricole Actif</span>
+        <span class="strip-item" id="agri-strip-cache">Cache : Disque (HIT)</span>
+        <span class="strip-item" id="agri-strip-obs">16 variables · 2 920 obs 3h</span>
+        <span class="strip-item" id="agri-strip-time">30.9 s</span>
+        <span class="strip-item strip-darija-hint">💡 Cliquez sur n'importe quel indicateur pour l'explication en Darija</span>
+      </div>
+
+      <!-- Sub-Tabs inside Agri Mode -->
+      <div class="view-sub-tabs">
+        <button class="v-tab-btn active" data-vsub="agri-sub-cards">🌾 16 Indicateurs Clés</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-moisture">💧 Humidité Racinaire & Surface</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-drought">🌵 Sécheresse & Saturation</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-water">🌊 Bilan Hydrique Agricole</button>
+        <button class="v-tab-btn" data-vsub="agri-sub-table">📋 Tableau Annuel des 16 Variables</button>
+      </div>
+
+      <!-- SUB-VIEW 1: 16 SUMMARY CARDS -->
+      <div class="v-sub-content active" id="agri-sub-cards">
+        <div class="cards-grid" id="agri-cards-container">
+          <!-- Dynamically populated 16 agricultural cards -->
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 2: MOISTURE EVOLUTION CHART -->
+      <div class="v-sub-content" id="agri-sub-moisture">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Évolution Mensuelle de l'Humidité du Sol par Profondeur</h3>
+              <p class="chart-sub">Comparaison entre la surface (0-5 cm), la zone racinaire (0-100 cm) et le profil total</p>
+            </div>
+            <div class="chart-legend-custom">
+              <span class="legend-item"><span class="legend-color" style="background:#2563eb"></span> Surface (0-5 cm)</span>
+              <span class="legend-item"><span class="legend-color" style="background:#16a34a"></span> Zone Racinaire (0-100 cm)</span>
+              <span class="legend-item"><span class="legend-color" style="background:#9333ea"></span> Profil Total</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-agri-moisture"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Interprétation agronomique :</strong>
+            <p id="agri-insight-moisture">La zone racinaire (0-100 cm) constitue le réservoir utile pour la culture du blé et des arbres fruitiers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 3: DROUGHT & SATURATION CHARTS -->
+      <div class="v-sub-content" id="agri-sub-drought">
+        <div class="grid-2-col">
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3>Percentiles de Sécheresse Racinaire (sm_rootzone_pctl)</h3>
+              <p class="chart-sub">&lt; 20% = Sécheresse sévère · 20-40% = Sécheresse modérée · &gt; 40% = Normal/Humide</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-agri-drought-pctl"></canvas>
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3>Degré de Saturation du Sol (sm_rootzone_wetness)</h3>
+              <p class="chart-sub">0.0 = Sol complètement sec · 1.0 = Sol totalement saturé d'eau</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-agri-wetness"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 4: WATER FLUX CHART -->
+      <div class="v-sub-content" id="agri-sub-water">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Bilan Hydrique Agricole : Évapotranspiration vs Infiltration</h3>
+              <p class="chart-sub">Flux convertis en millimètres par jour (mm/jour) d'équivalent eau</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-agri-water-flux"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Gestion de l'eau :</strong>
+            <p>Comparez la consommation d'eau par les plantes (évapotranspiration) et l'infiltration pour déterminer les besoins nets d'irrigation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 5: ANNUAL SUMMARY TABLE -->
+      <div class="v-sub-content" id="agri-sub-table">
+        <div class="table-panel">
+          <div class="table-responsive">
+            <table class="data-table" id="table-agri-summary">
+              <thead>
+                <tr>
+                  <th>Variable</th>
+                  <th>Moyenne Annuelle</th>
+                  <th>Min Observé</th>
+                  <th>Max Observé</th>
+                  <th>Unité</th>
+                  <th>Complétude</th>
+                  <th>Tendance Saisonnière</th>
+                  <th>Explication Darija</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-agri-summary"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 4 : PAGE DÉDIÉE : MODE SCIENTIFIQUE (46 variables)
+         ========================================================================= -->
+    <section id="smap-view-sci" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar sci-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-sci">
+            <span>⬅ Changer de mode / Localisation</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot sci"></span>
+            <span id="sci-current-loc">📍 Ma Position Actuelle</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="sci-year-select">Année :</label>
+            <select id="sci-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-sci-to-ai">
+            <span>🤖 Conseiller IA & Plan Labo</span>
+          </button>
+          <button type="button" class="btn-switch-direct" id="btn-switch-to-agri">
+            <span>🌾 Mode Agricole (16)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip">
+        <span class="strip-item status-ok">✅ Mode Scientifique Actif</span>
+        <span class="strip-item" id="sci-strip-cache">Cache : Disque (HIT)</span>
+        <span class="strip-item" id="sci-strip-obs">46 variables · 2 920 obs 3h</span>
+        <span class="strip-item" id="sci-strip-time">30.9 s</span>
+        <span class="strip-item strip-darija-hint">💡 Cliquez sur n'importe quel indicateur pour l'explication en Darija</span>
+      </div>
+
+      <!-- Sub-Tabs inside Scientific Mode -->
+      <div class="view-sub-tabs">
+        <button class="v-tab-btn active" data-vsub="sci-sub-cards">🔬 46 Variables par Catégorie</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-temp">🌡️ Profil Thermique 6 Couches</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-flux">⚡ Flux Énergétiques & Radiatifs</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-cross">🔄 Comparateur Croisé Bi-Variable</button>
+        <button class="v-tab-btn" data-vsub="sci-sub-table">📊 Tableau Scientifique Global & Export</button>
+      </div>
+
+      <!-- SUB-VIEW 1: 46 SCIENTIFIC CARDS WITH CATEGORY FILTER -->
+      <div class="v-sub-content active" id="sci-sub-cards">
+        <div class="category-filters-container" id="sci-category-filter-chips">
+          <!-- 10 category chips generated dynamically -->
+        </div>
+        <div class="cards-grid" id="sci-cards-container">
+          <!-- Dynamically populated 46 scientific cards -->
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 2: MULTI-LAYER SOIL TEMPERATURE -->
+      <div class="v-sub-content" id="sci-sub-temp">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Profil Thermique du Sol selon la Profondeur (°C)</h3>
+              <p class="chart-sub">Température de la surface et des couches 1 (0-10 cm), 2 (10-20 cm), 3 (20-40 cm), 4 (40-100 cm) et Bedrock</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-temp"></canvas>
+          </div>
+          <div class="chart-insight-box">
+            <strong>Gradien thermique :</strong>
+            <p>La stratification thermique influence les échanges convectifs, l'évaporation du sol et la respiration microbienne selon la profondeur.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 3: ENERGY & RADIATION FLUXES -->
+      <div class="v-sub-content" id="sci-sub-flux">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Flux d'Énergie et Bilan Radiatif (W/m²)</h3>
+              <p class="chart-sub">Rayonnement net descendant, flux de chaleur latente (évapotranspiration) et chaleur sensible</p>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-flux"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 4: CROSS-VARIABLE DUAL AXIS COMPARATOR -->
+      <div class="v-sub-content" id="sci-sub-cross">
+        <div class="chart-panel">
+          <div class="chart-header">
+            <div>
+              <h3>Comparateur Croisé Bi-Variable (Double Axe Y)</h3>
+              <p class="chart-sub">Examinez les corrélations physiques entre n'importe quelles variables du modèle SMAP</p>
+            </div>
+            <div class="dual-selector-row">
+              <label>Axe Y1 (Bleu) : <select id="sci-select-y1" class="select-sm"></select></label>
+              <label>Axe Y2 (Vert) : <select id="sci-select-y2" class="select-sm"></select></label>
+              <button type="button" id="sci-btn-update-cross" class="btn-sm">Mettre à jour 📈</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-sci-cross"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 5: DETAILED SCIENTIFIC TABLE & EXPORTS -->
+      <div class="v-sub-content" id="sci-sub-table">
+        <div class="table-controls-bar">
+          <div class="table-search-box">
+            <input type="text" id="sci-table-search" placeholder="Rechercher une variable ou un mois...">
+          </div>
+          <div class="table-actions-group">
+            <button type="button" id="sci-btn-export-csv" class="btn-secondary">📥 Exporter en CSV</button>
+            <button type="button" id="sci-btn-export-json" class="btn-secondary">💾 Exporter en JSON</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table detailed" id="table-sci-detailed">
+            <thead id="thead-sci-detailed"></thead>
+            <tbody id="tbody-sci-detailed"></tbody>
+          </table>
+        </div>
+        <p class="table-footer-hint">💡 Cliquez sur n'importe quelle cellule pour ouvrir l'explication scientifique en Darija.</p>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         PAGE / VUE 5 : PAGE DÉDIÉE : MODE CONSEILLER IA & PLAN D'ACTION (Page 3)
+         ========================================================================= -->
+    <section id="smap-view-ai" class="smap-view-page" hidden>
+
+      <!-- Clean Top Navigation Bar -->
+      <div class="mode-top-bar ai-bar">
+        <div class="bar-left">
+          <button type="button" class="btn-bar-back" id="btn-back-from-ai">
+            <span>⬅ Changer de mode / Localisation</span>
+          </button>
+          <div class="bar-location-badge">
+            <span class="badge-dot ai"></span>
+            <span id="ai-page-current-loc">📍 Ma Position Actuelle</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <div class="bar-year-selector">
+            <label for="ai-page-year-select">Année :</label>
+            <select id="ai-page-year-select">
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+              <option value="2021">2021</option>
+            </select>
+          </div>
+          <button type="button" class="btn-switch-direct" id="btn-switch-ai-to-agri">
+            <span>🌾 Mode Agricole (16)</span>
+          </button>
+          <button type="button" class="btn-switch-direct" id="btn-switch-ai-to-sci">
+            <span>🔬 Mode Scientifique (46)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status strip -->
+      <div class="view-status-strip ai-strip">
+        <span class="strip-item status-ok">✅ Conseiller IA Actif</span>
+        <span class="strip-item">🤖 Conseiller IA</span>
+        <span class="strip-item" id="ai-strip-city">📍 Position Réelle</span>
+        <span class="strip-item strip-darija-hint">💡 تحليل ذكي مبني 100% على بيانات NASA الرسمية</span>
+      </div>
+
+      <!-- =====================================================================
+           VIRTUAL AGRICULTURAL LABORATORY (المختبر الزراعي الافتراضي المحاكي للمستقبل)
+           ===================================================================== -->
+      <div class="virtual-lab-wrapper">
+
+        <!-- FARMER SIMULATION CONTROL PANEL -->
+        <div class="farmer-sim-control-panel">
+          <div class="sim-panel-header">
+            <div class="sim-badge-lab">
+              <span class="sim-flask-icon">🧪</span>
+              <span>المختبر الزراعي الافتراضي المحاكي للمستقبل · FieldShift Virtual Twin Lab</span>
+            </div>
+            <h3>محاكاة القرارات الزراعية واختبار الصمود بالتوأم الرقمي لمعطيات NASA</h3>
+            <p>أدخل مواصفات أرضك ومواردك وجرب خطط الدورة الزراعية رقمياً قبل ما تخاطر بأرضك فالميدان</p>
+          </div>
+
+          <form id="sim-config-form" class="sim-config-form">
+            <div class="sim-form-grid">
+              <!-- Field 1: Soil Type -->
+              <div class="sim-form-field">
+                <label for="sim-soil-select">
+                  <span>🌱 نوع التربة :</span>
+                  <small id="sim-soil-hint">حمري / تيرس / رملية / كلسية</small>
+                </label>
+                <select id="sim-soil-select" class="sim-select">
+                  <option value="limoneux_profond" selected>حمري (Hamri - طيني خصب)</option>
+                  <option value="argileux_lourd">تيرس (Tirs / Vertisol - أسود ثقيل خصب)</option>
+                  <option value="sableux">رملية (Sableux - خفيفة نفاذة)</option>
+                  <option value="calcaire">كلسية بيضاء (Calcaire - أراضي الكلس)</option>
+                </select>
+              </div>
+
+              <!-- Field 2: Water Access -->
+              <div class="sim-form-field">
+                <label for="sim-water-select">
+                  <span>💧 كمية الماء والري المتوفر :</span>
+                  <small id="sim-water-hint">بور / ري تكميلي / سقي متوفر</small>
+                </label>
+                <select id="sim-water-select" class="sim-select">
+                  <option value="bour">بور كامل (100% Bour - أمطار الشتا فقط)</option>
+                  <option value="appoint" selected>ري تكميلي (Appoint 60-90 mm فالتزهير)</option>
+                  <option value="irrigue">سقي متوفر / بئر (Irrigation intégrale)</option>
+                </select>
+              </div>
+
+              <!-- Field 3: Budget Tier -->
+              <div class="sim-form-field">
+                <label for="sim-budget-select">
+                  <span>💰 الميزانية والاستثمار :</span>
+                  <small id="sim-budget-hint">اقتصادية / متوسطة / مرتفعة</small>
+                </label>
+                <select id="sim-budget-select" class="sim-select">
+                  <option value="faible">اقتصادية (مدخلات منخفضة وتكلفة محدودة)</option>
+                  <option value="moyen" selected>متوسطة (تسميد متوازن ومبيدات معتدلة)</option>
+                  <option value="eleve">استثمار حر (تكثيف إنتاجي وأسمدة كاملة)</option>
+                </select>
+              </div>
+
+              <!-- Field 4: Time Machine Reference Year -->
+              <div class="sim-form-field">
+                <label for="sim-ref-year-select">
+                  <span>⏳ سنة آلة الزمن للمقارنة :</span>
+                  <small id="sim-year-hint">سنة تاريخية للمحاكاة العكسية</small>
+                </label>
+                <select id="sim-ref-year-select" class="sim-select">
+                  <option value="2023" selected>2023 (سنة جفاف تاريخية حقيقية)</option>
+                  <option value="2024">2024 (سنة متقلبة)</option>
+                  <option value="2022">2022 (شتا متأخرة)</option>
+                  <option value="2021">2021 (موسم ماطر)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sim-form-action-row">
+              <button type="submit" id="btn-run-simulation" class="btn-run-sim">
+                <span class="sim-run-icon">🚀</span>
+                <span>تشغيل محاكاة المختبر الافتراضي (Lancer le Laboratoire Virtuel)</span>
+              </button>
+              <span id="sim-run-status" class="sim-status-label" hidden>⏳ جاري الحساب الفيزيائي والزراعي بمعطيات NASA...</span>
+            </div>
+          </form>
+        </div>
+
+        <!-- LAB NAVIGATION TABS (THE 4 LABS) -->
+        <div class="sim-sub-tabs" role="tablist">
+          <button type="button" class="sim-tab-btn active" data-simtab="tab-crop-battle" role="tab" aria-selected="true">
+            <span class="sim-tab-badge">Lab 1</span>
+            <span class="sim-tab-icon">⚔️</span>
+            <span class="sim-tab-title">Crop Battle Lab</span>
+            <small class="sim-tab-sub">مقارنة 3 خطط زراعية</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-climate-attack" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 2</span>
+            <span class="sim-tab-icon">🌪️</span>
+            <span class="sim-tab-title">Climate Attack Lab</span>
+            <small class="sim-tab-sub">اختبار صدمات المناخ</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-time-machine" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 3</span>
+            <span class="sim-tab-icon">⏳</span>
+            <span class="sim-tab-title">Farm Time Machine</span>
+            <small class="sim-tab-sub">آلة الزمن الفلاحية</small>
+          </button>
+          <button type="button" class="sim-tab-btn" data-simtab="tab-scientific-tribunal" role="tab" aria-selected="false">
+            <span class="sim-tab-badge">Lab 4</span>
+            <span class="sim-tab-icon">⚖️</span>
+            <span class="sim-tab-title">AI Scientific Tribunal</span>
+            <small class="sim-tab-sub">المحكمة العلمية والتدقيق</small>
+          </button>
+        </div>
+
+        <!-- LAB 1: CROP BATTLE LAB -->
+        <div id="tab-crop-battle" class="sim-tab-panel active" role="tabpanel">
+          <!-- Top Recommendation Banner (شنو تزرع والخطة الفائزة) -->
+          <div class="battle-winner-banner" id="battle-winner-banner">
+            <div class="winner-trophy">🏆</div>
+            <div class="winner-text-block">
+              <span class="winner-tag">توصية المستشار الذكي والفيزياء الزراعية :</span>
+              <h3 id="battle-winner-title">الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)</h3>
+              <p id="battle-winner-desc">أعلى صمود ضد الجفاف وتوفير في ماء الري ومصاريف التسميد بناءً على معطيات حقلك الفعلية.</p>
+            </div>
+            <div class="winner-resilience-badge">
+              <span class="resilience-num" id="battle-winner-score">88</span>
+              <span class="resilience-denom">/100</span>
+              <span class="resilience-lbl">مؤشر الصمود</span>
+            </div>
+          </div>
+
+          <!-- Radar Chart & Battle Cards Grid -->
+          <div class="battle-main-grid">
+            <!-- Left: Radar Chart Panel -->
+            <div class="battle-radar-panel">
+              <div class="radar-card-header">
+                <div>
+                  <h4>🕸️ مخطط الرادار للمقارنة الخماسية بين الخطط الثلاث</h4>
+                  <p>المحاور الـ 5 : صمود الجفاف · حفظ التربة · ملائمة الميزانية · توفير الماء · استقرار الغلة</p>
+                </div>
+              </div>
+              <div class="radar-chart-container">
+                <canvas id="chart-sim-radar"></canvas>
+              </div>
+              <div class="radar-legend-strip">
+                <span class="radar-legend-item"><span class="legend-color-dot plan1"></span> الخطة 1: القمح كل عام</span>
+                <span class="radar-legend-item"><span class="legend-color-dot plan2"></span> الخطة 2: قمح-عدس-شعير</span>
+                <span class="radar-legend-item"><span class="legend-color-dot plan3"></span> الخطة 3: نظام بيئي وغطاء</span>
+              </div>
+            </div>
+
+            <!-- Right: 3 Plan Scorecards -->
+            <div class="battle-plans-column" id="battle-plans-cards">
+              <!-- Dynamically populated 3 Plan Scorecards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 2: CLIMATE ATTACK LAB -->
+        <div id="tab-climate-attack" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="climate-attack-panel">
+            <div class="attack-header">
+              <div class="attack-header-title">
+                <span class="attack-icon">🌪️</span>
+                <div>
+                  <h3>مختبر اختبار الصدمات المناخية القصوى (Climate Stress Testing)</h3>
+                  <p>اختر صدمة مناخية وشوف مباشرة كيفاش كتغير مقاومة كل خطة ونسبة الإجهاد المائي الحقيقي</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 Interactive Shock Buttons -->
+            <div class="shock-buttons-grid">
+              <button type="button" class="shock-btn active" data-shock="none">
+                <span class="shock-btn-icon">☀️</span>
+                <div class="shock-btn-text">
+                  <strong>مناخ عادي مسجل</strong>
+                  <small>الظروف الطبيعية لسنة الرصد</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="drought">
+                <span class="shock-btn-icon">🌵</span>
+                <div class="shock-btn-text">
+                  <strong>جفاف حاد (-40% تساقطات)</strong>
+                  <small>نقص شديد فكميات الأمطار</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="heatwave">
+                <span class="shock-btn-icon">🔥</span>
+                <div class="shock-btn-text">
+                  <strong>موجة حرارة وشرقي (+4°C)</strong>
+                  <small>تبخر قياسي ففترة تزهير الحبوب</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+
+              <button type="button" class="shock-btn" data-shock="delayed_rain">
+                <span class="shock-btn-icon">⏳</span>
+                <div class="shock-btn-text">
+                  <strong>تأخر أمطار الخريف (-55%)</strong>
+                  <small>جفاف مهد البذر أكتوبر-دجنبر</small>
+                </div>
+                <span class="shock-active-indicator">نشط</span>
+              </button>
+            </div>
+
+            <!-- Shock Reaction Banner -->
+            <div class="shock-impact-summary" id="shock-impact-summary">
+              <!-- Dynamic shock impact info -->
+            </div>
+
+            <!-- Shock Comparison Cards -->
+            <div class="shock-cards-grid" id="shock-cards-grid">
+              <!-- Dynamic reaction cards for the 3 plans under active shock -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 3: FARM TIME MACHINE -->
+        <div id="tab-time-machine" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="time-machine-panel">
+            <div class="tm-header">
+              <div class="tm-header-title">
+                <span class="tm-icon">⏳</span>
+                <div>
+                  <h3>آلة الزمن الفلاحية (Farm Time Machine : Simulation Rétrospective)</h3>
+                  <p>الرجوع للسنوات السابقة ومقارنة ما حدث فعلاً مع ما كان يمكن أن يحدث لو طبقت خطة مختلفة</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="tm-content-container" id="tm-content-container">
+              <!-- Dynamically populated time machine counterfactual metrics -->
+            </div>
+          </div>
+        </div>
+
+        <!-- LAB 4: AI SCIENTIFIC TRIBUNAL -->
+        <div id="tab-scientific-tribunal" class="sim-tab-panel" role="tabpanel" hidden>
+          <div class="tribunal-panel">
+            <div class="tribunal-header">
+              <div class="tribunal-header-title">
+                <span class="tribunal-gavel">⚖️</span>
+                <div>
+                  <h3>المحكمة العلمية الفلاحية (AI Scientific Tribunal)</h3>
+                  <p>مداولات هيئة الخبراء الافتراضيين الأربعة والتدقيق الصارم لمنع أي أرقام مخترعة</p>
+                </div>
+              </div>
+              <div class="tribunal-seal">
+                <span>🛡️ 100% NASA Grounded</span>
+                <small>صفر هلوسة أو تخمين</small>
+              </div>
+            </div>
+
+            <!-- 4 Expert Agent Cards -->
+            <div class="tribunal-agents-grid" id="tribunal-agents-grid">
+              <!-- Dynamically populated 4 expert agent verdicts -->
+            </div>
+
+            <!-- Supreme Synthesis Box -->
+            <div class="tribunal-supreme-box" id="tribunal-supreme-box">
+              <!-- Supreme synthesis verdict in Moroccan Darija -->
+            </div>
+          </div>
+        </div>
+
+        <!-- OPTIONAL SOIL PHYSICAL SAMPLING PROTOCOL DRAWER -->
+        <div class="soil-protocol-accordion">
+          <button type="button" class="btn-toggle-protocol" id="btn-toggle-protocol">
+            <span>🧪 عرض بروتوكول أخذ عينات التربة الميداني للمختبر (Protocole d'Échantillonnage Sol)</span>
+            <span class="accordion-arrow" id="protocol-arrow">▼</span>
+          </button>
+          <div id="protocol-accordion-content" class="protocol-accordion-content" hidden>
+            <div class="lab-intro-box">
+              <p>
+                ⚠️ <strong>تنبيه علمي :</strong> القمر الاصطناعي SMAP كيعطي صورة شمولية على مساحة تقريبية (9-11 كلم). قبل ما تدير استثمار كبير، خاصك تاخد عينات من الأرض وترسلها للمختبر للتأكد من الملوحة، الـ pH، ومستويات الآزوت والفوسفور والبوتاس (NPK).
+              </p>
+            </div>
+            <div id="lab-plan-output" class="lab-plan-container"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FULL-PAGE INTERACTIVE AI DIALOGUE -->
+      <div class="ai-dialogue-panel">
+        <div class="ai-dialogue-header">
+          <div class="dialogue-header-title">
+            <span class="robot-glow">🤖</span>
+            <div>
+              <h3>المحادثة الذكية المباشرة مع المستشار الفلاحي</h3>
+              <p>Posez vos questions agronomiques précises sur votre parcelle en الدارجة المغربية, Français ou English</p>
+            </div>
+          </div>
+          <div class="ai-specialists-chips">
+            <span class="spec-chip">👨‍🌾 خبير زراعي مغربي</span>
+            <span class="spec-chip">🛰️ أخصائي SMAP</span>
+            <span class="spec-chip">🌦️ مناخ NASA POWER</span>
+            <span class="spec-chip">🛡️ تدقيق علمي</span>
+          </div>
+        </div>
+
+        <!-- Quick Questions Chips -->
+        <div class="ai-page-prompt-chips" id="ai-page-prompt-chips">
+          <button type="button" class="ai-prompt-chip" data-prompt="واش رطوبة التربة فموقعي الحالي كافية لزراعة الحبوب وشنو هي النصائح ديالك؟">🌾 واش الرطوبة كافية للحبوب؟</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Quel est le niveau de stress hydrique et le besoin en irrigation d'appoint pour ma parcelle ?">💧 Stress hydrique & irrigation</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Explique-moi le bilan hydrique (évapotranspiration vs infiltration) mesuré par satellite pour ma zone">📊 Bilan évapotranspiration vs infiltration</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="واش درجة حرارة التربة مناسبة لفترة البذر ومكاينش خطر الصقيع؟">🌡️ حرارة التربة وموعد البذر</button>
+          <button type="button" class="ai-prompt-chip" data-prompt="Quelles sont les limites scientifiques des mesures satellites (~9-11 km) et pourquoi faut-il le laboratoire ?">⚠️ Limites satellites & rôle du labo</button>
+        </div>
+
+        <!-- Messages Feed -->
+        <div class="ai-page-messages-feed" id="ai-page-messages">
+          <div class="ai-bubble-row assistant">
+            <div class="ai-bubble-avatar">🤖</div>
+            <div class="ai-bubble-body">
+              <div class="ai-bubble-content rtl-content" dir="rtl">
+                <p><strong>مرحباً بيك فـ المستشار الذكي FieldShift AI! 👋</strong></p>
+                <p>أنا متصل مباشرة ببيانات الأقمار الاصطناعية لوكالة <strong>NASA</strong> لموقعك الفعلي. فوق هاد الصفحة كاين تقرير فوري على <strong>شنو تزرع</strong> وبوتون لإطلاق <strong>خطة المختبر</strong>.</p>
+                <p>تقدر تسولني دابا على أي تفصيل فلاحي وغادي نجاوبك بتحليل ذكي وبأرقام ناسا الحقيقية!</p>
+              </div>
+              <div class="ai-bubble-meta">
+                <span class="source-tag">📡 NASA SMAP L4 · NASA POWER · FieldShift Agro</span>
+                <span class="valid-tag">✅ معطيات موثقة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <form id="ai-page-chat-form" class="ai-page-input-form">
+          <div class="ai-input-controls">
+            <div class="ai-lang-selector">
+              <label for="ai-page-lang-select" class="sr-only">Langue</label>
+              <select id="ai-page-lang-select" title="Choix de langue">
+                <option value="auto" selected>🌐 Auto</option>
+                <option value="darija">🇲🇦 الدارجة</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+            <textarea id="ai-page-input-text" rows="1" placeholder="سول بالدارجة، posez votre question en français or English..." required></textarea>
+            <button type="submit" id="btn-ai-page-send" class="btn-ai-send" title="Envoyer">
+              <span>Envoyer</span>
+              <span class="send-icon">➔</span>
+            </button>
+          </div>
+          <div class="ai-input-disclaimer">
+            <span>🔒 إجابات مستندة حصرياً إلى قياسات أقمار NASA الاصطناعية لموقعك الفعلي · لا توجد أرقام مخترعة</span>
+          </div>
+        </form>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <!-- SLIDE-IN MOROCCAN DARIJA EXPLANATION DRAWER -->
+  <aside class="darija-drawer" id="darija-drawer" aria-hidden="true" dir="rtl">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <span class="badge-morocco">🇲🇦 الشرح العلمي بالدارجة المغربية</span>
+        <h2 id="drawer-var-title">رطوبة منطقة الجذور (sm_rootzone)</h2>
+        <p id="drawer-var-en" dir="ltr" class="drawer-subtitle">Root Zone Soil Moisture (0-100 cm)</p>
+      </div>
+      <button type="button" class="drawer-close" id="btn-close-drawer" aria-label="Fermer le panneau">✕</button>
+    </div>
+
+    <!-- Observation Value Banner -->
+    <div class="drawer-value-banner">
+      <div>
+        <span class="val-label">القيمة المسجلة :</span>
+        <strong class="val-number" id="drawer-val-number">0.257 m³/m³</strong>
+      </div>
+      <div class="val-meta">
+        <span id="drawer-val-period">يناير 2025</span> · <span id="drawer-val-loc">مكناس</span>
+      </div>
+    </div>
+
+    <!-- 8 Questions / Explanations in Darija -->
+    <div class="drawer-body">
+
+      <!-- 1. What is it -->
+      <article class="darija-card">
+        <div class="card-q">
+          <span class="q-num">1</span>
+          <h3>شنو هي هاد المعلومة؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q1-what">
+          هادي هي رطوبة الأرض فالطبقة لي كيعيشو فيها جذور النباتات والأشجار (0 حتى 100 سم).
+        </div>
+      </article>
+
+      <!-- 2. Why it matters -->
+      <article class="darija-card">
+        <div class="card-q">
+          <span class="q-num">2</span>
+          <h3>علاش مهمة بزاف للفلاحة؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q2-why">
+          حيت هدا هو الخزان المائي الحقيقي لي كتشرب منو النبتة ففترة التزهير وبناء الغلة.
+        </div>
+      </article>
+
+      <!-- 3. What does this exact value mean -->
+      <article class="darija-card highlight">
+        <div class="card-q">
+          <span class="q-num">3</span>
+          <h3>شنو كتعني هاد القيمة بالضبط؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q3-val">
+          كتعني أن حوالي 25% من حجم التربة ماء، وهي رطوبة ممتازة للقمح والأشجار المثمرة.
+        </div>
+      </article>
+
+      <!-- 4. Unit explanation -->
+      <article class="darija-card">
+        <div class="card-q">
+          <span class="q-num">4</span>
+          <h3>بشنو كتتقاس هاد النسبة؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q4-unit">
+          المتر مكعب ديال الماء فكل متر مكعب ديال التراب (m³/m³).
+        </div>
+      </article>
+
+      <!-- 5. Source & provenance -->
+      <article class="darija-card">
+        <div class="card-q">
+          <span class="q-num">5</span>
+          <h3>منين جات هاد البيانات؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q5-source">
+          القمر الاصطناعي الأمريكي NASA SMAP L4 مدمج مع نموذج التربة GEOS.
+        </div>
+      </article>
+
+      <!-- 6. Temporal change -->
+      <article class="darija-card">
+        <div class="card-q">
+          <span class="q-num">6</span>
+          <h3>كيفاش تبدلات مع الوقت؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q6-trend">
+          القيمة ارتفعت مقارنة بالشهر الفايت بفعل تساقط الأمطار.
+        </div>
+      </article>
+
+      <!-- 7. What can we conclude -->
+      <article class="darija-card allowed">
+        <div class="card-q">
+          <span class="q-icon">✅</span>
+          <h3>شنو نقدرو نستنتجو علمياً؟</h3>
+        </div>
+        <div class="card-a" id="drawer-q7-allowed">
+          الخزان الجذري فيه رطوبة كافية تفادي الإجهاد المائي لعدة أيام.
+        </div>
+      </article>
+
+      <!-- 8. What CANNOT be concluded -->
+      <article class="darija-card forbidden">
+        <div class="card-q">
+          <span class="q-icon">⚠️</span>
+          <h3>شنو ما نقدروش نستنتجو؟ (تنبيه مهم)</h3>
+        </div>
+        <div class="card-a" id="drawer-q8-forbidden">
+          ما كتعوضش التحليل الدقيق ديال التربة فكل بقعة أرضية، وما كتحسبش ملوحة الماء.
+        </div>
+      </article>
+
+      <!-- Caveat Badge -->
+      <div class="drawer-caveat">
+        <p id="drawer-caveat-text">
+          ملاحظة تقنية : بيانات NASA SMAP هي تقديرات فضائية على مساحة 9 إلى 11 كلم مربعة، وليست بديلاً عن الحساسات الميدانية المزروعة داخل الحقل.
+        </p>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Overlay backdrop for drawer -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <!-- Main scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

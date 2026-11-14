@@ -3,12 +3,17 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { SATELLITE_STYLE } from '../../constants/satellites';
-import { reverseGeocode, getEstimatedEnvironmentalTelemetry } from '../../utils/geo';
+import {
+  reverseGeocode,
+  fetchEnvironmentalTelemetry,
+  simulateCropRotation,
+} from '../../utils/geo';
 import MissionHUD from './MissionHUD';
 import SatelliteConstellations from './SatelliteConstellations';
 import GlobeControls from './GlobeControls';
 import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
+import RotationSimulationModal from './RotationSimulationModal';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
 if (typeof maplibregl.setWorkerUrl === 'function') {
@@ -47,6 +52,12 @@ export default function EarthOrbitGlobe({
   const [environmentalData, setEnvironmentalData] = useState(null);
   const [showTelemetryCard, setShowTelemetryCard] = useState(false);
   const [currentPitch, setCurrentPitch] = useState(0);
+
+  // Digital twin simulation state
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [simulationData, setSimulationData] = useState(null);
+  const [isSimulationLoading, setIsSimulationLoading] = useState(false);
+  const [simulationError, setSimulationError] = useState(null);
 
   // ─── Modern Location Pin Marker ───────────────────────────────────────────
   const createLocationPinMarker = (label = 'My Farm') => {
@@ -121,9 +132,13 @@ export default function EarthOrbitGlobe({
         essential: true,
       });
 
-      // 4. In background, resolve location metadata & telemetry
-      const estTelemetry = getEstimatedEnvironmentalTelemetry(targetCoords[0], targetCoords[1]);
-      setEnvironmentalData(estTelemetry);
+      // 4. In background, set real loading state and request authentic observations
+      setEnvironmentalData({ isLoading: true, isLiveBackend: false });
+
+      // Request authentic observations from FastAPI backend
+      fetchEnvironmentalTelemetry(targetCoords[0], targetCoords[1]).then((liveTelemetry) => {
+        setEnvironmentalData(liveTelemetry);
+      });
 
       reverseGeocode(targetCoords[0], targetCoords[1]).then((geo) => {
         const resolved = {
@@ -133,8 +148,12 @@ export default function EarthOrbitGlobe({
           coordinates: targetCoords,
         };
         setSelectedLocation(resolved);
+        // Update pin badge with detected geographic title
+        if (!loc.name || loc.name === 'My Farm') {
+          setMarkerAt(targetCoords, resolved.name);
+        }
         if (onLocationSelectRef.current) {
-          onLocationSelectRef.current(resolved, estTelemetry);
+          onLocationSelectRef.current(resolved);
         }
       });
 
@@ -352,6 +371,28 @@ export default function EarthOrbitGlobe({
     mapRef.current.easeTo({ pitch: currentPitch > 20 ? 0 : 50, duration: 800 });
   };
 
+  const handleEvaluateRotation = async (loc, customOptions = {}) => {
+    const targetLoc = loc || selectedLocation;
+    if (!targetLoc) return;
+
+    setIsSimulationOpen(true);
+    setIsSimulationLoading(true);
+    setSimulationError(null);
+
+    try {
+      const result = await simulateCropRotation(targetLoc, customOptions);
+      setSimulationData(result);
+    } catch (err) {
+      console.warn('Simulation request failed:', err);
+      setSimulationError(
+        'Backend simulation service notice: ' +
+          (err.message || 'Unable to connect to simulation engine.')
+      );
+    } finally {
+      setIsSimulationLoading(false);
+    }
+  };
+
   return (
     <div className="relative w-full h-full min-h-screen bg-black overflow-hidden select-none font-sans">
       {/* 3D Globe Canvas */}
@@ -381,11 +422,22 @@ export default function EarthOrbitGlobe({
           locationData={selectedLocation}
           telemetry={environmentalData}
           onEvaluateRotation={(loc) => {
-            alert(`Evaluating crop rotations for ${loc.name}…`);
+            handleEvaluateRotation(loc);
           }}
           onClose={() => setShowTelemetryCard(false)}
         />
       )}
+
+      {/* Virtual Agricultural Laboratory Simulation Modal */}
+      <RotationSimulationModal
+        isOpen={isSimulationOpen}
+        onClose={() => setIsSimulationOpen(false)}
+        locationData={selectedLocation}
+        simulationData={simulationData}
+        isLoading={isSimulationLoading}
+        error={simulationError}
+        onReSimulate={(options) => handleEvaluateRotation(selectedLocation, options)}
+      />
 
       {/* Bottom-Left: Satellite Constellations */}
       <div className="absolute bottom-6 left-5 z-20 hidden md:flex">

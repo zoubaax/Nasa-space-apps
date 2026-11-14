@@ -24,32 +24,6 @@ export const SATELLITE_STYLE = {
   ],
 };
 
-// ─── Target Pilot Locations for Instant Jump ─────────────────────────────────
-export const PILOT_LOCATIONS = [
-  {
-    id: 'saiss-morocco',
-    name: 'Saïss Plain Pilot Farm',
-    country: 'Morocco',
-    coordinates: [-4.9800, 34.0300], // [lng, lat]
-    zoom: 14.8,
-    pitch: 52,
-    bearing: 25,
-    description: 'Drought-vulnerable Mediterranean clay-loam agricultural plain',
-    crops: ['Durum Wheat', 'Barley', 'Chickpea'],
-  },
-  {
-    id: 'central-valley-ca',
-    name: 'Central Valley Test Plot',
-    country: 'USA / California',
-    coordinates: [-120.4000, 36.8000], // [lng, lat]
-    zoom: 14.5,
-    pitch: 45,
-    bearing: 10,
-    description: 'Arid irrigated cropland benchmark',
-    crops: ['Winter Wheat', 'Alfalfa', 'Tomato'],
-  },
-];
-
 // ─── Remote Sensing Earth Observation Satellites ─────────────────────────────
 export const SATELLITE_CONSTELLATIONS = [
   {
@@ -89,4 +63,3 @@ export const SATELLITE_CONSTELLATIONS = [
     variable: '10m High-Res Vegetation',
   },
 ];
-

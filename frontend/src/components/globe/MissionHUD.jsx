@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GiEarthAmerica } from 'react-icons/gi';
-import { TbCompass, TbMapPin } from 'react-icons/tb';
+import { TbCompass, TbMapPin, TbWifi } from 'react-icons/tb';
 
 export default function MissionHUD({
   selectedLocation = null,
@@ -8,6 +8,27 @@ export default function MissionHUD({
   coordsRef,
   altitudeRef,
 }) {
+  const [backendOnline, setBackendOnline] = useState(true);
+
+  // Ping backend health
+  useEffect(() => {
+    let isMounted = true;
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('/health');
+        if (isMounted) setBackendOnline(res.ok);
+      } catch {
+        if (isMounted) setBackendOnline(false);
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col gap-2.5 max-w-sm pointer-events-none select-none">
       {/* Title & Mission Card */}
@@ -29,7 +50,7 @@ export default function MissionHUD({
             </span>
           </div>
           <p className="text-[10px] font-mono text-zinc-400 mt-0.5">
-            SMAP 9km · GPM Rainfall · Local IoT
+            NASA SMAP L4 · POWER AG · FAO-56 Digital Twin
           </p>
         </div>
       </div>
@@ -66,6 +87,17 @@ export default function MissionHUD({
               {isFlying ? 'Cinematic Fly-in...' : 'Global Observation'}
             </span>
           )}
+        </div>
+
+        {/* Live Service Bridge */}
+        <div className="pt-1.5 border-t border-zinc-800/60 flex items-center justify-between text-[9px]">
+          <span className="text-zinc-500 flex items-center gap-1">
+            <TbWifi className="w-3 h-3 text-cyan-400" /> NASA Data Bridge:
+          </span>
+          <span className={`font-mono flex items-center gap-1 ${backendOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${backendOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            {backendOnline ? 'FastAPI Online' : 'Connecting…'}
+          </span>
         </div>
       </div>
     </div>
