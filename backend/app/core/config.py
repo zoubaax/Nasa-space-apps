@@ -75,7 +75,7 @@ class Settings(BaseSettings):
 
     # Google Gemini AI Configuration
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-flash-lite-latest"
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     gemini_timeout_seconds: float = 30.0
 

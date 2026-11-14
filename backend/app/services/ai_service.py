@@ -176,39 +176,46 @@ TARGET LANGUAGE: {detected_lang.upper()}
         if self.is_configured():
             prompt = self._build_context_prompt(dossier, request.message, lang)
             payload = self._build_gemini_payload(request, prompt)
-            url = (
-                f"{self._settings.gemini_base_url}/models/"
-                f"{self._settings.gemini_model}:generateContent?key={self._settings.gemini_api_key}"
-            )
-            try:
-                async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
-                    res = await client.post(url, json=payload)
-                    if res.status_code == 200:
-                        data = res.json()
-                        candidates = data.get("candidates", [])
-                        if candidates:
-                            parts = candidates[0].get("content", {}).get("parts", [])
-                            text = "".join(p.get("text", "") for p in parts)
-                            if text.strip():
-                                return AiChatResponse(
-                                    reply=text.strip(),
-                                    sources_used=dossier.get("sources_used", []),
-                                    specialists_consulted=[
-                                        "NASA POWER Climate Specialist",
-                                        "NASA SMAP L4 Soil Moisture Specialist",
-                                        "Moroccan Agronomist (INRA/IAV)",
-                                        "Physical Guardrail Sentinel",
-                                    ],
-                                    data_evidence=self._extract_key_evidence(dossier),
-                                    validation_status="validated",
-                                    language_detected=lang,
-                                    confidence_score=0.98,
-                                    missing_data_warnings=[],
-                                    model=self._model,
-                                )
-                    logger.warning("Gemini API returned status %s, using offline fallback", res.status_code)
-            except Exception as exc:
-                logger.warning("Gemini API call failed (%s), using offline fallback", exc)
+            
+            candidate_models = [self._settings.gemini_model]
+            for fallback_m in ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"):
+                if fallback_m not in candidate_models:
+                    candidate_models.append(fallback_m)
+
+            for model_name in candidate_models:
+                url = (
+                    f"{self._settings.gemini_base_url}/models/"
+                    f"{model_name}:generateContent?key={self._settings.gemini_api_key}"
+                )
+                try:
+                    async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
+                        res = await client.post(url, json=payload)
+                        if res.status_code == 200:
+                            data = res.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                text = "".join(p.get("text", "") for p in parts)
+                                if text.strip():
+                                    return AiChatResponse(
+                                        reply=text.strip(),
+                                        sources_used=dossier.get("sources_used", []),
+                                        specialists_consulted=[
+                                            "NASA POWER Climate Specialist",
+                                            "NASA SMAP L4 Soil Moisture Specialist",
+                                            "Moroccan Agronomist (INRA/IAV)",
+                                            "Physical Guardrail Sentinel",
+                                        ],
+                                        data_evidence=self._extract_key_evidence(dossier),
+                                        validation_status="validated",
+                                        language_detected=lang,
+                                        confidence_score=0.98,
+                                        missing_data_warnings=[],
+                                        model=f"fieldshift-ai-engine ({model_name})",
+                                    )
+                        logger.warning("Gemini model %s returned status %s", model_name, res.status_code)
+                except Exception as exc:
+                    logger.warning("Gemini model %s call failed (%s)", model_name, exc)
 
         return self._build_offline_fallback(request, dossier, lang)
 
@@ -241,33 +248,43 @@ TARGET LANGUAGE: {detected_lang.upper()}
 
         prompt = self._build_context_prompt(dossier, request.message, lang)
         payload = self._build_gemini_payload(request, prompt)
-        url = (
-            f"{self._settings.gemini_base_url}/models/"
-            f"{self._settings.gemini_model}:streamGenerateContent?alt=sse&key={self._settings.gemini_api_key}"
-        )
 
         streamed_any = False
-        try:
-            async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
-                async with client.stream("POST", url, json=payload) as response:
-                    if response.status_code == 200:
-                        async for line in response.aiter_lines():
-                            if line.startswith("data:"):
-                                line_str = line[5:].strip()
-                                if not line_str:
-                                    continue
-                                chunk_data = json.loads(line_str)
-                                candidates = chunk_data.get("candidates", [])
-                                if candidates:
-                                    parts = candidates[0].get("content", {}).get("parts", [])
-                                    chunk_text = "".join(p.get("text", "") for p in parts)
-                                    if chunk_text:
-                                        streamed_any = True
-                                        yield f"data: {json.dumps({'event': 'delta', 'content': chunk_text}, ensure_ascii=False)}\n\n"
-                    else:
-                        logger.warning("Gemini stream non-200 (%s), using offline fallback", response.status_code)
-        except Exception as exc:
-            logger.warning("Gemini streaming failed (%s), using offline fallback", exc)
+        candidate_models = [self._settings.gemini_model]
+        for fallback_m in ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"):
+            if fallback_m not in candidate_models:
+                candidate_models.append(fallback_m)
+
+        for model_name in candidate_models:
+            url = (
+                f"{self._settings.gemini_base_url}/models/"
+                f"{model_name}:streamGenerateContent?alt=sse&key={self._settings.gemini_api_key}"
+            )
+            try:
+                async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
+                    async with client.stream("POST", url, json=payload) as response:
+                        if response.status_code == 200:
+                            async for line in response.aiter_lines():
+                                if line.startswith("data:"):
+                                    line_str = line[5:].strip()
+                                    if not line_str:
+                                        continue
+                                    chunk_data = json.loads(line_str)
+                                    candidates = chunk_data.get("candidates", [])
+                                    if candidates:
+                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        chunk_text = "".join(p.get("text", "") for p in parts)
+                                        if chunk_text:
+                                            streamed_any = True
+                                            yield f"data: {json.dumps({'event': 'delta', 'content': chunk_text}, ensure_ascii=False)}\n\n"
+                            if streamed_any:
+                                break
+                        else:
+                            logger.warning("Gemini stream %s non-200 (%s)", model_name, response.status_code)
+            except Exception as exc:
+                logger.warning("Gemini streaming %s failed (%s)", model_name, exc)
+            if streamed_any:
+                break
 
         if not streamed_any:
             fallback = self._build_offline_fallback(request, dossier, lang)
