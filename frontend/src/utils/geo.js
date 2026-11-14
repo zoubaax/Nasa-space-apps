@@ -214,10 +214,22 @@ export async function fetchEnvironmentalTelemetry(lng, lat) {
         null;
     }
 
+    let isRegionalSmap = false;
+    let smapDistanceKm = null;
+
     // Process NASA SMAP Level-4 GEE Timeseries
     if (smapResult.status === 'fulfilled' && smapResult.value.ok) {
       const smapJson = await smapResult.value.json();
       rawSmap = smapJson;
+
+      if (Array.isArray(smapJson.notes)) {
+        const regNote = smapJson.notes.find((n) => typeof n === 'string' && n.includes('Assimilated from nearest regional NASA SMAP L4'));
+        if (regNote) {
+          isRegionalSmap = true;
+          const matchDist = regNote.match(/(\d+)\s*km/);
+          if (matchDist) smapDistanceKm = parseInt(matchDist[1], 10);
+        }
+      }
 
       // Extract from summary_cards array or direct annual_metrics
       if (Array.isArray(smapJson.summary_cards)) {
@@ -273,6 +285,8 @@ export async function fetchEnvironmentalTelemetry(lng, lat) {
       profileMoistureM3: profileMoisture,
       droughtPercentile: droughtPctl,
       soilTempLayer1,
+      isRegionalSmap,
+      smapDistanceKm,
       vegetationGreenness,
       leafAreaIndex,
       infiltrationFlux,

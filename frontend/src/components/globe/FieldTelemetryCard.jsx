@@ -47,7 +47,10 @@ export default function FieldTelemetryCard({
             <TbCheck className="w-3 h-3" /> Field Locked
           </span>
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-            <TbLayersLinked className="w-3 h-3" /> SMAP 9km EASE-Grid
+            <TbLayersLinked className="w-3 h-3" />
+            {telemetry?.isRegionalSmap
+              ? `Regional SMAP (~${telemetry.smapDistanceKm || 200} km)`
+              : 'SMAP 9km Grid'}
           </span>
           {isLoading ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
@@ -136,7 +139,11 @@ export default function FieldTelemetryCard({
                       </div>
                       <div>
                         <span className="font-semibold text-zinc-200">SMAP L4 Soil Moisture</span>
-                        <span className="text-[9px] font-mono text-zinc-400 block">SPL4SMGP V8 · 9 km EASE-Grid</span>
+                        <span className="text-[9px] font-mono text-zinc-400 block">
+                          {telemetry.isRegionalSmap
+                            ? `SPL4SMGP V8 · Regional Ref (~${telemetry.smapDistanceKm || 200} km)`
+                            : 'SPL4SMGP V8 · 9 km EASE-Grid'}
+                        </span>
                       </div>
                     </div>
                     <span className="text-cyan-300 font-mono font-bold text-sm">

@@ -209,6 +209,50 @@ class FileCache:
             logger.info("Found native EASE-Grid 2.0 matching SMAP cache: %s (distance=%.2f km within 9-km pixel)", best_path.name, best_dist_km)
         return best_path
 
+    def find_nearest_smap_gee_with_distance(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        start_date: date,
+        end_date: date,
+        mode: str = "agricultural",
+    ) -> tuple[Path | None, float]:
+        """Find the geographically closest SMAP GEE cache file and its distance in km."""
+        start_str = start_date.strftime("%Y%m%d")
+        end_str = end_date.strftime("%Y%m%d")
+        best_path: Path | None = None
+        best_dist_km = float("inf")
+
+        pattern = re.compile(r"^smap_gee_([+-]?\d+\.\d+)_([+-]?\d+\.\d+)_(\d{8})_(\d{8})_([a-z]+)_[0-9a-f]+\.json$")
+        all_candidates: list[tuple[float, Path, str]] = []
+
+        for file_path in self.smap_gee_dir.glob("smap_gee_*.json"):
+            m = pattern.match(file_path.name)
+            if not m:
+                continue
+            f_lat, f_lon, f_start, f_end, f_mode = float(m.group(1)), float(m.group(2)), m.group(3), m.group(4), m.group(5)
+            dlat_km = (latitude - f_lat) * 110.9
+            dlon_km = (longitude - f_lon) * 111.3 * math.cos(math.radians((latitude + f_lat) / 2.0))
+            dist_km = math.hypot(dlat_km, dlon_km)
+
+            if f_start == start_str and f_end == end_str and f_mode == mode:
+                if dist_km < best_dist_km:
+                    best_dist_km = dist_km
+                    best_path = file_path
+            all_candidates.append((dist_km, file_path, f_mode))
+
+        # If exact date/mode not matched, pick closest file of matching mode or closest overall
+        if not best_path and all_candidates:
+            matching_mode = [c for c in all_candidates if c[2] == mode] or all_candidates
+            matching_mode.sort(key=lambda x: x[0])
+            best_dist_km, best_path = matching_mode[0][0], matching_mode[0][1]
+
+        if best_path:
+            logger.info("Found nearest regional SMAP GEE cache: %s (distance=%.2f km)", best_path.name, best_dist_km)
+            return best_path, best_dist_km
+        return None, float("inf")
+
     def find_nearest_smap_gee(
         self,
         *,
@@ -219,27 +263,14 @@ class FileCache:
         mode: str = "agricultural",
     ) -> Path | None:
         """Find the geographically closest SMAP GEE cache file for the requested date window."""
-        start_str = start_date.strftime("%Y%m%d")
-        end_str = end_date.strftime("%Y%m%d")
-        best_path: Path | None = None
-        best_dist_km = float("inf")
-
-        pattern = re.compile(r"^smap_gee_([+-]?\d+\.\d+)_([+-]?\d+\.\d+)_(\d{8})_(\d{8})_([a-z]+)_[0-9a-f]+\.json$")
-        for file_path in self.smap_gee_dir.glob("smap_gee_*.json"):
-            m = pattern.match(file_path.name)
-            if not m:
-                continue
-            f_lat, f_lon, f_start, f_end, f_mode = float(m.group(1)), float(m.group(2)), m.group(3), m.group(4), m.group(5)
-            if f_start == start_str and f_end == end_str and f_mode == mode:
-                dlat_km = (latitude - f_lat) * 110.9
-                dlon_km = (longitude - f_lon) * 111.3 * math.cos(math.radians((latitude + f_lat) / 2.0))
-                dist_km = math.hypot(dlat_km, dlon_km)
-                if dist_km < best_dist_km:
-                    best_dist_km = dist_km
-                    best_path = file_path
-        if best_path:
-            logger.info("Found nearest regional SMAP GEE cache: %s (distance=%.2f km)", best_path.name, best_dist_km)
-        return best_path
+        path, _ = self.find_nearest_smap_gee_with_distance(
+            latitude=latitude,
+            longitude=longitude,
+            start_date=start_date,
+            end_date=end_date,
+            mode=mode,
+        )
+        return path
 
     def read_json(self, path: Path) -> dict | None:
         if not path.is_file():

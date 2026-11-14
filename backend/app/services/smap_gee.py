@@ -150,30 +150,64 @@ class SmapGeeService:
 
             # Perform live Earth Engine extraction
             start_time = time.monotonic()
-            dataset_result = await asyncio.to_thread(
-                self._fetch_from_gee,
-                location=location,
-                start_date=request.start_date,
-                end_date=request.end_date,
-                mode=mode_clean,
-                scale=request.scale,
-                include_3hourly=request.include_3hourly,
-            )
-            elapsed_ms = round((time.monotonic() - start_time) * 1000.0, 1)
-
-            dataset_result.processing_time_ms = elapsed_ms
-            dataset_result.cached = False
-
-            # Cache the response to disk
             try:
-                self._cache.write_json(
-                    self._cache.smap_gee_path(cache_key),
-                    dataset_result.model_dump(mode="json"),
+                dataset_result = await asyncio.to_thread(
+                    self._fetch_from_gee,
+                    location=location,
+                    start_date=request.start_date,
+                    end_date=request.end_date,
+                    mode=mode_clean,
+                    scale=request.scale,
+                    include_3hourly=request.include_3hourly,
                 )
-            except Exception as e:
-                logger.warning("Failed to save SMAP GEE cache: %s", e)
+                elapsed_ms = round((time.monotonic() - start_time) * 1000.0, 1)
 
-            return dataset_result
+                dataset_result.processing_time_ms = elapsed_ms
+                dataset_result.cached = False
+
+                # Cache the response to disk
+                try:
+                    self._cache.write_json(
+                        self._cache.smap_gee_path(cache_key),
+                        dataset_result.model_dump(mode="json"),
+                    )
+                except Exception as e:
+                    logger.warning("Failed to save SMAP GEE cache: %s", e)
+
+                return dataset_result
+            except Exception as e:
+                logger.warning("Live GEE extraction failed: %s. Seeking regional nearest observation.", e)
+                nearest_path, dist_km = self._cache.find_nearest_smap_gee_with_distance(
+                    latitude=location.requested_latitude,
+                    longitude=location.requested_longitude,
+                    start_date=request.start_date,
+                    end_date=request.end_date,
+                    mode=mode_clean,
+                )
+                if nearest_path is not None and nearest_path.is_file():
+                    cached_data = self._cache.read_json(nearest_path)
+                    if cached_data is not None:
+                        try:
+                            cached_resp = SmapGeeResponse.model_validate(cached_data)
+                            loc_name = location.name or "Selected Farm Plot"
+                            ref_note = f"Assimilated from nearest regional NASA SMAP L4 pixel in Morocco ({round(dist_km)} km away)."
+                            logger.info("Serving regional SMAP L4 fallback from %s (distance=%.1f km)", nearest_path.name, dist_km)
+                            return cached_resp.model_copy(
+                                update={
+                                    "location": cached_resp.location.model_copy(
+                                        update={
+                                            "requested_latitude": location.requested_latitude,
+                                            "requested_longitude": location.requested_longitude,
+                                            "name": f"{loc_name} (Regional SMAP L4 · {round(dist_km)} km)",
+                                        }
+                                    ),
+                                    "cached": True,
+                                    "notes": cached_resp.notes + [ref_note],
+                                }
+                            )
+                        except Exception as parse_err:
+                            logger.warning("Failed to validate regional SMAP cache %s: %s", nearest_path.name, parse_err)
+                raise
 
     async def get_three_hourly(
         self,
