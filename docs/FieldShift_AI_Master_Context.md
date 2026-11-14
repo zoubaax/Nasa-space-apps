@@ -1,8 +1,9 @@
 # FieldShift AI — Master Project Context & Implementation Blueprint
 
 > **Audience:** AI coding agents, system architects, frontend/backend developers, data scientists, judges, and the hackathon team.  
-> **Document date:** November 13, 2026  
+> **Document date:** November 14, 2026  
 > **Status:** Design blueprint; not a claim that the features below have been implemented.  
+> **Retrieval decision (November 14, 2026):** Google Earth Engine replaces NASA Harmony for SMAP L4 and GPM IMERG. NASA POWER stays on its own REST adapter.  
 > **Preferred working language:** English for code, APIs and technical documentation; farmer-facing UI may later support Arabic, French, and English.
 
 ---
@@ -16,8 +17,8 @@ You are acting as a senior full-stack engineer, geospatial data engineer, applie
 1. **Read this file first** and use it as the single working project brief. Distinguish confirmed facts from open design decisions.
 2. **Do not invent satellite observations, farm measurements, weather readings, calculated benefits, agricultural citations, or sensor precision.** Use `null`, `unavailable`, a clearly labeled demo fixture, or an explicit assumption instead.
 3. Keep **LLMs out of authoritative numerical calculations**. Use deterministic, testable code for unit conversion, crop constraints, scoring, data validation, and uncertainty flags. LLMs may coordinate tools, assemble structured findings, and explain results.
-4. Do not assert that NASA Harmony improves the native spatial resolution of SMAP. Geographic subsetting and reprojection do not create new field-scale measurements.
-5. **NASA Harmony must be used only for products and transformations confirmed to be supported** (especially SMAP). GPM, NASA POWER, and Landsat require their own independently verified retrieval adapters; do not route everything through Harmony by assumption.
+4. Do not assert that Google Earth Engine improves the native spatial resolution of SMAP. A point sample, `reduceRegion`, or reprojection does not create a new field-scale measurement.
+5. **Google Earth Engine is the retrieval path for confirmed SMAP and GPM collections only** (`NASA_SMAP_SPL4SMGP_008` and the verified IMERG V07 asset). NASA POWER keeps its own REST adapter. Do not route ESP32 data or unverified products through Earth Engine by assumption.
 6. Do not directly equate an uncalibrated ESP32 sensor ADC percentage with volumetric water content. Record calibration status, sensor depth, soil type, timestamp, and units.
 7. Show source provenance, time range, spatial scale, data quality, and uncertainty next to every major recommendation. Do not use invented confidence percentages.
 8. If data is unavailable, degrade gracefully; do not silently substitute fake data. A real cached dataset is acceptable if its source/date are visible. Synthetic demo mode must be visually unmistakable.
@@ -82,14 +83,14 @@ NASA datasets provide the **regional environmental context**; the farm profile a
 - Main desired outputs: adaptive crop-rotation planning, drought resilience, water-efficiency insights, what-if scenarios, and an accessible dashboard.
 - **Physical ESP32 and soil moisture sensor are already owned.** Their exact model, sensor output type, depth, calibration, and connectivity remain **unknown**.
 - SMAP soil-moisture data and GPM rainfall data are priority research sources.
-- NASA Harmony is being considered for location-specific processing of **supported SMAP products**.
+- **Google Earth Engine replaces NASA Harmony** for location-specific extraction of supported SMAP L4 and GPM IMERG collections. Earth Engine does not increase native resolution.
 - The architecture graphics so far are conceptual; the image is not evidence that code exists.
 
 ### Recommended, NOT yet user-confirmed
 
 - Geographic pilot: **one drought-prone agricultural region in Morocco**, with an actual farm point or test plot identified. Morocco is a proposal, not a confirmed target.
 - Example crop set: wheat, barley, and chickpea, after local agronomic review (not automatically suitable for every area).
-- Python + FastAPI backend; React + Tailwind frontend; LangGraph orchestration; PostgreSQL/PostGIS optional (SQLite can serve MVP); NASA Harmony client, Earthdata Login.
+- Python + FastAPI backend; React + Tailwind frontend; LangGraph orchestration; PostgreSQL/PostGIS optional (SQLite can serve MVP); `earthengine-api` for SMAP and GPM; NASA POWER over open REST.
 - French/Arabic/English as future UI languages.
 - Wi-Fi communication from ESP32; MQTT or HTTPS ingestion depending on hardware and team capability.
 
@@ -99,7 +100,7 @@ NASA datasets provide the **regional environmental context**; the farm profile a
 2. Soil sensor model, capacitance/resistance, analog/digital output, calibration, voltage, depth; whether it outputs credible VWC in m³/m³.
 3. Exact crop set, crop calendars, soil constraints, and local agricultural references.
 4. Team size, available hardware/connectivity, actual hackathon time budget.
-5. Whether Harmony requests can be completed with the team’s Earthdata credentials and collection’s enabled service options.
+5. Whether Earth Engine requests can be completed with the team’s Google Earth Engine credentials, project, and the collection’s published bands.
 
 **If unresolved, implement a configurable pilot and document assumptions rather than hardcoding a fictional “real farm.”**
 
@@ -114,14 +115,13 @@ flowchart LR
     U[Farmer UI / Farm Profile] --> API[FastAPI Backend]
     S[ESP32 + Soil Moisture Sensor] --> IOT[IoT Ingest + Calibration + QC]
     IOT --> FUSE[Scientific Data Fusion Layer]
-    subgraph NASA[Independent NASA Data Sources]
-      SMAP[SMAP L4 Soil Moisture] --> H[NASA Harmony SMAP Subsetting]
-      GPM[GPM IMERG Rainfall] --> GP[GPM / GES DISC Adapter]
+    subgraph NASA[NASA Data via Independent Adapters]
+      SMAP[SMAP L4 Soil Moisture] --> GEE[Google Earth Engine]
+      GPM[GPM IMERG Rainfall] --> GEE
       PWR[NASA POWER Climate] --> PA[POWER REST Adapter]
-      LAN[Landsat / Optional ECOSTRESS] --> LA[Verified Geospatial Adapter]
+      LAN[Landsat / Optional ECOSTRESS] --> LA[Optional Adapter]
     end
-    H --> FUSE
-    GP --> FUSE
+    GEE --> FUSE
     PA --> FUSE
     LA --> FUSE
     U --> API
@@ -143,7 +143,7 @@ flowchart LR
 
 1. Farmer specifies location and contextual constraints.
 2. Data retrieval adapters fetch/cached-query **each provider independently**.
-3. NASA Harmony subsets SMAP (when this collection and selected transformations are supported). It does **not** handle ESP32 data or necessarily GPM/POWER.
+3. Google Earth Engine extracts SMAP and GPM for the farm point or ROI when those collections and bands are confirmed. It does **not** handle ESP32 data or NASA POWER, and a point reduction does **not** increase native resolution.
 4. Data fusion aligns data timestamps, units, spatial footprints, uncertainty, and quality.
 5. Agronomic engine builds **feasible** alternatives, filters hard violations, then scores remaining rotations.
 6. Validation checks provenance, available observations, agronomic rules, missing values, input assumptions, and output consistency.
@@ -157,7 +157,7 @@ flowchart LR
 | Frontend | Farm input, map, time series, scenarios, evidence | React + TypeScript + Tailwind + MapLibre |
 | API | Validation, orchestration entry points, authentication if needed | Python FastAPI + Pydantic |
 | Orchestrator | Graph state, tool calls, validation loops, presentation | LangGraph (or explicit Python workflow initially) |
-| Data connectors | Separate SMAP/Harmony, GPM, POWER, Landsat adapters | Python httpx / harmony-py / xarray / rasterio as appropriate |
+| Data connectors | Earth Engine adapter for SMAP + GPM; separate POWER adapter; Landsat optional | Python `earthengine-api` / httpx |
 | Fusion & science | QC, spatial/temporal alignment, crop constraints/scoring | Plain Python functions + tests |
 | IoT ingestion | Receive sensor readings and metadata, reject bad values | FastAPI endpoint; optional MQTT gateway |
 | Storage/cache | Farm profiles, observation metadata, cached time series | SQLite for MVP or PostgreSQL/PostGIS |
@@ -177,39 +177,41 @@ flowchart LR
 - Spatial resolution: **nominal 9 km**, EASE-Grid 2.0; source projection **EPSG:6933**.
 - Temporal resolution: 3-hourly model/assimilation output, **not 3-hourly independent direct satellite measurements for each field**.
 - Surface moisture represents approx. **0–5 cm**; root-zone approx. **0–100 cm** in the L4 product.
-- Format: HDF5 from NSIDC; supported subsetting/format conversion via NSIDC/Harmony must be checked for this specific product/request.
+- Format at source: HDF5 from NSIDC. MVP retrieval uses the Earth Engine image collection `NASA_SMAP_SPL4SMGP_008` (bands `sm_surface`, `sm_rootzone`). That path does not change the native 9 km support.
 - Original period: from March 2015 onward.
 - Typical scientific interpretation: **regional gridded/model-assimilated soil moisture and anomalies**, not the measured water content of a small farm.
 - **SMAP L4 V8 partly uses IMERG V07 precipitation inputs outside North America and at some other latitudes.** SMAP and GPM are therefore not fully independent validation datasets.
 - **Version caution:** NSIDC announced an **October 23, 2026 L4 minor-version update** addressing a May 14–July 28, 2026 geolocation issue. The main product page and archived messages may still mention reprocessing. Check actual file **Science Version ID** (e.g. `Vv8012`/`Vv8013` for applicable updates) and QC metadata rather than unconditionally declaring the period valid or invalid.
 - If SMAP observation assimilation was unavailable, L4 model output may continue without fresh assimilated satellite observations. Show the caveat if pertinent.
 
-### 4.2 NASA Harmony (SMAP processing, not magic downscaling)
+### 4.2 Google Earth Engine (SMAP and GPM retrieval, not magic downscaling)
 
-**Official docs:** https://harmony.earthdata.nasa.gov/docs  
-**SMAP service availability:** https://nsidc.org/data/user-resources/help-center/what-data-subsetting-reformatting-and-reprojection-services-are-available-smap-data  
-**Earthdata account:** https://urs.earthdata.nasa.gov/
+**Official docs:** https://developers.google.com/earth-engine  
+**Python client:** https://developers.google.com/earth-engine/guides/python_install  
+**SMAP L4 V8 catalog:** https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008  
+**GPM IMERG catalog:** confirm the current asset before coding (planned ID: `NASA/GPM_L3/IMERG_V07`).
 
-Capabilities, subject to per-collection service availability:
-- Spatial subset: bounding box, and possibly shape-based subsets.
-- Temporal subset: dates/times.
-- Variable subset: requested soil-moisture fields where supported.
-- Reprojection / reformat: where available, e.g. GeoTIFF outputs for requested products.
-- Asynchronous processing job with status and output URL(s); official Python client `harmony-py` is a likely route.
+**Decision:** Google Earth Engine replaces NASA Harmony. It is the retrieval path for supported SMAP L4 and GPM IMERG collections. NASA POWER stays on its own REST adapter. Earth Engine computes over published collections; it does not create new satellite measurements and it does not ingest ESP32 readings.
 
-**Important:** A small 2 km ROI inside a 9 km pixel does not yield a genuine 2 km observation. Reprojecting/interpolating may change output pixels but **not information content**. When extracting a point, preserve contributing cell/grid footprint and aggregation/interpolation method.
+Capabilities used for the MVP, subject to the published collection:
+- Point or small-region reduction (`reduceRegion` with a documented reducer such as `ee.Reducer.mean()`) at the farm coordinates.
+- Temporal filter over the selected date range.
+- Band selection: SMAP `sm_surface` (about 0–5 cm) and `sm_rootzone` (about 0–100 cm); GPM precipitation band taken from collection metadata (planned: `precipitationCal`).
+- Python client `earthengine-api`, with a labeled cached real extract when credentials, quota, or network fail.
+
+**Important:** Sampling a 9 km SMAP cell at a farm point, or averaging it, does not yield a field-scale soil-moisture measurement. Record reducer, scale, and CRS. Exported pixel size is not native resolution. A small ROI inside a 9 km pixel does not create a 2 km observation.
 
 **Implementation plan:**
-1. Earthdata Login credentials through secure environment/configuration; never commit secrets.
-2. Resolve the **current collection concept ID through CMR/Earthdata Search**, not a guessed ID.
-3. Inspect available Harmony operations and variable identifiers for the selected SMAP collection.
-4. Make a small **geographic subset + limited date range**; log job status/progress and retry with backoff.
-5. Save processed file and provenance: product, version, science version, job ID, ROI, variables, source time, download time, and native grid resolution.
-6. Parse valid soil moisture variable(s) using product specs; apply fill/missing values and QC attributes.
-7. Normalize to a typed observation schema (below); cache to avoid repeated heavy requests.
-8. If service unavailable, use direct NSIDC access or a verified Earth Engine SMAP collection as a clearly named fallback; retain exact data source and method.
+1. Authenticate Earth Engine with a service account or user credentials in environment configuration; never commit secrets.
+2. Use catalog asset IDs, not guessed service URLs: `NASA_SMAP_SPL4SMGP_008` for SMAP L4 V8. Verify the IMERG V07 asset ID in the Earth Engine data catalog before the first request.
+3. Read band names, units, scale factors, fill values, and cadence from collection metadata before parsing.
+4. Extract a small point or ROI and a limited date range. Log asset ID, reducer, scale, CRS, and time window.
+5. Save the result and provenance: product, version, asset ID, ROI, bands, native grid resolution, reducer, source time, and retrieval time.
+6. Apply fill values and quality attributes from the collection. Do not treat a missing pixel as zero.
+7. Normalize to the typed observation schema below and cache the extract.
+8. If Earth Engine is unavailable, serve the labeled cached real extract or report the source as unavailable. Do not invent values. Direct NSIDC or GES DISC access is out of scope for the MVP.
 
-**No hardcoded sample Harmony API URL should be treated as verified or guaranteed to work.** Discover service/collection identifiers first, then implement tested requests.
+**No hardcoded sample request should be treated as verified until it has been executed against the catalog.** Confirm asset IDs, bands, and units first, then implement tested requests.
 
 ### 4.3 GPM IMERG (priority)
 
@@ -223,8 +225,8 @@ Capabilities, subject to per-collection service availability:
 - Early run ~**4 hours** latency; Late run nominal ~**12–14 hours**; Final run typically ~**3.5 months** latency.
 - Final preferred for retrospective research; Late/Early for near-current awareness with explicit preliminary status.
 - **Careful with units:** some files are precipitation **rate** (`mm/hr`) and others provide accumulations (`mm`) and scaled integer GeoTIFF values. Integrate rates over time only after reading product metadata, and document aggregation period.
-- Access via official GES DISC/PPS/Giovanni/verified adapter as appropriate. **Do not assume all GPM products are Harmony-enabled.**
-- Show precipitation trends/seasonal deviations, not direct proof of farm-level water supply.
+- MVP access is the confirmed Google Earth Engine IMERG collection, reduced at the same pilot point and time window as SMAP. **Do not assume every GPM product or band exists in Earth Engine.** Confirm the asset ID, band, and whether values are a rate (`mm/hr`) or an accumulation (`mm`) before integrating.
+- Show precipitation trends/seasonal deviations, not direct proof of farm-level water supply. Earth Engine scale is not a farm rain gauge.
 
 ### 4.4 NASA POWER (priority, easiest adapter)
 
@@ -344,7 +346,7 @@ The **orchestrator** is a controllable workflow, not a fifth free-running chatbo
 
 | Agent | Responsibility | Inputs | Output | Allowed tools |
 |---|---|---|---|---|
-| 1. Data Retrieval Agent | Select and retrieve suitable environmental and farm evidence | Farm coordinates, date range, dataset configuration | `EnvironmentalProfile` + provenance + quality flags | Harmony SMAP adapter, GPM, POWER, IoT store, geospatial adapters |
+| 1. Data Retrieval Agent | Select and retrieve suitable environmental and farm evidence | Farm coordinates, date range, dataset configuration | `EnvironmentalProfile` + provenance + quality flags | Earth Engine SMAP/GPM adapter, POWER REST, IoT store |
 | 2. Agronomic Analysis Agent | Generate feasible candidate rotation sequences and explain objectives | Profile, farm constraints, reviewed crop database | `RotationCandidate[]` and deterministic engine result | Crop feasibility, seasonal water-demand comparison, scoring functions |
 | 3. Scientific Validation Agent | Block unsupported claims and implausible rotations | Candidates, calculations, provider metadata, caveats | `ValidationReport` (`pass`/`warning`/`block`) | Source checks, unit validators, constraint and scoring test functions |
 | 4. Presentation Agent | Create farmer-friendly concise explanation and dashboard structure | Only validated candidates and source records | `DecisionReport` with trade-offs and warnings | Text generation, localization, chart-spec formatter |
@@ -583,7 +585,7 @@ fieldshift-ai/
 │   │   │   └── rotation.py
 │   │   ├── adapters/
 │   │   │   ├── nasa_power.py
-│   │   │   ├── smap_harmony.py
+│   │   │   ├── earth_engine.py
 │   │   │   ├── gpm_imerg.py
 │   │   │   ├── landsat.py                  # optional
 │   │   │   └── sensors.py
@@ -629,7 +631,7 @@ fieldshift-ai/
 │   └── demo_fixtures/                    # include synthetic/real labels
 └── scripts/
     ├── verify_power.py
-    ├── verify_smap_harmony.py
+    ├── verify_earth_engine.py
     ├── verify_gpm.py
     └── seed_demo.py
 ```
@@ -644,19 +646,19 @@ fieldshift-ai/
 - [ ] Confirm ESP32 board, soil sensor model, wiring and available Wi-Fi.
 - [ ] Choose 3 locally relevant crops and secure at least one source for their management constraints.
 - [ ] Define baseline crop rotation, decision horizon, farmer priorities, and unknown-input behavior.
-- [ ] Ensure NASA Earthdata Login exists and access permissions work without revealing secrets.
+- [ ] Ensure a Google Earth Engine project and credentials exist and can read the SMAP and IMERG collections without revealing secrets.
 
 **Deliverable:** reproducible pilot configuration and risk register.
 
 ### Phase 1 — Real NASA proof of data (critical path)
 
 - [ ] Implement POWER API adapter and fetch genuine precipitation + temperature time series.
-- [ ] Test Harmony access for exact SMAP `SPL4SMGP` V8 concept ID, supported variables, ROI, and date range. Record version/quality and geolocation update status.
-- [ ] Implement a minimal GPM IMERG retrieval for the same region/time window. Verify precipitation rate-vs-accumulation units.
+- [ ] Test Earth Engine access for SMAP `NASA_SMAP_SPL4SMGP_008` (`sm_surface`, `sm_rootzone`) at the pilot point and date range. Record asset ID, reducer, scale, units, native 9 km support, and any geolocation caveat from the source product.
+- [ ] Implement GPM IMERG retrieval through the same Earth Engine adapter for the same point and time window. Verify precipitation rate-versus-accumulation units before summing.
 - [ ] Store data in a normalized format with provenance. Produce one useful verified rainfall/moisture chart.
 - [ ] Cache a small real NASA extract for reliable demo; preserve original attribution and date.
 
-**Deliverable:** real time-series evidence; no LLM required yet. If Harmony isn't reliably accessible, use a well-documented supported fallback without inventing successful Harmony integration.
+**Deliverable:** real time-series evidence; no LLM required yet. If Earth Engine is not reliably accessible, use a labeled cached real extract. Do not invent a successful live retrieval.
 
 ### Phase 2 — Local sensor proof
 
@@ -701,7 +703,7 @@ fieldshift-ai/
 | Test | Expected result |
 |---|---|
 | GPS point submitted | Validates coordinates; retrieves proper region/grid support metadata. |
-| SMAP spatial subset | Output preserves native 9 km meaning; no false high-resolution moisture claims. |
+| SMAP Earth Engine sample | Output preserves native 9 km meaning; a point reduction is not a field-scale moisture claim. |
 | SMAP geolocation window | Science version/quality metadata inspected, caution surfaced if suspect. |
 | GPM rainfall accumulation | Correct integration of `mm/hr` rates or correctly decoded mm accumulations. |
 | Sensor raw ADC received | Stored with raw units and `uncalibrated` status by default. |
@@ -711,7 +713,7 @@ fieldshift-ai/
 | What-if slider | Recomputes from assumptions; labels scenario as hypothetical. |
 | Provider offline | Uses appropriately labeled real cache or reports unavailable; does not fabricate success. |
 | Explanation generated | Cannot change calculated crop rankings or invent precision. |
-| API authentication | Earthdata credentials and ESP32 token never appear in source/UI/logs. |
+| API authentication | Earth Engine credentials and the ESP32 token never appear in source, UI, or logs. |
 
 ### Metrics to collect (do not fabricate values)
 
@@ -731,7 +733,7 @@ fieldshift-ai/
 2. **Sensor representativeness:** a point sensor is not a spatially representative network. A low-cost sensor may not provide VWC without calibration.
 3. **Data dependency:** GPM input can already influence SMAP L4; note non-independence.
 4. **Latency:** IMERG Final is delayed; do not describe it as live rain.
-5. **Harmony limitations:** subset/reformat/reproject only confirmed compatible data/products; handle async jobs and auth correctly.
+5. **Earth Engine limitations:** only published collections, bands, and scale; authentication and quotas apply; `reduceRegion` does not downscale SMAP. Handle auth failure by serving the labeled cache or reporting unavailable.
 6. **Agronomic uncertainty:** crop suitability requires local conditions, planting window, soils, disease rotation constraints, management, and reliable crop references.
 7. **LLM hallucination:** do not allow model to manufacture climate or agricultural data. Require structured tools and scientific validation.
 8. **Scope creep:** no generalized worldwide perfect advisory system, no medical-grade precision claims, no automatic autonomous irrigation actuation in MVP, no unsupported yield predictions.
@@ -744,7 +746,7 @@ fieldshift-ai/
 
 For a team of 3–4 (adjust to actual size):
 
-- **NASA/geospatial engineer:** SMAP + Harmony, GPM, POWER adapters, data provenance, spatial QC.
+- **NASA/geospatial engineer:** Earth Engine SMAP + GPM, POWER adapter, data provenance, spatial QC.
 - **IoT/backend engineer:** ESP32 firmware, secure telemetry ingestion, FastAPI, persistence, calibration metadata.
 - **AI/agronomy engineer:** scientific crop rules, scoring, validation logic, LangGraph orchestration, tests.
 - **Frontend/pitch engineer:** map/dashboard, scenario comparisons, visualization, README/video and judge narrative.
@@ -757,7 +759,7 @@ All roles should share one pilot config, data schema, versioned references and i
 
 1. “A farmer is planning the next three seasons under uncertain water availability.”
 2. “NASA IMERG/POWER provide regional rainfall and climate history; SMAP provides coarse regional surface/root-zone soil moisture.”
-3. “Harmony extracts the supported SMAP variables for our selected area — **without pretending to increase the satellite’s native resolution**.”
+3. “Google Earth Engine extracts SMAP soil moisture and GPM rainfall for our selected area — **without pretending to increase the satellite’s native resolution**.”
 4. “An ESP32 probe adds a real local soil reading from a documented point and depth, with calibration status visible.”
 5. “The system compares the current crop rotation with two alternatives using explicit constraints and priorities.”
 6. “The validation gate checks data quality and assumptions; the dashboard explains why a strategy ranks higher and what evidence is missing.”
@@ -775,7 +777,7 @@ Do NOT begin by building all pages or coding all four AI agents. First:
 2. Create `docs/PROGRESS.md` with what exists, what was verified, open questions, and next task.
 3. Scaffold a small FastAPI backend + Pydantic schema + frontend shell only as needed.
 4. Implement and **execute** a verified NASA POWER retrieval with source metadata for a configurable point and date range.
-5. In parallel, create a **small proof** that SMAP `SPL4SMGP` V8 can be accessed and spatially subset with Harmony (or document precise blocker and verified fallback).
+5. In parallel, create a **small proof** that SMAP `SPL4SMGP` V8 (`NASA_SMAP_SPL4SMGP_008`) and GPM IMERG can be sampled with Google Earth Engine at the pilot point (or document the precise blocker and use the labeled cache).
 6. Verify GPM collection/units and fetch a small matching real dataset.
 7. Implement an ESP32 sensor-ingest endpoint that stores **raw ADC plus calibration metadata**.
 8. After data proof, add minimal rule-driven rotation comparison and validation. Only then connect agent orchestration.
@@ -791,10 +793,10 @@ These are authoritative starting points. Check current product/version details, 
 1. Official challenge: https://www.spaceappschallenge.org/2026/challenges/field-shift-adapting-farms-with-nasa-data/
 2. NASA SMAP mission page: https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/smap
 3. SMAP L4 `SPL4SMGP` V8: https://nsidc.org/data/spl4smgp/versions/8
-4. NSIDC SMAP Harmony services: https://nsidc.org/data/user-resources/help-center/what-data-subsetting-reformatting-and-reprojection-services-are-available-smap-data
-5. NASA Harmony docs: https://harmony.earthdata.nasa.gov/docs
-6. NASA Earthdata Login: https://urs.earthdata.nasa.gov/
-7. NASA Earthdata Search: https://search.earthdata.nasa.gov/
+4. Google Earth Engine: https://developers.google.com/earth-engine
+5. Earth Engine Python client: https://developers.google.com/earth-engine/guides/python_install
+6. Earth Engine SMAP L4 V8 catalog: https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008
+7. Earth Engine data catalog (confirm the IMERG V07 asset here): https://developers.google.com/earth-engine/datasets
 8. NSIDC October 23, 2026 SMAP L4 update: https://nsidc.org/data/user-resources/data-announcements/data-set-updates-smap-level-4
 9. NASA GPM sources: https://gpm.nasa.gov/data/sources
 10. NASA GPM directory: https://gpm.nasa.gov/data/directory
@@ -805,7 +807,7 @@ These are authoritative starting points. Check current product/version details, 
 15. Landsat mission: https://landsat.gsfc.nasa.gov/
 16. NASA ECOSTRESS: https://ecostress.jpl.nasa.gov/
 17. NASA Giovanni: https://giovanni.gsfc.nasa.gov/giovanni/
-18. Earth Engine SMAP L4 V8 catalog (optional alternate retrieval): https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008
+18. Earth Engine authentication: https://developers.google.com/earth-engine/guides/auth
 
 ---
 
