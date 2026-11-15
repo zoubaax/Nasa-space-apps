@@ -7,13 +7,13 @@ import {
   X,
   ArrowRight,
   ArrowLeft,
-  Radio,
-  Activity,
   Compass,
   Loader2,
   AlertTriangle,
-  Sparkles,
   Cpu,
+  Layers,
+  Maximize2,
+  Activity,
 } from 'lucide-react';
 import { fetchVariableExplanation } from '../../utils/geo';
 import { useTranslation } from '../../context/LanguageContext';
@@ -74,91 +74,91 @@ export default function FieldTelemetryCard({
 
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
 
+  const resolveClimateZone = (zone) => {
+    if (!zone) return '—';
+    const l = String(zone).toLowerCase();
+    if (l.includes('sub-humid') || l.includes('subhumid')) return t('telemetry.climateZones.sub_humid', {}, zone);
+    if (l.includes('mediterranean') || l.includes('méditerranéen')) return t('telemetry.climateZones.mediterranean', {}, zone);
+    if (l.includes('semi-arid') || l.includes('semi-aride')) return t('telemetry.climateZones.semi_arid', {}, zone);
+    if (l.includes('arid') || l.includes('aride')) return t('telemetry.climateZones.arid', {}, zone);
+    if (l.includes('continental')) return t('telemetry.climateZones.continental', {}, zone);
+    if (l.includes('humid') || l.includes('humide')) return t('telemetry.climateZones.humid', {}, zone);
+    return zone;
+  };
+
   return (
     <div
-      className={`absolute top-20 ${isRtl ? 'left-4 sm:left-6' : 'right-4 sm:right-6'} z-30 w-[400px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] flex flex-col rounded-2xl bg-white/95 border border-slate-200/90 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.25),0_0_0_1px_rgba(0,0,0,0.03)] text-slate-800 font-body overflow-hidden select-none transition-all duration-300`}
+      className={`absolute top-20 ${isRtl ? 'left-4 sm:left-6' : 'right-4 sm:right-6'} z-30 w-[460px] xl:w-[500px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-5rem)] flex flex-col rounded-2xl bg-[#0b0e14]/98 border border-zinc-800 backdrop-blur-2xl shadow-2xl text-zinc-100 font-body overflow-hidden select-none transition-all duration-300`}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* ── Top Subtle Brand Accent Line ── */}
-      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 pointer-events-none" />
-
       {/* ── Header Section ── */}
-      <div className="relative p-4 sm:p-5 pb-3.5 border-b border-slate-100 bg-slate-50/50">
+      <div className="relative p-5 pb-4 border-b border-zinc-800/90 bg-[#0f131c]/90 shrink-0">
         {/* Dismiss Button */}
         <button
           onClick={onClose}
           type="button"
-          className={`absolute top-4 ${isRtl ? 'left-4' : 'right-4'} p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-700 border border-slate-200 transition cursor-pointer shadow-xs`}
+          className={`absolute top-4 ${isRtl ? 'left-4' : 'right-4'} p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 transition cursor-pointer`}
           title={t('common.close', {}, 'Minimize Card')}
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
         </button>
 
-        {/* Status Badges */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {t('telemetry.fieldLocked', {}, 'Target Locked')}
+        {/* Clean Status Metadata */}
+        <div className="flex items-center gap-2 mb-2.5 text-xs text-zinc-400">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-zinc-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            {t('telemetry.fieldLocked', {}, 'Field Target Locked')}
           </span>
-
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200/80">
-            <Radio className="w-2.5 h-2.5 text-sky-600" />
+          <span className="text-zinc-700">•</span>
+          <span className="font-mono text-zinc-400 text-xs">
             {telemetry?.isRegionalSmap
               ? `${t('telemetry.regionalSmap', {}, 'Regional SMAP')} (~${telemetry.smapDistanceKm || 200} km)`
               : t('telemetry.smapGrid', {}, 'SMAP 9km Grid')}
           </span>
-
-          {isLoading ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-              <Loader2 className="w-2.5 h-2.5 animate-spin text-cyan-600" />
-              <span>{t('telemetry.acquiringNasa', {}, 'Querying…')}</span>
-            </span>
-          ) : telemetry?.isLiveBackend ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-teal-50 text-teal-700 border border-teal-200/80">
-              <Activity className="w-2.5 h-2.5 text-teal-600" />
-              <span>{t('telemetry.liveNasaFeed', {}, 'Live Feed')}</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200/80">
-              <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
-              <span>{t('telemetry.observationNotice', {}, 'Advisory')}</span>
-            </span>
+          {telemetry?.isLiveBackend && (
+            <>
+              <span className="text-zinc-700">•</span>
+              <span className="text-emerald-400 font-medium text-xs flex items-center gap-1">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                {t('telemetry.liveNasaFeed', {}, 'Live Feed')}
+              </span>
+            </>
           )}
         </div>
 
-        {/* Location Title (Display Heading) */}
-        <h2 className={`font-display text-lg sm:text-xl font-bold text-slate-900 leading-snug truncate ${isRtl ? 'pl-8' : 'pr-8'}`}>
+        {/* Location Title */}
+        <h2 className={`font-display text-xl sm:text-2xl font-bold text-white leading-snug truncate ${isRtl ? 'pl-10' : 'pr-10'}`}>
           {name}
         </h2>
 
         {/* Precision Coordinates */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1" dir="ltr">
-          <Compass className="w-3.5 h-3.5 text-cyan-600" />
-          <bdi className="font-mono tabular-nums font-medium text-slate-700">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400 font-mono mt-1.5" dir="ltr">
+          <Compass className="w-4 h-4 text-zinc-400 shrink-0" />
+          <bdi className="tabular-nums font-semibold text-zinc-200">
             {lat >= 0 ? `${lat.toFixed(4)}° N` : `${Math.abs(lat).toFixed(4)}° S`}
           </bdi>
-          <span className="text-slate-300">•</span>
-          <bdi className="font-mono tabular-nums font-medium text-slate-700">
+          <span className="text-zinc-600">•</span>
+          <bdi className="tabular-nums font-semibold text-zinc-200">
             {lng >= 0 ? `${lng.toFixed(4)}° E` : `${Math.abs(lng).toFixed(4)}° W`}
           </bdi>
         </div>
 
         {/* Year Selector */}
-        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200/70">
-          <span className="text-[11px] font-semibold text-slate-500">
-            {t('common.year', {}, 'NASA Orbit Year')}:
+        <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-zinc-800">
+          <span className="text-xs font-semibold text-zinc-400">
+            {t('common.year', {}, 'Observation Year')}:
           </span>
-          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80" dir="ltr">
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800" dir="ltr">
             {[2021, 2022, 2023, 2024, 2025].map((yr) => (
               <button
                 key={yr}
                 type="button"
                 onClick={() => onYearChange && onYearChange(yr)}
                 disabled={isLoading}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
                   selectedYear === yr
-                    ? 'bg-white text-cyan-800 font-bold shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    ? 'bg-zinc-800 text-zinc-100 font-bold shadow-xs border border-zinc-700'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 }`}
                 title={`Fetch NASA observations for ${yr}`}
               >
@@ -169,76 +169,74 @@ export default function FieldTelemetryCard({
         </div>
 
         {/* ── Segmented Tabs ── */}
-        <div className="grid grid-cols-3 gap-1 p-1 mt-3 rounded-xl bg-slate-100 border border-slate-200/80">
+        <div className="grid grid-cols-3 gap-1.5 p-1 mt-3.5 rounded-xl bg-zinc-950 border border-zinc-800">
           <button
             type="button"
             onClick={() => setActiveTab('soil')}
-            className={`py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'soil'
-                ? 'bg-white text-cyan-900 shadow-xs border border-slate-200/90'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-zinc-800 text-zinc-100 shadow-xs border border-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Droplets className="w-3.5 h-3.5 text-cyan-600" />
-            <span>{t('common.soil', {}, 'Soil')}</span>
+            <Droplets className="w-4 h-4 text-zinc-300" />
+            <span>{t('common.soil', {}, 'Soil Stratum')}</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('climate')}
-            className={`py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'climate'
-                ? 'bg-white text-amber-900 shadow-xs border border-slate-200/90'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-zinc-800 text-zinc-100 shadow-xs border border-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <CloudRain className="w-3.5 h-3.5 text-amber-600" />
+            <CloudRain className="w-4 h-4 text-zinc-300" />
             <span>{t('common.climate', {}, 'Climate')}</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('canopy')}
-            className={`py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'canopy'
-                ? 'bg-white text-emerald-900 shadow-xs border border-slate-200/90'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-zinc-800 text-zinc-100 shadow-xs border border-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Sprout className="w-3.5 h-3.5 text-emerald-600" />
+            <Sprout className="w-4 h-4 text-zinc-300" />
             <span>{t('common.canopy', {}, 'Canopy')}</span>
           </button>
         </div>
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="p-4 sm:p-5 space-y-3 overflow-y-auto max-h-[50vh] custom-scrollbar text-xs">
+      <div className="p-5 space-y-4 flex-1 overflow-y-auto custom-scrollbar text-xs sm:text-sm">
         
         {/* Loading State */}
         {isLoading && (
-          <div className="space-y-3 py-6">
-            <div className="flex items-center justify-center gap-2 text-cyan-700 font-medium text-xs animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin text-cyan-600" />
-              <span>{t('telemetry.acquiringNasa', {}, 'Interrogating NASA Earth Science Datasets…')}</span>
+          <div className="space-y-4 py-8">
+            <div className="flex items-center justify-center gap-2.5 text-zinc-200 font-semibold text-sm">
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+              <span>{t('telemetry.acquiringNasa', {}, 'Querying NASA Earth Science Datasets…')}</span>
             </div>
-            <div className="h-20 rounded-xl bg-slate-100 border border-slate-200 animate-pulse" />
-            <div className="h-20 rounded-xl bg-slate-100 border border-slate-200 animate-pulse" />
+            <div className="h-24 rounded-xl bg-zinc-900/40 border border-zinc-800 animate-pulse" />
+            <div className="h-24 rounded-xl bg-zinc-900/40 border border-zinc-800 animate-pulse" />
           </div>
         )}
 
         {/* Observation Advisory Notice */}
         {!isLoading && !telemetry?.isLiveBackend && (
-          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-slate-700 text-xs flex items-start gap-3">
-            <div className="p-1 rounded-md bg-amber-100 text-amber-700 shrink-0 mt-0.5">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
+          <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/20 text-zinc-300 text-xs sm:text-sm flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-amber-900 block">
+              <span className="font-semibold text-amber-300 block text-sm">
                 {t('telemetry.observationNotice', {}, 'Observation Notice')}
               </span>
-              <p className="text-slate-600 mt-1 leading-relaxed">
+              <p className="text-zinc-300 mt-1 leading-relaxed">
                 {telemetry?.error || t('telemetry.noLandData', {}, 'No terrestrial NASA observation found at this coordinate.')}
               </p>
-              <p className="text-[11px] text-slate-500 mt-2">
-                Tip: Click on terrestrial agricultural land or use the location search box to fly to a farm.
+              <p className="text-xs text-zinc-400 mt-2">
+                {t('telemetry.landTip', {}, 'Tip: Click on terrestrial agricultural land or use the location search box to select a field.')}
               </p>
             </div>
           </div>
@@ -247,80 +245,102 @@ export default function FieldTelemetryCard({
         {/* Live Observation Content */}
         {!isLoading && telemetry?.isLiveBackend && (
           <>
-            {/* ── TAB 1: SOIL & ROOTZONE ── */}
+            {/* ── TAB 1: SOIL & ROOTZONE DEPTH STRATA ── */}
             {activeTab === 'soil' && (
-              <div className="space-y-3">
-                {telemetry.smapMoistureM3 !== null && (
-                  <div
-                    onClick={() => handleExplain('sm_rootzone', telemetry.smapMoistureM3, t('telemetry.smapTitle', {}, 'SMAP L4 Root-Zone Moisture'))}
-                    className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 hover:border-cyan-400 hover:bg-white hover:shadow-sm transition cursor-pointer group"
-                    title={t('telemetry.explainBtn', {}, 'Click for AI Analysis')}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-cyan-100 text-cyan-700 group-hover:bg-cyan-200 transition">
-                          <Droplets className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-900 text-xs block">{t('telemetry.smapTitle', {}, 'Root-Zone Moisture')}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">NASA SMAP L4 SPL4SMGP V8</span>
-                        </div>
+              <div className="space-y-3.5">
+                {/* Visual Soil Strata Cross-Section */}
+                <div
+                  onClick={() => handleExplain('sm_rootzone', telemetry.smapMoistureM3, t('telemetry.smapTitle', {}, 'SMAP L4 Root-Zone Moisture'))}
+                  className="rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition cursor-pointer group overflow-hidden"
+                >
+                  {/* Top Strata Layer: Surface Seedbed 0-5 cm */}
+                  <div className="p-4 bg-zinc-900/70 border-b border-zinc-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                        {t('telemetry.surfaceStratum', {}, 'Surface Seedbed Stratum (0–5 cm)')}
+                      </span>
+                      <span className="text-sm sm:text-base font-mono font-bold text-zinc-100 mt-1 block">
+                        {telemetry.surfaceMoistureM3 !== null ? `${telemetry.surfaceMoistureM3} m³/m³` : '—'}
+                      </span>
+                    </div>
+                    {telemetry.soilTempLayer1 !== null && (
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-mono text-zinc-400 block">{t('telemetry.seedbedTemp', {}, 'Seedbed Temp')}</span>
+                        <span className="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 font-mono font-bold text-sm border border-zinc-700 inline-block mt-0.5">
+                          {telemetry.soilTempLayer1}°C
+                        </span>
                       </div>
-                      <div className="text-right" dir="ltr">
-                        <bdi className="text-cyan-900 font-mono font-bold text-sm tabular-nums">
-                          {telemetry.smapMoistureM3} <span className="text-[10px] font-normal text-slate-500">m³/m³</span>
-                        </bdi>
+                    )}
+                  </div>
+
+                  {/* Deep Strata Layer: Root Zone 0-100 cm */}
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-bold text-zinc-100 block">
+                          {t('telemetry.smapTitle', {}, 'Root-Zone Moisture Profile')}
+                        </span>
+                        <span className="text-xs text-zinc-400 font-mono">
+                          {t('telemetry.rootZoneDepth', {}, 'Root-zone (0–100 cm depth)')}
+                        </span>
+                      </div>
+                      <div className="text-right font-mono" dir="ltr">
+                        <bdi className="text-2xl sm:text-3xl font-bold text-zinc-100 tabular-nums">
+                          {telemetry.smapMoistureM3}
+                        </bdi>{' '}
+                        <span className="text-xs font-normal text-zinc-400">{t('telemetry.m3m3', {}, 'm³/m³')}</span>
                       </div>
                     </div>
 
-                    {/* Progress Gauge */}
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden my-2" dir="ltr">
-                      <div
-                        className="bg-gradient-to-r from-amber-500 via-cyan-500 to-emerald-500 h-1.5 rounded-full transition-all duration-700"
-                        style={{ width: `${Math.min(100, Math.max(5, (telemetry.smapMoistureM3 / 0.45) * 100))}%` }}
-                      />
+                    {/* Scientific Moisture Gauge */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="w-full bg-zinc-950 h-3 rounded-full overflow-hidden border border-zinc-800" dir="ltr">
+                        <div
+                          className="bg-emerald-500/80 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, Math.max(5, (telemetry.smapMoistureM3 / 0.45) * 100))}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                        <span>{t('telemetry.wiltingPoint', {}, 'Wilting (0.17)')}</span>
+                        <span>{t('telemetry.fieldCapacity', {}, 'Field Capacity (0.32)')}</span>
+                        <span>{t('telemetry.saturation', {}, 'Saturation (0.45)')}</span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 mt-1">
-                      <span>{t('telemetry.rootZoneDepth', {}, '0–100 cm root layer')}</span>
+                    {/* Drought Percentile */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-zinc-800 text-xs sm:text-sm">
+                      <span className="text-zinc-400 font-medium">{t('telemetry.rootzoneStatus', {}, 'Rootzone Percentile Status:')}</span>
                       {telemetry.droughtPercentile !== null && (
-                        <span className="text-cyan-800 font-semibold" dir="ltr">
-                          {t('telemetry.droughtPctl', {}, 'Drought:')} {telemetry.droughtPercentile}%
+                        <span className="font-mono font-bold text-zinc-100">
+                          {telemetry.droughtPercentile}%{' '}
+                          <span className="text-xs font-medium text-emerald-400">
+                            ({telemetry.droughtPercentile > 50 ? t('telemetry.adequateHydration', {}, 'Adequate Hydration') : t('telemetry.deficitRisk', {}, 'Water-Deficit Risk')})
+                          </span>
                         </span>
                       )}
                     </div>
 
-                    {telemetry.surfaceMoistureM3 !== null && (
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 mt-2.5 pt-2 border-t border-slate-200" dir="ltr">
-                        <span>Surface (0–5 cm): {telemetry.surfaceMoistureM3} m³/m³</span>
-                        {telemetry.soilTempLayer1 !== null && (
-                          <span>Seedbed: {telemetry.soilTempLayer1}°C</span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-end mt-2 pt-1.5 border-t border-slate-200">
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-cyan-700 group-hover:text-cyan-800">
-                        <Sparkles className="w-3 h-3 text-cyan-600" />
-                        <span>{t('telemetry.explainBtn', {}, 'AI Agronomic Analysis')}</span>
-                        <ArrowIcon className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    <div className="flex items-center justify-end pt-1.5">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover:text-white transition">
+                        <span>{t('telemetry.inspectParameters', {}, 'Inspect Biophysical Parameters')}</span>
+                        <ArrowIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                       </span>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* IoT Standby Sensor Card */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                {/* IoT Ground Sensor Calibration */}
+                <div className="p-3.5 rounded-xl bg-zinc-900/30 border border-zinc-800 text-xs sm:text-sm">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-slate-700 font-medium flex items-center gap-1.5 text-[11px]">
-                      <Cpu className="w-3.5 h-3.5 text-emerald-600" /> In-Situ IoT Telemetry
+                    <span className="text-zinc-200 font-semibold flex items-center gap-2 text-xs">
+                      <Cpu className="w-4 h-4 text-zinc-400" /> {t('telemetry.iotBridge', {}, 'In-Situ IoT Telemetry Bridge')}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      Standby
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                      {t('telemetry.iotStandby', {}, 'Standby')}
                     </span>
                   </div>
-                  <p className="text-slate-500 text-[11px] leading-normal">
-                    Supports RS485 / Modbus ESP32 ground sensor calibration.
+                  <p className="text-zinc-400 text-xs leading-normal">
+                    {t('telemetry.iotSupport', {}, 'Supports RS485 / Modbus ESP32 ground sensor calibration.')}
                   </p>
                 </div>
               </div>
@@ -328,35 +348,33 @@ export default function FieldTelemetryCard({
 
             {/* ── TAB 2: CLIMATE FLUX (NASA POWER) ── */}
             {activeTab === 'climate' && (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {telemetry.annualRainfallMm !== null && (
                   <div
                     onClick={() => handleExplain('precipitation_total_surface_flux', telemetry.annualRainfallMm, t('telemetry.rainfallTitle', {}, 'NASA POWER Precipitation'))}
-                    className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 hover:border-cyan-400 hover:bg-white hover:shadow-sm transition cursor-pointer group"
-                    title={t('telemetry.explainBtn', {}, 'Click for AI Analysis')}
+                    className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition cursor-pointer group space-y-3"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-cyan-100 text-cyan-700 group-hover:bg-cyan-200 transition">
-                          <CloudRain className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700">
+                          <CloudRain className="w-5 h-5 text-zinc-200" />
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-900 text-xs block">{t('telemetry.rainfallTitle', {}, 'Annual Precipitation')}</span>
-                          <span className="text-[10px] text-slate-500">
-                            {telemetry.dryDays !== null ? `${telemetry.dryDays} Dry Days (<1mm)` : 'NASA POWER Climatology'}
+                          <span className="font-bold text-zinc-100 text-sm block">{t('telemetry.rainfallTitle', {}, 'Annual Precipitation')}</span>
+                          <span className="text-xs text-zinc-400 font-mono">
+                            {telemetry.dryDays !== null ? t('telemetry.dryDaysVal', { days: telemetry.dryDays }, `${telemetry.dryDays} Dry Days (<1mm)`) : t('telemetry.powerClimatology', {}, 'NASA POWER AG Climatology')}
                           </span>
                         </div>
                       </div>
-                      <bdi className="text-cyan-900 font-mono font-bold text-sm tabular-nums" dir="ltr">
-                        {telemetry.annualRainfallMm} <span className="text-[10px] font-normal text-slate-500">mm/yr</span>
+                      <bdi className="text-2xl sm:text-3xl font-mono font-bold text-zinc-100 tabular-nums" dir="ltr">
+                        {telemetry.annualRainfallMm} <span className="text-xs font-normal text-zinc-400">{t('telemetry.mmyr', {}, 'mm/yr')}</span>
                       </bdi>
                     </div>
 
-                    <div className="flex items-center justify-end mt-2 pt-1.5 border-t border-slate-200">
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-cyan-700 group-hover:text-cyan-800">
-                        <Sparkles className="w-3 h-3 text-cyan-600" />
-                        <span>{t('telemetry.explainBtn', {}, 'AI Agronomic Analysis')}</span>
-                        <ArrowIcon className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    <div className="flex items-center justify-end pt-2 border-t border-zinc-800">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover:text-white transition">
+                        <span>{t('telemetry.inspectParameters', {}, 'Inspect Biophysical Parameters')}</span>
+                        <ArrowIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                       </span>
                     </div>
                   </div>
@@ -365,40 +383,38 @@ export default function FieldTelemetryCard({
                 {telemetry.meanTempC !== null && (
                   <div
                     onClick={() => handleExplain('surface_temp', telemetry.meanTempC, t('telemetry.tempTitle', {}, 'NASA POWER Temperature'))}
-                    className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 hover:border-amber-400 hover:bg-white hover:shadow-sm transition cursor-pointer group"
-                    title={t('telemetry.explainBtn', {}, 'Click for AI Analysis')}
+                    className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition cursor-pointer group space-y-3"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-amber-100 text-amber-700 group-hover:bg-amber-200 transition">
-                          <Sun className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700">
+                          <Sun className="w-5 h-5 text-zinc-200" />
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-900 text-xs block">{t('telemetry.tempTitle', {}, 'Thermal Profile')}</span>
-                          <span className="text-[10px] text-slate-500">
-                            {telemetry.hotDays !== null ? `${telemetry.hotDays} Heat Days (≥30°C)` : 'Mean Surface Temp'}
+                          <span className="font-bold text-zinc-100 text-sm block">{t('telemetry.tempTitle', {}, 'Thermal Profile')}</span>
+                          <span className="text-xs text-zinc-400 font-mono">
+                            {telemetry.hotDays !== null ? t('telemetry.hotDaysVal', { days: telemetry.hotDays }, `${telemetry.hotDays} Heat Days (≥30°C)`) : t('telemetry.meanAirTemp', {}, 'Mean Surface Temperature')}
                           </span>
                         </div>
                       </div>
-                      <bdi className="text-amber-900 font-mono font-bold text-sm tabular-nums" dir="ltr">
-                        {telemetry.meanTempC} <span className="text-[10px] font-normal text-slate-500">°C</span>
+                      <bdi className="text-2xl sm:text-3xl font-mono font-bold text-zinc-100 tabular-nums" dir="ltr">
+                        {telemetry.meanTempC} <span className="text-xs font-normal text-zinc-400">{t('telemetry.celsius', {}, '°C')}</span>
                       </bdi>
                     </div>
 
                     {(telemetry.minTempC !== null || telemetry.maxTempC !== null) && (
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 mt-2.5 pt-2 border-t border-slate-200" dir="ltr">
-                        <span>Min: {telemetry.minTempC}°C • Max: {telemetry.maxTempC}°C</span>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-zinc-300 font-mono pt-2.5 border-t border-zinc-800" dir="ltr">
+                        <span>{t('telemetry.minMaxTemp', { min: telemetry.minTempC, max: telemetry.maxTempC }, `Min: ${telemetry.minTempC}°C • Max: ${telemetry.maxTempC}°C`)}</span>
                         {telemetry.solarRadiation !== null && (
-                          <span>Solar: {telemetry.solarRadiation} MJ/m²</span>
+                          <span>{t('telemetry.solarRadiation', { rad: telemetry.solarRadiation }, `Solar: ${telemetry.solarRadiation} MJ/m²`)}</span>
                         )}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-end mt-2 pt-1.5 border-t border-slate-200">
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 group-hover:text-amber-900">
-                        <Sparkles className="w-3 h-3 text-amber-600" />
-                        <span>{t('telemetry.explainBtn', {}, 'AI Agronomic Analysis')}</span>
-                        <ArrowIcon className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    <div className="flex items-center justify-end pt-2 border-t border-zinc-800">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover:text-white transition">
+                        <span>{t('telemetry.inspectParameters', {}, 'Inspect Biophysical Parameters')}</span>
+                        <ArrowIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                       </span>
                     </div>
                   </div>
@@ -408,18 +424,18 @@ export default function FieldTelemetryCard({
 
             {/* ── TAB 3: BIOSPHERE & CANOPY ── */}
             {activeTab === 'canopy' && (
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 flex items-start gap-2.5">
-                  <div className="p-1 rounded-md bg-cyan-100 text-cyan-700 shrink-0 mt-0.5">
-                    <Sprout className="w-4 h-4" />
+              <div className="space-y-3.5">
+                <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 text-zinc-200 flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700 shrink-0 mt-0.5">
+                    <Layers className="w-5 h-5 text-zinc-300" />
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-cyan-800 block">
-                      {t('telemetry.climaticClassification', {}, 'Climate Zone')}
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                      {t('telemetry.climaticClassification', {}, 'Climatic Terroir Classification')}
                     </span>
-                    <span className="font-display text-sm text-slate-900 font-bold block mt-0.5">{telemetry.climateZone}</span>
-                    <p className="text-slate-500 text-[11px] mt-1">
-                      Assimilated from NASA POWER & SMAP L4 biosphere observations.
+                    <span className="font-display text-base font-bold text-white block mt-0.5">{resolveClimateZone(telemetry.climateZone)}</span>
+                    <p className="text-zinc-400 text-xs mt-1">
+                      {t('telemetry.assimilatedBiosphere', {}, 'Assimilated from NASA POWER & SMAP L4 biosphere observations.')}
                     </p>
                   </div>
                 </div>
@@ -427,38 +443,36 @@ export default function FieldTelemetryCard({
                 {(telemetry.vegetationGreenness !== null || telemetry.leafAreaIndex !== null) && (
                   <div
                     onClick={() => handleExplain('vegetation_greenness_fraction', telemetry.vegetationGreenness || 30.0, t('telemetry.canopyTitle', {}, 'Vegetation Canopy'))}
-                    className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/90 hover:border-emerald-400 hover:bg-white hover:shadow-sm transition cursor-pointer group"
-                    title={t('telemetry.explainBtn', {}, 'Click for AI Analysis')}
+                    className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition cursor-pointer group space-y-3"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200 transition">
-                          <Sprout className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700">
+                          <Sprout className="w-5 h-5 text-zinc-300" />
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-900 text-xs block">{t('telemetry.canopyTitle', {}, 'Canopy State')}</span>
-                          <span className="text-[10px] text-slate-500">SMAP Biosphere Carbon Fluxes</span>
+                          <span className="font-bold text-zinc-100 text-sm block">{t('telemetry.canopyTitle', {}, 'Canopy State')}</span>
+                          <span className="text-xs text-zinc-400 font-mono">{t('telemetry.smapBiosphere', {}, 'SMAP Biosphere Carbon Fluxes')}</span>
                         </div>
                       </div>
-                      <div className="text-right" dir="ltr">
+                      <div className="text-right font-mono" dir="ltr">
                         {telemetry.vegetationGreenness !== null && (
-                          <bdi className="text-emerald-900 font-mono font-bold text-xs block tabular-nums">
-                            {telemetry.vegetationGreenness}% Greenness
+                          <bdi className="text-xl sm:text-2xl font-bold text-zinc-100 block tabular-nums">
+                            {telemetry.vegetationGreenness}% {t('telemetry.greenness', {}, 'Green')}
                           </bdi>
                         )}
                         {telemetry.leafAreaIndex !== null && (
-                          <bdi className="text-slate-500 font-mono text-[10px] tabular-nums">
-                            LAI: {telemetry.leafAreaIndex} m²/m²
+                          <bdi className="text-zinc-400 text-xs tabular-nums">
+                            {t('telemetry.laiVal', { val: telemetry.leafAreaIndex }, `LAI: ${telemetry.leafAreaIndex} m²/m²`)}
                           </bdi>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end mt-2 pt-1.5 border-t border-slate-200">
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 group-hover:text-emerald-800">
-                        <Sparkles className="w-3 h-3 text-emerald-600" />
-                        <span>{t('telemetry.explainBtn', {}, 'AI Agronomic Analysis')}</span>
-                        <ArrowIcon className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    <div className="flex items-center justify-end pt-2 border-t border-zinc-800">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover:text-white transition">
+                        <span>{t('telemetry.inspectParameters', {}, 'Inspect Biophysical Parameters')}</span>
+                        <ArrowIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
                       </span>
                     </div>
                   </div>
@@ -470,37 +484,41 @@ export default function FieldTelemetryCard({
 
       </div>
 
-      {/* ── Footer CTA Button (Vibrant Light Mode Gradient) ── */}
-      <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-white">
+      {/* ── High-Craft Full-Screen Launch CTA Button ── */}
+      <div className="p-4 border-t border-zinc-800 bg-[#0f131c]/90 shrink-0">
         <button
           onClick={() => onEvaluateRotation(locationData, telemetry)}
           disabled={isLoading}
           type="button"
-          className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-semibold text-xs transition-all cursor-pointer disabled:opacity-50 shadow-[0_4px_16px_rgba(13,148,136,0.35)] group"
+          className="w-full py-3.5 px-5 rounded-2xl bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-950 font-black text-sm sm:text-base transition cursor-pointer disabled:opacity-50 shadow-lg flex items-center justify-between group"
         >
-          <Sprout className="w-4 h-4 shrink-0 transition-transform group-hover:rotate-12" />
-          <span>{t('telemetry.evaluateRotationBtn', {}, 'Evaluate Climate-Adaptive Rotations')}</span>
-          <ArrowIcon className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-1" />
+          <div className="flex items-center gap-2.5">
+            <Maximize2 className="w-4 h-4 text-zinc-900" />
+            <span>{t('telemetry.evaluateRotationBtn', {}, 'Evaluate Crop Rotation Scenarios')}</span>
+          </div>
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-900 text-zinc-100 text-xs font-mono font-bold group-hover:bg-zinc-800 transition">
+            {t('telemetry.fullScreenBtn', {}, 'Full Screen ➔')}
+          </span>
         </button>
       </div>
 
-      {/* ── Slide-Over AI Agronomic Analysis Drawer ── */}
+      {/* ── Slide-Over Biophysical Analysis Drawer ── */}
       {activeExplanation && (
         <div
-          className="absolute inset-0 z-50 bg-white/98 backdrop-blur-2xl flex flex-col p-4 sm:p-5 overflow-y-auto custom-scrollbar animate-fade-in text-slate-800 select-text"
+          className="absolute inset-0 z-50 bg-[#0b0e14] flex flex-col p-5 sm:p-6 overflow-y-auto custom-scrollbar animate-fade-in text-zinc-100 select-text"
           dir={isRtl ? 'rtl' : 'ltr'}
         >
           {/* Drawer Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-cyan-100 text-cyan-700">
-                <Sparkles className="w-4 h-4 text-cyan-600" />
+          <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700">
+                <Layers className="w-5 h-5 text-zinc-200" />
               </div>
               <div className="truncate pr-2">
-                <h3 className="font-display text-sm font-bold text-slate-900 truncate">
+                <h3 className="font-display text-base font-bold text-white truncate">
                   {activeExplanation.name_localized || activeExplanation.title || activeExplanation.name_fr || activeExplanation.name_en || t('explain.title', {}, 'Satellite Observation')}
                 </h3>
-                <bdi className="text-xs font-mono text-cyan-800 font-semibold" dir="ltr">
+                <bdi className="text-sm font-mono text-zinc-200 font-semibold" dir="ltr">
                   {activeExplanation.display_value || `${activeExplanation.selected_value ?? ''}`}
                 </bdi>
               </div>
@@ -508,7 +526,7 @@ export default function FieldTelemetryCard({
             <button
               onClick={() => setActiveExplanation(null)}
               type="button"
-              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer shrink-0 border border-slate-200"
+              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition cursor-pointer shrink-0 border border-zinc-800"
               title={t('common.close', {}, 'Close')}
             >
               <X className="w-4 h-4" />
@@ -516,21 +534,21 @@ export default function FieldTelemetryCard({
           </div>
 
           {/* Drawer Content */}
-          <div className="py-3.5 space-y-3 text-xs flex-1">
+          <div className="py-4 space-y-3.5 text-xs sm:text-sm flex-1">
             {activeExplanation.isLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-cyan-600" />
-                <span className="font-medium text-cyan-800 text-xs animate-pulse">
-                  {t('explain.analyzingText', {}, 'Analyzing NASA Earth observation telemetry…')}
+              <div className="py-16 flex flex-col items-center justify-center gap-3.5 text-center">
+                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                <span className="font-semibold text-zinc-200 text-sm">
+                  {t('explain.analyzingText', {}, 'Retrieving NASA observation telemetry…')}
                 </span>
               </div>
             ) : (
               <>
-                {/* AI Interpretation */}
+                {/* Agronomic Interpretation */}
                 {activeExplanation.interpretation && (
-                  <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-200 text-slate-800 text-xs leading-relaxed">
-                    <span className="font-bold text-cyan-900 block mb-1">
-                      {t('explain.directAnalysis', {}, 'Agronomic Synthesis (AI Sentinel)')}
+                  <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 text-zinc-200 text-sm leading-relaxed">
+                    <span className="font-bold text-white block mb-1 text-sm">
+                      {t('explain.directAnalysis', {}, 'Agronomic Synthesis')}
                     </span>
                     {activeExplanation.interpretation}
                   </div>
@@ -538,8 +556,8 @@ export default function FieldTelemetryCard({
 
                 {/* What is this variable */}
                 {activeExplanation.what && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed">
-                    <span className="font-bold text-slate-900 block mb-1">
+                  <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800 text-zinc-300 text-xs sm:text-sm leading-relaxed">
+                    <span className="font-semibold text-zinc-400 block mb-1 uppercase text-xs tracking-wider">
                       {t('explain.whatIsThis', {}, 'Biophysical Definition')}
                     </span>
                     {activeExplanation.what}
@@ -548,8 +566,8 @@ export default function FieldTelemetryCard({
 
                 {/* Why it matters */}
                 {activeExplanation.why_agri && (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-slate-800 text-xs leading-relaxed">
-                    <span className="font-bold text-emerald-900 block mb-1">
+                  <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800 text-zinc-300 text-xs sm:text-sm leading-relaxed">
+                    <span className="font-semibold text-zinc-400 block mb-1 uppercase text-xs tracking-wider">
                       {t('explain.whyMatters', {}, 'Soil & Crop Resilience Impact')}
                     </span>
                     {activeExplanation.why_agri}
@@ -558,8 +576,8 @@ export default function FieldTelemetryCard({
 
                 {/* Practical guidance */}
                 {activeExplanation.temporal_change && (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-slate-800 text-xs leading-relaxed">
-                    <span className="font-bold text-amber-900 block mb-1">
+                  <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800 text-zinc-300 text-xs sm:text-sm leading-relaxed">
+                    <span className="font-semibold text-zinc-400 block mb-1 uppercase text-xs tracking-wider">
                       {t('explain.adviceAction', {}, 'Actionable Field Strategy')}
                     </span>
                     {activeExplanation.temporal_change}
@@ -568,8 +586,8 @@ export default function FieldTelemetryCard({
 
                 {/* Scientific caveat */}
                 {(activeExplanation.caveat_note || activeExplanation.source) && (
-                  <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 leading-normal">
-                    <span className="text-slate-800 font-bold block mb-1">
+                  <div className="p-3.5 rounded-xl bg-zinc-900/20 border border-zinc-800/40 text-xs text-zinc-400 leading-normal">
+                    <span className="text-zinc-300 font-semibold block mb-1">
                       {t('explain.scientificNote', {}, 'NASA Scientific Verification Note')}
                     </span>
                     {activeExplanation.caveat_note || activeExplanation.source}
@@ -580,11 +598,11 @@ export default function FieldTelemetryCard({
           </div>
 
           {/* Drawer Footer */}
-          <div className="mt-auto pt-3 border-t border-slate-200">
+          <div className="mt-auto pt-3.5 border-t border-zinc-800">
             <button
               onClick={() => setActiveExplanation(null)}
               type="button"
-              className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200"
+              className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-sm transition cursor-pointer border border-zinc-800"
             >
               {t('explain.closeDrawer', {}, 'Dismiss Analysis')}
             </button>

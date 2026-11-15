@@ -148,6 +148,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Blé Dur Marocain",
         "name_ar": "القمح الصلب",
         "name_en": "Durum Wheat",
+        "name_es": "Trigo Duro",
         "end_month_day": "0520",
         "cycle_days": 187,
         "kc_mid": 1.15,
@@ -158,6 +159,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Blé Tendre (Farine)",
         "name_ar": "القمح الطري (الفرينة)",
         "name_en": "Bread Wheat",
+        "name_es": "Trigo Blando / Harinero",
         "end_month_day": "0515",
         "cycle_days": 182,
         "kc_mid": 1.15,
@@ -168,6 +170,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Orge Résistante",
         "name_ar": "الشعير المقاوم",
         "name_en": "Resilient Barley",
+        "name_es": "Cebada Resistente",
         "end_month_day": "0425",
         "cycle_days": 162,
         "kc_mid": 1.05,
@@ -178,6 +181,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Maïs Grain",
         "name_ar": "الذرة",
         "name_en": "Corn / Maize",
+        "name_es": "Maíz",
         "end_month_day": "0830",
         "cycle_days": 130,
         "kc_mid": 1.20,
@@ -188,6 +192,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Tournesol",
         "name_ar": "عباد الشمس",
         "name_en": "Sunflower",
+        "name_es": "Girasol",
         "end_month_day": "0725",
         "cycle_days": 120,
         "kc_mid": 1.10,
@@ -198,6 +203,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Soja",
         "name_ar": "فول الصويا",
         "name_en": "Soybean",
+        "name_es": "Soja",
         "end_month_day": "0915",
         "cycle_days": 125,
         "kc_mid": 1.15,
@@ -208,6 +214,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Colza",
         "name_ar": "الكولزا",
         "name_en": "Canola / Rapeseed",
+        "name_es": "Colza",
         "end_month_day": "0525",
         "cycle_days": 175,
         "kc_mid": 1.10,
@@ -218,6 +225,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "name_fr": "Avoine",
         "name_ar": "الخرطال / الشوفان",
         "name_en": "Oats",
+        "name_es": "Avena",
         "end_month_day": "0510",
         "cycle_days": 150,
         "kc_mid": 1.05,
@@ -915,6 +923,22 @@ class AgriSimulationService:
             1,
         )
 
+        # Determine language for localized simulation output
+        req_lang = (getattr(request, "language_override", None) or "").strip().lower()
+        if req_lang and req_lang != "auto":
+            target_lang = req_lang
+        else:
+            loc_name = (request.location.name or "").lower()
+            if (
+                "morocco" in loc_name
+                or "maroc" in loc_name
+                or "المغرب" in loc_name
+                or (21.0 <= request.location.latitude <= 36.0 and -17.0 <= request.location.longitude <= -1.0)
+            ):
+                target_lang = "ar"
+            else:
+                target_lang = "en"
+
         # 7. Build Plans using Simulated Physical Values
         plans = self._build_plans_from_daily_simulations(
             sim_wheat=sim_wheat,
@@ -931,6 +955,7 @@ class AgriSimulationService:
             y_curr=y_curr,
             cereal_key=cereal_key,
             wheat_days=wheat_days,
+            target_language=target_lang,
         )
 
         winner = max(plans, key=lambda p: p.resilience_score)
@@ -1125,6 +1150,7 @@ class AgriSimulationService:
         y_curr: int,
         cereal_key: str = "ble_dur",
         wheat_days: list[str] | None = None,
+        target_language: str = "ar",
     ) -> list[SimulationPlan]:
         """Calculates MCDA scores for the 3 competing crop strategies directly from daily simulated physics."""
         fertility_bonus = float(soil_meta.get("fertility_bonus", 5.0))
@@ -1202,13 +1228,50 @@ class AgriSimulationService:
             },
         ]
 
+        # Select localized plan naming and summaries according to target language
+        cereal_name_es = cereal_cfg.get("name_es", cereal_name_en)
+
+        if target_language in ("ar", "darija"):
+            p1_name_loc = f"الخطة 1 : زراعة {cereal_name_ar} كل عام (زراعة أحادية)"
+            p1_seq_loc = [cereal_name_ar, cereal_name_ar, cereal_name_ar]
+            p1_sum_loc = (
+                f"كتستهلك {water_need_p1} مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز "
+                f"أو الشرقي كيوصل خطر الإجهاد المائي لـ {stress_p1}%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور."
+            )
+            p1_pros_loc = ["محصول مألوف وتسويقه مضمون", "عائد مالي مباشر فسنوات الأمطار الجيدة"]
+            p1_cons_loc = ["إرهاق التربة وتراجع الخصوبة مع الوقت", "حساسية شديدة لموجات الحر والجفاف", "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"]
+        elif target_language == "fr":
+            p1_name_loc = f"Plan 1 : Monoculture de {cereal_name_fr} Annuel"
+            p1_seq_loc = [cereal_name_fr, cereal_name_fr, cereal_name_fr]
+            p1_sum_loc = (
+                f"Consomme {water_need_p1} mm en demande évaporatoire (ETc). En années de sécheresse, le risque de stress atteint {stress_p1}% "
+                f"avec dégradation de la fertilité par manque de rotation."
+            )
+            p1_pros_loc = ["Culture familière et valorisation rapide", "Rendement direct en année pluviométrique favorable"]
+            p1_cons_loc = ["Épuisement du sol et perte de matière organique", "Sensibilité aiguë aux vagues de chaleur et à la sécheresse", "Coûts élevés en intrants et fongicides"]
+        elif target_language == "es":
+            p1_name_loc = f"Plan 1: Monocultivo continuo de {cereal_name_es}"
+            p1_seq_loc = [cereal_name_es, cereal_name_es, cereal_name_es]
+            p1_sum_loc = f"Demanda evaporativa de {water_need_p1} mm (ETc). En condiciones de sequía, el riesgo de estrés alcanza {stress_p1}%."
+            p1_pros_loc = ["Cultivo conocido y comercialización asegurada", "Retorno económico directo en años favorables"]
+            p1_cons_loc = ["Degradación estructural del suelo", "Vulnerabilidad elevada a sequías y olas de calor"]
+        else:
+            p1_name_loc = f"Plan 1: Continuous {cereal_name_en} Monoculture"
+            p1_seq_loc = [cereal_name_en, cereal_name_en, cereal_name_en]
+            p1_sum_loc = (
+                f"Demands {water_need_p1} mm in evaporative demand (ETc). In dry years, water stress risk rises to {stress_p1}% "
+                f"with gradual soil degradation due to continuous monoculture."
+            )
+            p1_pros_loc = ["Familiar crop with direct market access", "Direct revenue in high rainfall seasons"]
+            p1_cons_loc = ["Soil nutrient depletion and reduced organic matter", "High vulnerability to heatwaves and severe drought", "Elevated fungicide and fertilizer input expenses"]
+
         plan1 = SimulationPlan(
             id="plan_monoculture",
             name_fr=f"Plan 1 : Monoculture de {cereal_name_fr} Annuel",
-            name_ar=f"الخطة 1 : زراعة {cereal_name_ar} كل عام (Monoculture)",
+            name_ar=f"الخطة 1 : زراعة {cereal_name_ar} كل عام (زراعة أحادية)",
             name_en=f"Plan 1: Continuous {cereal_name_en} Monoculture",
-            name_localized=f"Plan 1: Continuous {cereal_name_en} Monoculture",
-            rotation_sequence=[cereal_name_ar, cereal_name_ar, cereal_name_ar],
+            name_localized=p1_name_loc,
+            rotation_sequence=p1_seq_loc,
             water_need_mm=water_need_p1,
             water_deficit_mm=deficit_p1,
             water_stress_risk_pct=stress_p1,
@@ -1221,12 +1284,9 @@ class AgriSimulationService:
                 f"كتستهلك {water_need_p1} مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز "
                 f"أو الشرقي كيوصل خطر الإجهاد المائي لـ {stress_p1}%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور."
             ),
-            summary_localized=(
-                f"كتستهلك {water_need_p1} مم دالماء كطلب تبخري (ETc). فاش كتكون الشتا كافية كتعطي إنتاج مزيان، ولكن فسنوات العجز "
-                f"أو الشرقي كيوصل خطر الإجهاد المائي لـ {stress_p1}%، والتراب كيعيا بسبب غياب التناوب وتراكم أمراض الجذور."
-            ),
-            pros=["محصول مألوف وتسويقه مضمون", "عائد مالي مباشر فسنوات الأمطار الجيدة"],
-            cons=["إرهاق التربة وتراجع الخصوبة مع الوقت", "حساسية شديدة لموجات الحر والجفاف", "تكاليف مرتفعة للأسمدة ومبيدات الفطريات"],
+            summary_localized=p1_sum_loc,
+            pros=p1_pros_loc,
+            cons=p1_cons_loc,
             rotation_years=rotation_years_p1,
         )
 
@@ -1299,13 +1359,69 @@ class AgriSimulationService:
             },
         ]
 
+        if target_language in ("ar", "darija"):
+            p2_name_loc = f"الخطة 2 : دورة ثلاثية متوازنة ({cereal_name_ar} - قطاني/عدس - شعير)"
+            p2_seq_loc = [f"{cereal_name_ar} (سنة 1)", "القطاني / العدس / الحمص (سنة 2)", "الشعير المقاوم (سنة 3)"]
+            p2_sum_loc = (
+                f"أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي {evap_saved_p2} مم ({round(evap_saved_p2 * 10)} م³/هكتار كطلب جوي للمحصول)، "
+                f"وتخفف العجز المائي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار). "
+                f"القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ {stress_p2}%."
+            )
+            p2_pros_loc = [
+                f"تقليص الطلب التبخري الجوي بمقدار {evap_saved_p2} مم ({round(evap_saved_p2 * 10)} م³/هكتار)",
+                f"خفض العجز المائي الصافي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار)",
+                f"تقليص مياه السقي المحاكى: {irr_saved_p2} مم ({round(irr_saved_p2 * 10)} م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
+                "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
+                "صمود ممتاز ضد نقص التساقطات وموجات الحر",
+                "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور",
+            ]
+            p2_cons_loc = ["أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"]
+        elif target_language == "fr":
+            p2_name_loc = f"Plan 2 : Rotation Triennale Résiliente ({cereal_name_fr} - Légumineuses - Orge)"
+            p2_seq_loc = [f"{cereal_name_fr} (An 1)", "Légumineuses / Lentilles (An 2)", "Orge Tolérante (An 3)"]
+            p2_sum_loc = (
+                f"Rotation triennale équilibrée réduisant le besoin hydrique moyen à {water_need_p2} mm/an. "
+                f"Apport d'azote symbiotique par la légumineuse et meilleure résilience face aux déficits hydriques."
+            )
+            p2_pros_loc = [
+                f"Réduction de la demande évaporatoire de {evap_saved_p2} mm ({round(evap_saved_p2 * 10)} m³/ha)",
+                f"Atténuation du déficit hydrique net de {deficit_saved_p2} mm ({round(deficit_saved_p2 * 10)} m³/ha)",
+                "Fixation symbiotique d'azote atmosphérique (30-50 kg N/ha)",
+                "Résilience accrue face aux irrégularités pluviométriques et coups de chaleur",
+            ]
+            p2_cons_loc = ["Prix des légumineuses soumis aux fluctuations saisonnières du marché"]
+        elif target_language == "es":
+            p2_name_loc = f"Plan 2: Rotación trienal resiliente ({cereal_name_es} - Leguminosas - Cebada)"
+            p2_seq_loc = [f"{cereal_name_es} (Año 1)", "Leguminosas / Lentejas (Año 2)", "Cebada Resistente (Año 3)"]
+            p2_sum_loc = f"Rotación trienal equilibrada reduciendo la demanda hídrica media a {water_need_p2} mm/año con aporte de nitrógeno simbiótico."
+            p2_pros_loc = [
+                f"Ahorro de demanda evaporativa de {evap_saved_p2} mm ({round(evap_saved_p2 * 10)} m³/ha)",
+                f"Reducción del déficit hídrico neto en {deficit_saved_p2} mm ({round(deficit_saved_p2 * 10)} m³/ha)",
+                "Fijación biológica de nitrógeno (30-50 kg N/ha)",
+            ]
+            p2_cons_loc = ["Variabilidad en los precios estacionales de leguminosas"]
+        else:
+            p2_name_loc = f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)"
+            p2_seq_loc = [f"{cereal_name_en} (Year 1)", "Legumes (Lentils / Chickpeas)", "Resilient Barley"]
+            p2_sum_loc = (
+                f"Balanced triennial rotation reducing mean crop water demand to {water_need_p2} mm/year. "
+                f"Supplies symbiotic nitrogen and provides high resilience to drought spells."
+            )
+            p2_pros_loc = [
+                f"Reduces evaporative demand by {evap_saved_p2} mm ({round(evap_saved_p2 * 10)} m³/ha)",
+                f"Reduces net simulated water deficit by {deficit_saved_p2} mm ({round(deficit_saved_p2 * 10)} m³/ha)",
+                "Biological symbiotic nitrogen fixation (30-50 kg N/ha)",
+                "High buffering capacity against precipitation deficits and heat shocks",
+            ]
+            p2_cons_loc = ["Legume market price subject to seasonal market fluctuations"]
+
         plan2 = SimulationPlan(
             id="plan_rotation_triennale",
             name_fr=f"Plan 2 : Rotation Triennale Résiliente ({cereal_name_fr} - Légumineuses - Orge)",
             name_ar=f"الخطة 2 : دورة ثلاثية متوازنة ({cereal_name_ar} - قطاني/عدس - شعير)",
             name_en=f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)",
-            name_localized=f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)",
-            rotation_sequence=[f"{cereal_name_ar} (سنة 1)", "القطاني / العدس / الحمص (سنة 2)", "الشعير المقاوم (سنة 3)"],
+            name_localized=p2_name_loc,
+            rotation_sequence=p2_seq_loc,
             water_need_mm=water_need_p2,
             water_deficit_mm=deficit_p2,
             water_stress_risk_pct=stress_p2,
@@ -1319,20 +1435,9 @@ class AgriSimulationService:
                 f"وتخفف العجز المائي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار). "
                 f"القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ {stress_p2}%."
             ),
-            summary_localized=(
-                f"أفضل دورة زراعية علمياً: كتقلص الطلب التبخري بحوالي {evap_saved_p2} مم ({round(evap_saved_p2 * 10)} م³/هكتار كطلب جوي للمحصول)، "
-                f"وتخفف العجز المائي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار). "
-                f"القطاني كتعمر التربة بالأزوت الحيوي، والشعير كيصبر على نقص الشتا، ومؤشر الإجهاد كيهبط لـ {stress_p2}%."
-            ),
-            pros=[
-                f"تقليص الطلب التبخري الجوي بمقدار {evap_saved_p2} مم ({round(evap_saved_p2 * 10)} م³/هكتار)",
-                f"خفض العجز المائي الصافي بـ {deficit_saved_p2} مم ({round(deficit_saved_p2 * 10)} م³/هكتار)",
-                f"تقليص مياه السقي المحاكى: {irr_saved_p2} مم ({round(irr_saved_p2 * 10)} م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)",
-                "تثبيت الآزوت الطبيعي بالتربة (تقديرياً 30-50 كغ N/هكتار)",
-                "صمود ممتاز ضد نقص التساقطات وموجات الحر",
-                "كسر دورة الأعشاب الضارة وأمراض تعفن الجذور",
-            ],
-            cons=["أسعار بيع القطاني مرتبطة بتقلبات السوق الموسمية"],
+            summary_localized=p2_sum_loc,
+            pros=p2_pros_loc,
+            cons=p2_cons_loc,
             rotation_years=rotation_years_p2,
         )
 
@@ -1401,13 +1506,65 @@ class AgriSimulationService:
             },
         ]
 
+        if target_language in ("ar", "darija"):
+            p3_name_loc = "الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي"
+            p3_seq_loc = [cereal_name_ar, "علف وبقوليات خضراء", "راحة نشطة ومغطاة"]
+            p3_sum_loc = (
+                f"أقل خطة طلباً للماء ({water_need_p3} مم كطلب تبخري، بتخفيض {evap_saved_p3} مم مقارنة بـ {cereal_name_ar}). مناسبة جداً للسنوات الجافة والأراضي البورية، "
+                f"حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ {deficit_saved_p3} مم."
+            )
+            p3_pros_loc = [
+                f"أقل طلب تبخري للمياه على الإطلاق ({water_need_p3} مم)",
+                f"تخفيض الطلب التبخري بـ {evap_saved_p3} مم ({round(evap_saved_p3 * 10)} م³/هكتار)",
+                "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
+                "تكاليف مدخلات كيميائية منخفضة جداً",
+            ]
+            p3_cons_loc = ["العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"]
+        elif target_language == "fr":
+            p3_name_loc = "Plan 3 : Système Économe en Eau & Couvert Végétal"
+            p3_seq_loc = [cereal_name_fr, "Fourrage & Engrais Vert", "Jachère Active Couverte"]
+            p3_sum_loc = (
+                f"Stratégie agroécologique protectrice limitant le besoin hydrique à {water_need_p3} mm. "
+                f"Résilience maximale ({resilience_p3}/100) pour sécuriser l'exploitation face aux chocs climatiques."
+            )
+            p3_pros_loc = [
+                f"Demande évaporatoire minimale ({water_need_p3} mm)",
+                f"Économie évaporatoire de {evap_saved_p3} mm ({round(evap_saved_p3 * 10)} m³/ha)",
+                "Préservation maximale de l'humidité du sol sous couvert",
+                "Faible dépendance aux intrants chimiques",
+            ]
+            p3_cons_loc = ["Rendement brut potentiel inférieur en année pluviométrique exceptionnelle"]
+        elif target_language == "es":
+            p3_name_loc = "Plan 3: Sistema agroecológico de bajo consumo y cobertura"
+            p3_seq_loc = [cereal_name_es, "Forraje y Abono Verde", "Barbecho con Cobertura"]
+            p3_sum_loc = f"Estrategia agroecológica protectora limitando el requerimiento a {water_need_p3} mm con máxima resiliencia ({resilience_p3}/100)."
+            p3_pros_loc = [
+                f"Menor demanda hídrica ({water_need_p3} mm)",
+                "Protección de la humedad edáfica mediante cobertura",
+            ]
+            p3_cons_loc = ["Menor rendimiento bruto potencial en años de precipitación extraordinaria"]
+        else:
+            p3_name_loc = "Plan 3: Water-Efficient Agroecological System with Cover Crops"
+            p3_seq_loc = [cereal_name_en, "Forage & Green Manure", "Active Cover Fallow"]
+            p3_sum_loc = (
+                f"Protective agroecological strategy curbing water demand to {water_need_p3} mm with maximum resilience ({resilience_p3}/100) "
+                f"for downside risk protection."
+            )
+            p3_pros_loc = [
+                f"Lowest evaporative water demand ({water_need_p3} mm)",
+                f"Cuts evaporative demand by {evap_saved_p3} mm ({round(evap_saved_p3 * 10)} m³/ha)",
+                "Optimal soil moisture conservation under surface cover",
+                "Minimal chemical input expenditure",
+            ]
+            p3_cons_loc = ["Lower gross tonnage potential during exceptionally wet seasons"]
+
         plan3 = SimulationPlan(
             id="plan_agroecologie",
             name_fr="Plan 3 : Système Économe en Eau & Couvert Végétal",
             name_ar="الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
             name_en="Plan 3: Water-Efficient Agroecological & Cover-Crop System",
-            name_localized="Plan 3: Water-Efficient Agroecological & Cover-Crop System",
-            rotation_sequence=[cereal_name_ar, "علف وبقوليات خضراء", "راحة نشطة ومغطاة"],
+            name_localized=p3_name_loc,
+            rotation_sequence=p3_seq_loc,
             water_need_mm=water_need_p3,
             water_deficit_mm=deficit_p3,
             water_stress_risk_pct=stress_p3,
@@ -1420,17 +1577,9 @@ class AgriSimulationService:
                 f"أقل خطة طلباً للماء ({water_need_p3} مم كطلب تبخري، بتخفيض {evap_saved_p3} مم مقارنة بـ {cereal_name_ar}). مناسبة جداً للسنوات الجافة والأراضي البورية، "
                 f"حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ {deficit_saved_p3} مم."
             ),
-            summary_localized=(
-                f"أقل خطة طلباً للماء ({water_need_p3} مم كطلب تبخري، بتخفيض {evap_saved_p3} مم مقارنة بـ {cereal_name_ar}). مناسبة جداً للسنوات الجافة والأراضي البورية، "
-                f"حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ {deficit_saved_p3} مم."
-            ),
-            pros=[
-                f"أقل طلب تبخري للمياه على الإطلاق ({water_need_p3} مم)",
-                f"تخفيض الطلب التبخري بـ {evap_saved_p3} مم ({round(evap_saved_p3 * 10)} م³/هكتار)",
-                "حماية قصوى لرطوبة منطقة الجذور وتقليل التبخر من سطح التربة",
-                "تكاليف مدخلات كيميائية منخفضة جداً",
-            ],
-            cons=["العائد المالي الإجمالي أقل في السنوات الممطرة الاستثنائية"],
+            summary_localized=p3_sum_loc,
+            pros=p3_pros_loc,
+            cons=p3_cons_loc,
             rotation_years=rotation_years_p3,
         )
 
@@ -1580,6 +1729,8 @@ class AgriSimulationService:
                 f"est mathématiquement exact avec une erreur de bilan massique de 0.0 mm. Les données spatiales (~9-11 km) constituent des macro-estimations régionales."
             )
 
+            p1.name_localized = p1.name_fr
+            p1.rotation_sequence = [cereal_p1_fr, cereal_p1_fr, cereal_p1_fr]
             p1.summary_localized = (
                 f"Consomme {p1.water_need_mm} mm en demande évaporatoire (ETc). En années de sécheresse, le risque de stress atteint {p1.water_stress_risk_pct}% "
                 f"avec dégradation de la fertilité par manque de rotation."
@@ -1588,6 +1739,8 @@ class AgriSimulationService:
             p1.pros = ["Culture familière et valorisation rapide", "Rendement direct en année pluviométrique favorable"]
             p1.cons = ["Épuisement du sol et perte de matière organique", "Sensibilité aiguë aux vagues de chaleur et à la sécheresse", "Coûts élevés en intrants et fongicides"]
 
+            p2.name_localized = p2.name_fr
+            p2.rotation_sequence = [f"{cereal_p1_fr} (An 1)", "Légumineuses / Lentilles (An 2)", "Orge Tolérante (An 3)"]
             p2.summary_localized = (
                 f"Rotation triennale équilibrée réduisant le besoin hydrique moyen à {p2.water_need_mm} mm/an. "
                 f"Apport d'azote symbiotique par la légumineuse et meilleure résilience face aux déficits hydriques."
@@ -1601,6 +1754,8 @@ class AgriSimulationService:
             ]
             p2.cons = ["Prix des légumineuses soumis aux fluctuations saisonnières du marché"]
 
+            p3.name_localized = p3.name_fr
+            p3.rotation_sequence = [cereal_p1_fr, "Fourrage & Engrais Vert", "Jachère Active Couverte"]
             p3.summary_localized = (
                 f"Stratégie agroécologique protectrice limitant le besoin hydrique à {p3.water_need_mm} mm. "
                 f"Résilience maximale ({p3.resilience_score}/100) pour sécuriser l'exploitation face aux chocs climatiques."
@@ -1649,6 +1804,10 @@ class AgriSimulationService:
                 f"El balance hídrico ({total_water_supply} mm) es matemáticamente exacto con error 0.0 mm."
             )
 
+            cereal_name_es = cereal_cfg.get("name_es", cereal_name_en)
+            p1.name_localized = f"Plan 1: Monocultivo continuo de {cereal_name_es}"
+            p1.name_es = p1.name_localized
+            p1.rotation_sequence = [cereal_name_es, cereal_name_es, cereal_name_es]
             p1.summary_localized = (
                 f"Demanda evaporativa de {p1.water_need_mm} mm (ETc). En condiciones de sequía, el riesgo de estrés alcanza {p1.water_stress_risk_pct}%."
             )
@@ -1656,6 +1815,9 @@ class AgriSimulationService:
             p1.pros = ["Cultivo conocido y comercialización asegurada", "Retorno económico directo en años favorables"]
             p1.cons = ["Degradación estructural del suelo", "Vulnerabilidad elevada a sequías y olas de calor"]
 
+            p2.name_localized = f"Plan 2: Rotación trienal resiliente ({cereal_name_es} - Leguminosas - Cebada)"
+            p2.name_es = p2.name_localized
+            p2.rotation_sequence = [f"{cereal_name_es} (Año 1)", "Leguminosas / Lentejas (Año 2)", "Cebada Resistente (Año 3)"]
             p2.summary_localized = (
                 f"Rotación trienal equilibrada reduciendo la demanda hídrica media a {p2.water_need_mm} mm/año con aporte de nitrógeno simbiótico."
             )
@@ -1667,6 +1829,9 @@ class AgriSimulationService:
             ]
             p2.cons = ["Variabilidad en los precios estacionales de leguminosas"]
 
+            p3.name_localized = "Plan 3: Sistema agroecológico de bajo consumo y cobertura"
+            p3.name_es = p3.name_localized
+            p3.rotation_sequence = [cereal_name_es, "Forraje y Abono Verde", "Barbecho con Cobertura"]
             p3.summary_localized = (
                 f"Estrategia agroecológica protectora limitando el requerimiento a {p3.water_need_mm} mm con máxima resiliencia ({p3.resilience_score}/100)."
             )
@@ -1792,6 +1957,13 @@ class AgriSimulationService:
                 f"التوريد المائي المحسوب ({total_water_supply} مم = {effective_seasonal_rain_infiltrated_mm} شتا راشحة + {available_irrigation} سقي + {stored_soil_water_at_sowing_mm} مخزون البذر) "
                 f"مطابق بدقة 100% بدون أي خطأ في ميزان الكتلة (0.0 مم). البيانات الفضائية (~9-11 كلم) هي تقديرات إقليمية."
             )
+
+            p1.name_localized = p1.name_ar
+            p1.rotation_sequence = [cereal_p1_name, cereal_p1_name, cereal_p1_name]
+            p2.name_localized = p2.name_ar
+            p2.rotation_sequence = [f"{cereal_p1_name} (سنة 1)", "القطاني / العدس (سنة 2)", "الشعير المقاوم (سنة 3)"]
+            p3.name_localized = p3.name_ar
+            p3.rotation_sequence = [cereal_p1_name, "علف وبقوليات خضراء", "راحة نشطة ومغطاة"]
 
         initial_tribunal = [
             TribunalAgentVerdict(

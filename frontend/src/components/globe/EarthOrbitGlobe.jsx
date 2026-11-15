@@ -120,7 +120,13 @@ export default function EarthOrbitGlobe({
       setShowTelemetryCard(false);
       setIsExperienceMode(true);
 
-      const targetCoords = loc.coordinates; // [lng, lat]
+      const targetCoords =
+        loc.coordinates ||
+        (loc.lng !== undefined && loc.lat !== undefined ? [loc.lng, loc.lat] : null);
+      if (!targetCoords || isNaN(targetCoords[0]) || isNaN(targetCoords[1])) {
+        console.warn('flyToLocation: invalid coordinates in loc object:', loc);
+        return;
+      }
       const targetZoom = loc.zoom || 14.5;
       const targetPitch = loc.pitch !== undefined ? loc.pitch : 45;
       const targetBearing = loc.bearing || 0;
@@ -521,10 +527,10 @@ export default function EarthOrbitGlobe({
             <button
               type="button"
               onClick={handleResetOrbit}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/95 hover:bg-white border border-slate-200/90 shadow-[0_10px_35px_-5px_rgba(15,23,42,0.15)] text-xs font-semibold text-slate-700 hover:text-cyan-800 backdrop-blur-2xl transition cursor-pointer"
+              className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#0b0e14]/95 hover:bg-zinc-800 border border-zinc-800 shadow-xl text-xs sm:text-sm font-bold text-zinc-100 hover:text-white backdrop-blur-2xl transition cursor-pointer"
             >
-              <Globe2 className="w-3.5 h-3.5 text-cyan-600" />
-              <span>Orbit View</span>
+              <Globe2 className="w-4 h-4 text-zinc-400" />
+              <span>{t('common.backToOrbit', {}, 'Orbit View')}</span>
             </button>
           </div>
 
