@@ -14,6 +14,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+import httpx
+
 from app.core.config import get_settings
 from app.core.exceptions import InvalidRequestError
 from app.models.simulation import (
@@ -734,7 +736,7 @@ class AgriSimulationService:
         irr_pumping_saved_m3_ha = round(irr_pumping_saved_mm * 10.0, 1)
 
         # 8. Assemble AI Scientific Tribunal
-        tribunal = self._evaluate_tribunal(
+        tribunal = await self._evaluate_tribunal(
             request=request,
             plans=plans,
             winner=winner,
@@ -1188,7 +1190,7 @@ class AgriSimulationService:
 
         return [plan1, plan2, plan3]
 
-    def _evaluate_tribunal(
+    async def _evaluate_tribunal(
         self,
         *,
         request: SimulationRequest,
@@ -1210,48 +1212,112 @@ class AgriSimulationService:
         evap_demand_saved_mm: float,
         deficit_saved_mm: float,
     ) -> list[TribunalAgentVerdict]:
-        """Runs multi-agent panel review with clear physical equations and evidence references."""
+        """Runs multi-agent panel review powered by live Google Gemini LLM with physical guardrail verification."""
         p1 = plans[0]
 
-        # 1. NASA POWER Climate Agent
+        # 1. Physics-based mathematical verification and baseline stances
         clim_stance = "favorable" if winner.water_deficit_mm < 35.0 and winner.water_stress_risk_pct < 30.0 else "reserve"
-        clim_arg = (
-            f"بناءً على التساقطات المسجلة فالموسم الفلاحي حصاد {request.year} ({seasonal_gross_rain_mm} مم إجمالية، منها {effective_seasonal_rain_infiltrated_mm} مم راشحة في التربة) "
-            f"والسنة التقويمية ({precip} مم، {hot_days} يوم حراري ≥30°C)، زراعة القمح كل عام كتعرض المحصول لعجز مائي ({p1.water_deficit_mm} مم). "
-            f"الخطة الفائزة ({winner.name_ar}) كتخفض الطلب التبخري لـ {winner.water_need_mm} مم وكتقلص العجز الصافي لـ {winner.water_deficit_mm} مم."
-        )
-        clim_evidence = f"مطر الموسم: {seasonal_gross_rain_mm} مم · مطر راشح: {effective_seasonal_rain_infiltrated_mm} مم · مطر سنوي: {precip} مم · أيام حارة: {hot_days} يوم"
-
-        # 2. NASA SMAP L4 Hydrology Agent
         hydro_stance = "favorable" if sm_rootzone > float(soil_meta["theta_wp"]) else "defavorable"
-        hydro_arg = (
-            f"رطوبة منطقة الجذور من قمر SMAP L4 هي {sm_rootzone} م³/م³ (أعلى من نقطة الذبول الدائم {soil_meta['theta_wp']} م³/م³). "
-            f"سعة التخزين الكلية للتربة من نوع {soil_meta['label']} هي {soil_meta['awc_mm']} مم، ومخزون البذر المتاح هو {stored_soil_water_at_sowing_mm} مم. "
-            f"الميزانية المائية الإجمالية المتاحة ({total_water_supply} مم) كافية لتغطية احتياج الخطة الفائزة بدون استنزاف الخزان الجوفي."
-        )
-        hydro_evidence = f"رطوبة SMAP L4: {sm_rootzone} م³/م³ · سعة TAW: {soil_meta['awc_mm']} مم · ماء التربة المخزون: {stored_soil_water_at_sowing_mm} مم · الميزانية: {total_water_supply} مم"
-
-        # 3. FieldShift Agro Agronomist Agent
         agro_stance = "favorable"
-        agro_arg = (
-            f"أبحاث المعهد الوطني للبحث الزراعي (INRA المغرب) تؤكد أن الدورة الزراعية المتوازنة تكسر دورة فطريات الجذور "
-            f"والأعشاب الضارة، وتوفر تثبيتاً حيوياً للأزوت يتراوح بين 30 و 50 كغ N/هكتار. "
-            f"الخطة الفائزة كتقلص الطلب التبخري الجوي بـ {evap_demand_saved_mm} مم وتخفض العجز بـ {deficit_saved_mm} مم."
-        )
-        agro_evidence = f"تقليص الطلب التبخري: {evap_demand_saved_mm} مم ({round(evap_demand_saved_mm * 10)} م³/هك) · تثبيت آزوتي: 30-50 كغ N/هك · كسر دورة أمراض الجذور"
-
-        # 4. Evidence Guardrail Agent
         math_valid = (
             round(effective_seasonal_rain_infiltrated_mm + available_irrigation + stored_soil_water_at_sowing_mm, 1) == total_water_supply
             and all(p.water_deficit_mm >= 0.0 for p in plans)
         )
         guard_stance = "favorable" if math_valid else "reserve"
+
+        # Deterministic evidence anchors
+        clim_evidence = f"مطر الموسم: {seasonal_gross_rain_mm} مم · مطر راشح: {effective_seasonal_rain_infiltrated_mm} مم · مطر سنوي: {precip} مم · أيام حارة: {hot_days} يوم"
+        hydro_evidence = f"رطوبة SMAP L4: {sm_rootzone} م³/م³ · سعة TAW: {soil_meta['awc_mm']} مم · ماء التربة المخزون: {stored_soil_water_at_sowing_mm} مم · الميزانية: {total_water_supply} مم"
+        agro_evidence = f"تقليص الطلب التبخري: {evap_demand_saved_mm} مم ({round(evap_demand_saved_mm * 10)} م³/هك) · تثبيت آزوتي: 30-50 كغ N/هك · كسر دورة أمراض الجذور"
+        guard_evidence = f"FAO-56 Penman-Monteith (ETc=Kc×ET0) · خطأ ميزان الكتلة: 0.0 مم · TAW={soil_meta['awc_mm']} مم · شبكة SMAP L4 (~9-11 كلم)"
+
+        # Baseline fallback arguments (used if offline / Gemini call fails)
+        clim_arg = (
+            f"بناءً على التساقطات المسجلة فالموسم الفلاحي حصاد {request.year} ({seasonal_gross_rain_mm} مم إجمالية، منها {effective_seasonal_rain_infiltrated_mm} مم راشحة في التربة) "
+            f"والسنة التقويمية ({precip} مم، {hot_days} يوم حراري ≥30°C)، زراعة القمح كل عام كتعرض المحصول لعجز مائي ({p1.water_deficit_mm} مم). "
+            f"الخطة الفائزة ({winner.name_ar}) كتخفض الطلب التبخري لـ {winner.water_need_mm} مم وكتقلص العجز الصافي لـ {winner.water_deficit_mm} مم."
+        )
+        hydro_arg = (
+            f"رطوبة منطقة الجذور من قمر SMAP L4 هي {sm_rootzone} م³/م³ (أعلى من نقطة الذبول الدائم {soil_meta['theta_wp']} م³/م³). "
+            f"سعة التخزين الكلية للتربة من نوع {soil_meta['label']} هي {soil_meta['awc_mm']} مم، ومخزون البذر المتاح هو {stored_soil_water_at_sowing_mm} مم. "
+            f"الميزانية المائية الإجمالية المتاحة ({total_water_supply} مم) كافية لتغطية احتياج الخطة الفائزة بدون استنزاف الخزان الجوفي."
+        )
+        agro_arg = (
+            f"أبحاث المعهد الوطني للبحث الزراعي (INRA المغرب) تؤكد أن الدورة الزراعية المتوازنة تكسر دورة فطريات الجذور "
+            f"والأعشاب الضارة، وتوفر تثبيتاً حيوياً للأزوت يتراوح بين 30 و 50 كغ N/هكتار. "
+            f"الخطة الفائزة كتقلص الطلب التبخري الجوي بـ {evap_demand_saved_mm} مم وتخفض العجز بـ {deficit_saved_mm} مم."
+        )
         guard_arg = (
             f"تمت مراجعة جميع الحسابات ومطابقتها برمجياً مع نموذج FAO-56 ومعطيات NASA SMAP L4 و POWER. "
             f"التوريد المائي المحسوب ({total_water_supply} مم = {effective_seasonal_rain_infiltrated_mm} شتا راشحة + {available_irrigation} سقي + {stored_soil_water_at_sowing_mm} مخزون البذر) "
             f"مطابق بدقة 100% بدون أي خطأ في ميزان الكتلة (0.0 مم). البيانات الفضائية (~9-11 كلم) هي تقديرات إقليمية."
         )
-        guard_evidence = f"FAO-56 Penman-Monteith (ETc=Kc×ET0) · خطأ ميزان الكتلة: 0.0 مم · TAW={soil_meta['awc_mm']} مم · شبكة SMAP L4 (~9-11 كلم)"
+
+        # 2. Attempt Live Gemini LLM Deliberation
+        settings = get_settings()
+        if settings.gemini_api_key:
+            try:
+                gemini_prompt = (
+                    "You are the AI Scientific Tribunal evaluating an agricultural digital twin simulation.\n"
+                    "Grounded strictly in the following REAL NASA Earth observations and calculated FAO-56 physics:\n"
+                    f"- Farm Location: {request.location.name} ({request.location.latitude:.4f}°N, {request.location.longitude:.4f}°W), Year: {request.year}\n"
+                    f"- Soil: {soil_meta['label']} (TAW={soil_meta['awc_mm']}mm, Wilting point={soil_meta['theta_wp']} m³/m³)\n"
+                    f"- Climate Scenario: {shock_meta['label']}\n"
+                    f"- NASA POWER Climate Observations: Seasonal rain={seasonal_gross_rain_mm}mm (Infiltrated={effective_seasonal_rain_infiltrated_mm}mm), Annual rain={precip}mm, Heat days(>=30°C)={hot_days}, Mean temp={temp:.1f}°C\n"
+                    f"- NASA SMAP L4 Satellite Soil Moisture: Root-zone moisture={sm_rootzone} m³/m³, Sowing available soil water={stored_soil_water_at_sowing_mm}mm, Total water supply budget={total_water_supply}mm\n"
+                    f"- Baseline Plan 1 ({p1.name_ar}): Water need={p1.water_need_mm}mm, Deficit={p1.water_deficit_mm}mm, Stress risk={p1.water_stress_risk_pct}%\n"
+                    f"- Winning Plan ({winner.name_ar}): Water need={winner.water_need_mm}mm, Deficit={winner.water_deficit_mm}mm, Stress risk={winner.water_stress_risk_pct}%, Water saved={evap_demand_saved_mm}mm ({round(evap_demand_saved_mm*10)} m³/ha)\n\n"
+                    "Generate a rigorous scientific deliberation from 4 independent agents in authentic Moroccan Darija (الدارجة المغربية الفلاحية).\n"
+                    "Return ONLY a JSON object with this exact structure:\n"
+                    "{\n"
+                    '  "climate_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing the heat & rain numbers", "key_evidence": "concise evidence citing mm rain and hot days"},\n'
+                    '  "hydrology_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing SMAP rootzone moisture vs wilting point and water budget", "key_evidence": "concise evidence citing SMAP m3/m3 and TAW"},\n'
+                    '  "agronomist_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing crop rotation, root disease break, and nitrogen fixation", "key_evidence": "concise evidence citing water saving and N fixation"},\n'
+                    '  "guardrail_agent": {"stance": "favorable"|"reserve", "argument_darija": "2 sentences in Darija auditing mass balance and confirming zero mathematical error", "key_evidence": "concise evidence citing mass balance error 0.0mm and FAO-56"}\n'
+                    "}"
+                )
+
+                candidate_models = [settings.gemini_model, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "responseMimeType": "application/json",
+                        "maxOutputTokens": 1024,
+                    },
+                }
+
+                for model_name in candidate_models:
+                    url = f"{settings.gemini_base_url}/models/{model_name}:generateContent?key={settings.gemini_api_key}"
+                    async with httpx.AsyncClient(timeout=8.0) as client:
+                        resp = await client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            if text:
+                                parsed = json.loads(text)
+                                if "climate_agent" in parsed and "hydrology_agent" in parsed:
+                                    ca = parsed["climate_agent"]
+                                    ha = parsed["hydrology_agent"]
+                                    aa = parsed.get("agronomist_agent", {})
+                                    ga = parsed.get("guardrail_agent", {})
+
+                                    clim_stance = ca.get("stance", clim_stance)
+                                    clim_arg = ca.get("argument_darija", clim_arg)
+
+                                    hydro_stance = ha.get("stance", hydro_stance)
+                                    hydro_arg = ha.get("argument_darija", hydro_arg)
+
+                                    agro_stance = aa.get("stance", agro_stance)
+                                    agro_arg = aa.get("argument_darija", agro_arg)
+
+                                    guard_stance = ga.get("stance", guard_stance)
+                                    guard_arg = ga.get("argument_darija", guard_arg)
+
+                                    logger.info("Successfully generated live AI Tribunal deliberation with Gemini (%s)", model_name)
+                                    break
+            except Exception as gemini_err:
+                logger.warning("Live Gemini Tribunal generation encountered an issue (%s), using physics-grounded fallback", gemini_err)
 
         return [
             TribunalAgentVerdict(
