@@ -129,6 +129,37 @@ CLIMATE_SHOCK_CONFIG: dict[str, dict[str, Any]] = {
     },
 }
 
+# Primary cereal configurations and crop coefficients (FAO-56 phenological parameters)
+PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
+    "ble_dur": {
+        "id": "ble_dur",
+        "name_fr": "Blé Dur Marocain",
+        "name_ar": "القمح الصلب",
+        "end_month_day": "0520",
+        "cycle_days": 187,
+        "kc_mid": 1.15,
+        "kc_end": 0.45,
+    },
+    "ble_tendre": {
+        "id": "ble_tendre",
+        "name_fr": "Blé Tendre (Farine)",
+        "name_ar": "القمح الطري (الفرينة)",
+        "end_month_day": "0515",
+        "cycle_days": 182,
+        "kc_mid": 1.15,
+        "kc_end": 0.25,
+    },
+    "orge": {
+        "id": "orge",
+        "name_fr": "Orge Résistante",
+        "name_ar": "الشعير المقاوم",
+        "end_month_day": "0425",
+        "cycle_days": 162,
+        "kc_mid": 1.05,
+        "kc_end": 0.25,
+    },
+}
+
 
 class AgriSimulationService:
     """Core physics and agronomic simulation engine for the Virtual Laboratory."""
@@ -583,15 +614,29 @@ class AgriSimulationService:
         precip_daily = raw_params.get("PRECTOTCORR", {})
 
         # 5. Crop Growing Calendars & Staged Kc (Strict Contiguous Chronological Sequences)
-        # Winter Wheat: Nov 15, Y-1 to May 20, Y (187 contiguous calendar days: 47 in Y-1 + 140 in Y)
+        cereal_key = getattr(request, "primary_cereal", "ble_dur")
+        if cereal_key not in PRIMARY_CEREAL_CONFIGS:
+            cereal_key = "ble_dur"
+        cereal_cfg = PRIMARY_CEREAL_CONFIGS[cereal_key]
+        cereal_name_ar = cereal_cfg["name_ar"]
+        cereal_name_fr = cereal_cfg["name_fr"]
+        cereal_end_md = cereal_cfg["end_month_day"]
+        cereal_kc_mid = cereal_cfg["kc_mid"]
+        cereal_kc_end = cereal_cfg["kc_end"]
+
+        # Primary Cereal: Nov 15, Y-1 to end date in Y (162 to 187 contiguous calendar days)
         wheat_days = [d for d in sorted(precip_daily.keys()) if f"{y_prev}1115" <= d <= f"{y_prev}1231"] + [
-            d for d in sorted(precip_daily.keys()) if f"{y_curr}0101" <= d <= f"{y_curr}0520"
+            d for d in sorted(precip_daily.keys()) if f"{y_curr}0101" <= d <= f"{y_curr}{cereal_end_md}"
         ]
+        cereal_len = max(1, len(wheat_days))
+        cereal_cycle_days = len(wheat_days)
+        cereal_end_date = f"{y_curr}-{cereal_end_md[:2]}-{cereal_end_md[2:]}"
+        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} mai {y_curr})"
         wheat_kc = [
             0.35 if i < 36
-            else (0.35 + (1.15 - 0.35) * ((i - 36) / 62.0) if i < 98
-            else (1.15 if i < 157 else 1.15 + (0.45 - 1.15) * ((i - 157) / 30.0)))
-            for i in range(len(wheat_days))
+            else (0.35 + (cereal_kc_mid - 0.35) * ((i - 36) / max(1, cereal_len * 0.35))) if i < int(cereal_len * 0.55)
+            else (cereal_kc_mid if i < int(cereal_len * 0.85) else cereal_kc_mid + (cereal_kc_end - cereal_kc_mid) * ((i - int(cereal_len * 0.85)) / max(1, cereal_len * 0.15)))
+            for i in range(cereal_len)
         ]
 
         # Lentils / Food Legumes: Dec 01, Y-1 to Apr 30, Y (151 contiguous calendar days: 31 in Y-1 + 120 in Y)
@@ -736,6 +781,8 @@ class AgriSimulationService:
             harvest_year=harvest_year,
             y_prev=y_prev,
             y_curr=y_curr,
+            cereal_key=cereal_key,
+            wheat_days=wheat_days,
         )
 
         winner = max(plans, key=lambda p: p.resilience_score)
@@ -784,8 +831,8 @@ class AgriSimulationService:
             "calendar_year_precipitation_mm": effective_precip,
             "harvest_year": harvest_year,
             "season_start_date": f"{y_prev}-11-15",
-            "season_end_date": f"{y_curr}-05-20",
-            "season_total_days": len(wheat_days),
+            "season_end_date": cereal_end_date,
+            "season_total_days": cereal_cycle_days,
             "data_source_years": [y_prev, y_curr],
             "crop_cycle_rain_gross_mm": sim_wheat["gross_rain_mm"],
             "effective_seasonal_rain_infiltrated_mm": sim_wheat["infiltrated_rain_mm"],
@@ -852,10 +899,10 @@ class AgriSimulationService:
             },
             "temporal_alignment": {
                 "calendar_year": f"January 1, {request.year} to December 31, {request.year} ({effective_precip} mm, {hot_days} hot days)",
-                "harvest_year_definition": f"Harvest Year {harvest_year}: contiguous agricultural cycle from November 15, {y_prev} through May 20, {y_curr} ({sim_wheat['gross_rain_mm']} mm gross rain)",
+                "harvest_year_definition": f"Harvest Year {harvest_year}: contiguous agricultural cycle from November 15, {y_prev} through {cereal_end_date} ({sim_wheat['gross_rain_mm']} mm gross rain)",
                 "data_source_years": f"NASA POWER Daily Ground Truth datasets loaded for both calendar years {y_prev} and {y_curr}",
                 "sowing_soil_moisture_provenance": f"November {sowing_year} SMAP Level-4 (sowing year Y-1, {sowing_obs_count} 3-hourly observations assimilated, monthly mean {sowing_sm_rootzone} m3/m3), strictly preceding harvest year {harvest_year}.",
-                "wheat_crop_cycle": f"November 15, {y_prev} to May 20, {y_curr} (187 contiguous days)",
+                "wheat_crop_cycle": f"{cereal_name_fr}: November 15, {y_prev} to {cereal_end_date} ({cereal_cycle_days} contiguous days)",
                 "lentil_crop_cycle": f"December 01, {y_prev} to April 30, {y_curr} (151 contiguous days)",
                 "barley_crop_cycle": f"November 15, {y_prev} to April 25, {y_curr} (162 contiguous days)",
                 "forage_crop_cycle": f"December 01, {y_prev} to March 20, {y_curr} (110 contiguous days)",
@@ -920,10 +967,17 @@ class AgriSimulationService:
         harvest_year: int,
         y_prev: int,
         y_curr: int,
+        cereal_key: str = "ble_dur",
+        wheat_days: list[str] | None = None,
     ) -> list[SimulationPlan]:
         """Calculates MCDA scores for the 3 competing crop strategies directly from daily simulated physics."""
         fertility_bonus = float(soil_meta.get("fertility_bonus", 5.0))
         heat_shock_stress = float(shock_meta.get("heat_shock_stress", 0.0))
+
+        cereal_cfg = PRIMARY_CEREAL_CONFIGS.get(cereal_key, PRIMARY_CEREAL_CONFIGS["ble_dur"])
+        cereal_name_ar = cereal_cfg["name_ar"]
+        cereal_name_fr = cereal_cfg["name_fr"]
+        cereal_end_md = cereal_cfg["end_month_day"]
 
         # PLAN 1: Monoculture Céréalière de Blé
         water_need_p1 = sim_wheat["potential_etc_mm"]
@@ -938,15 +992,19 @@ class AgriSimulationService:
             1,
         )
 
+        cereal_cycle_days = len(wheat_days) if wheat_days is not None else len(sim_wheat.get("daily_records", []))
+        cereal_end_date = f"{y_curr}-{cereal_end_md[:2]}-{cereal_end_md[2:]}"
+        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} mai {y_curr})"
+
         rotation_years_p1 = [
             {
                 "year_index": 1,
-                "crop_name": "القمح الصلب/الطري (سنة 1)",
+                "crop_name": f"{cereal_name_ar} (سنة 1)",
                 "season_start_date": f"{y_prev}-11-15",
-                "season_end_date": f"{y_curr}-05-20",
-                "cycle_days": 187,
+                "season_end_date": cereal_end_date,
+                "cycle_days": cereal_cycle_days,
                 "climate_source_type": "Independently Observed Harvest Season",
-                "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "climate_basis": cereal_basis,
                 "is_repeated_climate_assumption": False,
                 "water_need_mm": water_need_p1,
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
@@ -956,10 +1014,10 @@ class AgriSimulationService:
             },
             {
                 "year_index": 2,
-                "crop_name": "القمح الصلب/الطري (سنة 2)",
+                "crop_name": f"{cereal_name_ar} (سنة 2)",
                 "season_start_date": f"{y_prev}-11-15",
-                "season_end_date": f"{y_curr}-05-20",
-                "cycle_days": 187,
+                "season_end_date": cereal_end_date,
+                "cycle_days": cereal_cycle_days,
                 "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
                 "climate_basis": f"Régime climatique stationnaire (Hypothèse répétée sur récolte {harvest_year})",
                 "is_repeated_climate_assumption": True,
@@ -971,10 +1029,10 @@ class AgriSimulationService:
             },
             {
                 "year_index": 3,
-                "crop_name": "القمح الصلب/الطري (سنة 3)",
+                "crop_name": f"{cereal_name_ar} (سنة 3)",
                 "season_start_date": f"{y_prev}-11-15",
-                "season_end_date": f"{y_curr}-05-20",
-                "cycle_days": 187,
+                "season_end_date": cereal_end_date,
+                "cycle_days": cereal_cycle_days,
                 "climate_source_type": "Repeated-Climate Assumption (Stationary Climate Model)",
                 "climate_basis": f"Régime climatique stationnaire (Hypothèse répétée sur récolte {harvest_year})",
                 "is_repeated_climate_assumption": True,
@@ -988,9 +1046,9 @@ class AgriSimulationService:
 
         plan1 = SimulationPlan(
             id="plan_monoculture",
-            name_fr="Plan 1 : Monoculture de Blé Annuel",
-            name_ar="الخطة 1 : زراعة القمح كل عام (Monoculture)",
-            rotation_sequence=["القمح الصلب/الطري", "القمح الصلب/الطري", "القمح الصلب/الطري"],
+            name_fr=f"Plan 1 : Monoculture de {cereal_name_fr} Annuel",
+            name_ar=f"الخطة 1 : زراعة {cereal_name_ar} كل عام (Monoculture)",
+            rotation_sequence=[cereal_name_ar, cereal_name_ar, cereal_name_ar],
             water_need_mm=water_need_p1,
             water_deficit_mm=deficit_p1,
             water_stress_risk_pct=stress_p1,
@@ -1030,12 +1088,12 @@ class AgriSimulationService:
         rotation_years_p2 = [
             {
                 "year_index": 1,
-                "crop_name": "القمح (سنة 1)",
+                "crop_name": f"{cereal_name_ar} (سنة 1)",
                 "season_start_date": f"{y_prev}-11-15",
-                "season_end_date": f"{y_curr}-05-20",
-                "cycle_days": 187,
+                "season_end_date": cereal_end_date,
+                "cycle_days": cereal_cycle_days,
                 "climate_source_type": "Independently Observed Harvest Season",
-                "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "climate_basis": cereal_basis,
                 "is_repeated_climate_assumption": False,
                 "water_need_mm": sim_wheat["potential_etc_mm"],
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
@@ -1079,9 +1137,9 @@ class AgriSimulationService:
 
         plan2 = SimulationPlan(
             id="plan_rotation_triennale",
-            name_fr="Plan 2 : Rotation Triennale Résiliente (Blé - Légumineuses - Orge)",
-            name_ar="الخطة 2 : دورة ثلاثية متوازنة (قمح - قطاني/عدس - شعير)",
-            rotation_sequence=["القمح (سنة 1)", "القطاني / العدس / الحمص (سنة 2)", "الشعير المقاوم (سنة 3)"],
+            name_fr=f"Plan 2 : Rotation Triennale Résiliente ({cereal_name_fr} - Légumineuses - Orge)",
+            name_ar=f"الخطة 2 : دورة ثلاثية متوازنة ({cereal_name_ar} - قطاني/عدس - شعير)",
+            rotation_sequence=[f"{cereal_name_ar} (سنة 1)", "القطاني / العدس / الحمص (سنة 2)", "الشعير المقاوم (سنة 3)"],
             water_need_mm=water_need_p2,
             water_deficit_mm=deficit_p2,
             water_stress_risk_pct=stress_p2,
@@ -1127,12 +1185,12 @@ class AgriSimulationService:
         rotation_years_p3 = [
             {
                 "year_index": 1,
-                "crop_name": "القمح المقاوم (سنة 1)",
+                "crop_name": f"{cereal_name_ar} (سنة 1)",
                 "season_start_date": f"{y_prev}-11-15",
-                "season_end_date": f"{y_curr}-05-20",
-                "cycle_days": 187,
+                "season_end_date": cereal_end_date,
+                "cycle_days": cereal_cycle_days,
                 "climate_source_type": "Independently Observed Harvest Season",
-                "climate_basis": f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au 20 mai {y_curr})",
+                "climate_basis": cereal_basis,
                 "is_repeated_climate_assumption": False,
                 "water_need_mm": sim_wheat["potential_etc_mm"],
                 "actual_eta_mm": sim_wheat["actual_eta_mm"],
@@ -1176,7 +1234,7 @@ class AgriSimulationService:
             id="plan_agroecologie",
             name_fr="Plan 3 : Système Économe en Eau & Couvert Végétal",
             name_ar="الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
-            rotation_sequence=["القمح المقاوم", "علف وبقوليات خضراء", "راحة نشطة ومغطاة"],
+            rotation_sequence=[cereal_name_ar, "علف وبقوليات خضراء", "راحة نشطة ومغطاة"],
             water_need_mm=water_need_p3,
             water_deficit_mm=deficit_p3,
             water_stress_risk_pct=stress_p3,
@@ -1186,7 +1244,7 @@ class AgriSimulationService:
             yield_stability_score=stability_p3,
             status_tag="أعلى أمان في أقصى درجات الجفاف",
             summary_darija=(
-                f"أقل خطة طلباً للماء ({water_need_p3} مم كطلب تبخري، بتخفيض {evap_saved_p3} مم مقارنة بالقمح). مناسبة جداً للسنوات الجافة والأراضي البورية، "
+                f"أقل خطة طلباً للماء ({water_need_p3} مم كطلب تبخري، بتخفيض {evap_saved_p3} مم مقارنة بـ {cereal_name_ar}). مناسبة جداً للسنوات الجافة والأراضي البورية، "
                 f"حيث كتحافظ على رطوبة التربة وتخفف العجز المائي بـ {deficit_saved_p3} مم."
             ),
             pros=[

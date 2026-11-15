@@ -30,6 +30,7 @@ export default function RotationSimulationModal({
   const [activeWaterAccess, setActiveWaterAccess] = useState('appoint');
   const [activeShock, setActiveShock] = useState('none');
   const [activeYear, setActiveYear] = useState(selectedYear || 2025);
+  const [activePrimaryCereal, setActivePrimaryCereal] = useState('ble_dur');
   const [selectedPlanId, setSelectedPlanId] = useState(null);
 
   useEffect(() => {
@@ -47,17 +48,25 @@ export default function RotationSimulationModal({
   const baseline = simulationData?.baseline_metrics || {};
   const tribunal = simulationData?.tribunal_verdicts || [];
 
-  const handleConfigChange = (newSoil, newWater, newShock, newYear = activeYear) => {
+  const handleConfigChange = (
+    newSoil = activeSoilType,
+    newWater = activeWaterAccess,
+    newShock = activeShock,
+    newYear = activeYear,
+    newCereal = activePrimaryCereal
+  ) => {
     setActiveSoilType(newSoil);
     setActiveWaterAccess(newWater);
     setActiveShock(newShock);
     setActiveYear(newYear);
+    setActivePrimaryCereal(newCereal);
     if (onReSimulate) {
       onReSimulate({
         soilType: newSoil,
         waterAccess: newWater,
         climateShock: newShock,
         year: newYear,
+        primaryCereal: newCereal,
       });
     }
   };
@@ -122,7 +131,7 @@ export default function RotationSimulationModal({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleConfigChange(activeSoilType, activeWaterAccess, activeShock, activeYear)}
+              onClick={() => handleConfigChange(activeSoilType, activeWaterAccess, activeShock, activeYear, activePrimaryCereal)}
               disabled={isLoading}
               type="button"
               className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700/80 hover:border-cyan-400 text-xs font-mono text-cyan-300 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
@@ -151,7 +160,7 @@ export default function RotationSimulationModal({
               <select
                 value={activeYear}
                 onChange={(e) =>
-                  handleConfigChange(activeSoilType, activeWaterAccess, activeShock, parseInt(e.target.value, 10))
+                  handleConfigChange(activeSoilType, activeWaterAccess, activeShock, parseInt(e.target.value, 10), activePrimaryCereal)
                 }
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
@@ -164,13 +173,30 @@ export default function RotationSimulationModal({
               </select>
             </div>
 
+            {/* Primary Cereal */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono text-zinc-400">Crop Focus:</span>
+              <select
+                value={activePrimaryCereal}
+                onChange={(e) =>
+                  handleConfigChange(activeSoilType, activeWaterAccess, activeShock, activeYear, e.target.value)
+                }
+                disabled={isLoading}
+                className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
+              >
+                <option value="ble_dur">🌾 القمح الصلب (Blé Dur)</option>
+                <option value="ble_tendre">🍞 القمح الطري (Blé Tendre)</option>
+                <option value="orge">🌾 الشعير المقاوم (Orge)</option>
+              </select>
+            </div>
+
             {/* Soil Type */}
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-mono text-zinc-400">Soil:</span>
               <select
                 value={activeSoilType}
                 onChange={(e) =>
-                  handleConfigChange(e.target.value, activeWaterAccess, activeShock)
+                  handleConfigChange(e.target.value, activeWaterAccess, activeShock, activeYear, activePrimaryCereal)
                 }
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
@@ -188,7 +214,7 @@ export default function RotationSimulationModal({
               <select
                 value={activeWaterAccess}
                 onChange={(e) =>
-                  handleConfigChange(activeSoilType, e.target.value, activeShock)
+                  handleConfigChange(activeSoilType, e.target.value, activeShock, activeYear, activePrimaryCereal)
                 }
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"

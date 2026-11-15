@@ -57,6 +57,7 @@ class SimulationRequest(BaseModel):
     climate_shock: str = Field(default="none")  # none, drought, heatwave, delayed_rain
     historical_compare_year: int | None = None
     target_crops: list[str] = Field(default_factory=list)
+    primary_cereal: str = Field(default="ble_dur")
 
 
 class SimulationResponse(BaseModel):

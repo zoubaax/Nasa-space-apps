@@ -325,6 +325,7 @@ export async function simulateCropRotation(location, options = {}) {
     water_access: options.waterAccess || 'appoint',
     budget: options.budget || 'moyen',
     climate_shock: options.climateShock || 'none',
+    primary_cereal: options.primaryCereal || 'ble_dur',
     historical_compare_year: options.historicalCompareYear !== undefined ? options.historicalCompareYear : 2023,
   };
 
