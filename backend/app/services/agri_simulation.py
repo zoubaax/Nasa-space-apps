@@ -459,7 +459,7 @@ class AgriSimulationService:
         power = dossier.get("nasa_power", {})
         smap = dossier.get("smap_l4", {})
 
-        if not power or "total_precipitation_mm" not in power:
+        if not power or power.get("total_precipitation_mm") is None or power.get("mean_temperature_c") is None:
             missing_reason = "; ".join(dossier.get("missing_data", []))
             raise InvalidRequestError(
                 f"Données météorologiques NASA POWER indisponibles pour {request.location.name} ({request.year}). "
@@ -467,11 +467,28 @@ class AgriSimulationService:
             )
 
         annual_metrics = smap.get("annual_metrics", {})
-        if not annual_metrics or "sm_rootzone" not in annual_metrics:
+        
+        # Safely extract SMAP rootzone mean with multi-tier fallback (annual summary -> summary cards -> monthly evolution)
+        raw_sm_rootzone = annual_metrics.get("sm_rootzone", {}).get("mean") if annual_metrics else None
+
+        if raw_sm_rootzone is None:
+            raw_sm_rootzone = smap.get("latest_month_cards", {}).get("sm_rootzone", {}).get("value")
+
+        if raw_sm_rootzone is None:
+            valid_months = [
+                float(m["sm_rootzone"])
+                for m in smap.get("monthly_evolution", [])
+                if m.get("sm_rootzone") is not None
+            ]
+            if valid_months:
+                raw_sm_rootzone = sum(valid_months) / len(valid_months)
+
+        if raw_sm_rootzone is None:
             missing_reason = "; ".join(dossier.get("missing_data", []))
             raise InvalidRequestError(
                 f"Données satellitaires NASA SMAP L4 indisponibles pour {request.location.name} ({request.year}). "
-                f"La simulation refuse d'inventer des données de sol. Détails: {missing_reason}"
+                f"La simulation requiert des observations terrestres valides (absentes sur l'océan, calotte glaciaire, ou zone hors couverture). "
+                f"Détails: {missing_reason}"
             )
 
         precip_base = float(power["total_precipitation_mm"])
@@ -479,9 +496,11 @@ class AgriSimulationService:
         hot_days = int(power.get("hot_days_count") or 0)
         dry_days = int(power.get("dry_days_count") or 0)
 
-        sm_rootzone_mean = float(annual_metrics["sm_rootzone"]["mean"])
-        sm_surface_mean = float(annual_metrics.get("sm_surface", {}).get("mean") or 0.20)
-        drought_pctl = float(annual_metrics.get("sm_rootzone_pctl", {}).get("mean") or 50.0)
+        sm_rootzone_mean = float(raw_sm_rootzone)
+        raw_sm_surface = annual_metrics.get("sm_surface", {}).get("mean") if annual_metrics else None
+        sm_surface_mean = float(raw_sm_surface) if raw_sm_surface is not None else 0.20
+        raw_pctl = annual_metrics.get("sm_rootzone_pctl", {}).get("mean") if annual_metrics else None
+        drought_pctl = float(raw_pctl) if raw_pctl is not None else 50.0
 
         # 2. Extract Soil & Shock Metadata
         soil_meta = SOIL_PROFILES.get(request.soil_type, SOIL_PROFILES["limoneux_profond"])

@@ -333,8 +333,15 @@ export async function simulateCropRotation(location, options = {}) {
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Simulation API error (${res.status}): ${errorText}`);
+    let msg = `Observation notice (${res.status})`;
+    try {
+      const errJson = await res.json();
+      msg = errJson.message || errJson.error || JSON.stringify(errJson);
+    } catch {
+      const errorText = await res.text();
+      msg = errorText || msg;
+    }
+    throw new Error(msg);
   }
 
   return await res.json();
