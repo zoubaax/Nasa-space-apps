@@ -26,6 +26,14 @@ def test_ai_health_endpoint(client: TestClient) -> None:
     assert len(data["services_connected"]) >= 3
 
 
+def test_simulation_service_lifespan_initialized(client: TestClient) -> None:
+    """Verify that both ai_service and simulation_service are pre-initialized in app.state via lifespan."""
+    assert hasattr(app.state, "simulation_service")
+    assert app.state.simulation_service is not None
+    assert hasattr(app.state, "ai_service")
+    assert app.state.ai_service is not None
+
+
 def test_language_detection() -> None:
     service = AiService(MagicMock(), MagicMock())
     
@@ -281,5 +289,59 @@ def test_smap_sowing_provenance_and_mass_balance_regression(client: TestClient) 
     assert "simulated_irrigation_savings_mm" in metrics
     assert "simulated_irrigation_savings_m3_ha" in metrics
     assert "Simulated Irrigation Saving" in metrics["irrigation_savings_label"]
+
+    # 6. Verification of Retrospective Historical Metrics Cereal Neutral Keys
+    hist = metrics["historical_metrics"]
+    assert "retrospective_cereal_deficit_mm" in hist
+    assert "retrospective_cereal_potential_etc_mm" in hist
+    assert "retrospective_wheat_deficit_mm" in hist
+    assert hist["retrospective_cereal_deficit_mm"] == hist["retrospective_wheat_deficit_mm"]
+
+
+def test_ai_openapi_error_responses_declared(client: TestClient) -> None:
+    """Verify that OpenAPI documentation declares ErrorResponse for all AI routes."""
+    openapi_schema = app.openapi()
+    for path in ("/api/ai/chat", "/api/ai/chat/stream", "/api/ai/health", "/api/ai/simulate"):
+        path_item = openapi_schema["paths"].get(path, {})
+        method = "post" if path != "/api/ai/health" else "get"
+        responses = path_item.get(method, {}).get("responses", {})
+        assert "400" in responses, f"Missing 400 response declaration in {path}"
+        assert "422" in responses, f"Missing 422 response declaration in {path}"
+        assert "500" in responses, f"Missing 500 response declaration in {path}"
+
+
+def test_cereal_flexibility_dynamizes_tribunal_and_synthesis(client: TestClient, monkeypatch) -> None:
+    """Verify that selecting Barley (orge) dynamizes the tribunal argument and overall synthesis text."""
+    from app.core.config import get_settings
+    settings = get_settings()
+    monkeypatch.setattr(settings, "gemini_api_key", None)
+
+    req_payload = {
+        "location": {"name": "Meknes, Morocco", "latitude": 33.89, "longitude": -5.55},
+        "year": 2025,
+        "soil_type": "limoneux_profond",
+        "water_access": "bour",
+        "budget": "moyen",
+        "climate_shock": "none",
+        "primary_cereal": "orge",
+    }
+    res = client.post("/api/ai/simulate", json=req_payload)
+    assert res.status_code == 200
+    data = res.json()
+
+    # Plan 1 must be Barley monoculture
+    assert "الشعير المقاوم" in data["plans"][0]["name_ar"]
+    assert data["plans"][0]["rotation_sequence"][0] == "الشعير المقاوم"
+
+    # Tribunal NASA POWER Climat argument must cite Barley (الشعير المقاوم), NOT hardcoded wheat (القمح)
+    climate_verdict = next(v for v in data["tribunal_verdicts"] if "NASA POWER Climat" in v["agent_name"])
+    assert "زراعة الشعير المقاوم كل عام" in climate_verdict["argument_darija"]
+    assert "زراعة القمح كل عام" not in climate_verdict["argument_darija"]
+
+    # Overall synthesis must cite Barley (الشعير المقاوم)
+    assert "مقارنة مع زراعة الشعير المقاوم السنوية" in data["overall_synthesis_darija"]
+    assert "زراعة القمح كل عام" not in data["overall_synthesis_darija"]
+
+
 
 

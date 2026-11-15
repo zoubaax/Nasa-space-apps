@@ -271,6 +271,74 @@ def test_reverse_geocoding_endpoint() -> None:
     assert data["longitude"] == -5.55
 
 
+def test_smap_gee_3hourly_date_validation(tmp_path) -> None:
+    """Verify that get_three_hourly rejects inverted dates and future dates."""
+    settings = Settings(cache_dir=tmp_path)
+    cache = FileCache(settings.cache_dir)
+    client = MagicMock()
+    geocoder = GeocodingService(settings, cache, client)
+    service = SmapGeeService(settings, cache, geocoder)
+
+    import asyncio
+
+    # Inverted dates (start_date > end_date)
+    with pytest.raises(InvalidRequestError) as exc_info:
+        asyncio.run(
+            service.get_three_hourly(
+                latitude=33.89,
+                longitude=-5.55,
+                start_date=date(2024, 5, 10),
+                end_date=date(2024, 5, 1),
+            )
+        )
+    assert "start_date must be on or before end_date" in str(exc_info.value)
+
+    # Future dates
+    with pytest.raises(InvalidRequestError) as exc_info_future:
+        asyncio.run(
+            service.get_three_hourly(
+                latitude=33.89,
+                longitude=-5.55,
+                start_date=date(2099, 1, 1),
+                end_date=date(2099, 1, 5),
+            )
+        )
+    assert "cannot extend after" in str(exc_info_future.value)
+
+
+def test_smap_gee_endpoints_reject_inverted_dates() -> None:
+    """Verify API endpoints return clean 422/400 when start_date > end_date."""
+    test_client = TestClient(app)
+    
+    # 3hourly endpoint
+    resp_3h = test_client.get(
+        "/api/smap-gee/3hourly",
+        params={
+            "latitude": 33.89,
+            "longitude": -5.55,
+            "start_date": "2024-05-10",
+            "end_date": "2024-05-01",
+        },
+    )
+    assert resp_3h.status_code == 422
+    assert resp_3h.json()["error"] == "invalid_request"
+    assert "start_date must be on or before end_date" in resp_3h.json()["message"]
+
+    # timeseries endpoint
+    resp_ts = test_client.get(
+        "/api/smap-gee/timeseries",
+        params={
+            "latitude": 33.89,
+            "longitude": -5.55,
+            "start_date": "2024-05-10",
+            "end_date": "2024-05-01",
+        },
+    )
+    assert resp_ts.status_code == 422
+    assert resp_ts.json()["error"] == "invalid_request"
+    assert "start_date must be on or before end_date" in resp_ts.json()["message"]
+
+
 @pytest.mark.live
 def test_live_smap_gee_meknes_baseline() -> None:
     """Live integration test against Google Earth Engine project fieldshift-514709.
@@ -281,7 +349,12 @@ def test_live_smap_gee_meknes_baseline() -> None:
     if os.getenv("RUN_LIVE_GEE") != "1":
         pytest.skip("Set RUN_LIVE_GEE=1 to run live Earth Engine SMAP tests.")
 
-    import ee
+    try:
+        import importlib
+        ee = importlib.import_module("ee")
+    except ImportError:
+        pytest.skip("earthengine-api ('ee') is not installed in the current environment.")
+
     try:
         ee.Initialize(project="fieldshift-514709")
     except Exception as e:

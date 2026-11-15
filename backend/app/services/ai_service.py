@@ -178,7 +178,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
             payload = self._build_gemini_payload(request, prompt)
             
             candidate_models = [self._settings.gemini_model]
-            for fallback_m in ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"):
+            for fallback_m in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-lite-latest"):
                 if fallback_m not in candidate_models:
                     candidate_models.append(fallback_m)
 
@@ -251,7 +251,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
 
         streamed_any = False
         candidate_models = [self._settings.gemini_model]
-        for fallback_m in ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"):
+        for fallback_m in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-lite-latest"):
             if fallback_m not in candidate_models:
                 candidate_models.append(fallback_m)
 

@@ -8,8 +8,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException
 
 from app import __version__
 from app.api.agro import router as agro_router
@@ -20,6 +24,7 @@ from app.api.deps import (
     build_ai_service,
     build_climate_service,
     build_http_client,
+    build_simulation_service,
     build_smap_service,
     build_smap_gee_service,
 )
@@ -57,7 +62,10 @@ async def lifespan(app: FastAPI):
     app.state.smap_service = build_smap_service(settings, client)
     app.state.smap_gee_service = build_smap_gee_service(settings, client)
     app.state.ai_service = build_ai_service(settings, app.state.climate_service, app.state.smap_gee_service)
-    logger.info("NASA POWER climate service & AI service ready")
+    app.state.simulation_service = build_simulation_service(
+        settings, app.state.climate_service, app.state.smap_gee_service
+    )
+    logger.info("NASA POWER climate, SMAP GEE, AI chat & Simulation laboratory services ready")
     try:
         yield
     finally:
@@ -71,6 +79,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
+    allow_origin_regex=r"^https?://.*$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.exception_handler(ClimateServiceError)
 async def handle_climate_service_error(_request, exc: ClimateServiceError) -> JSONResponse:
@@ -78,6 +102,42 @@ async def handle_climate_service_error(_request, exc: ClimateServiceError) -> JS
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.code, "message": exc.message, "details": exc.details},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_request_validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = exc.errors()
+    messages = []
+    for err in errors:
+        loc = " -> ".join(str(p) for p in err.get("loc", []))
+        msg = err.get("msg", "Validation error")
+        messages.append(f"{loc}: {msg}" if loc else msg)
+    combined_message = "; ".join(messages) if messages else "Invalid request parameters."
+    logger.warning("validation_error: %s", combined_message)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "validation_error",
+            "message": combined_message,
+            "details": {"validation_errors": jsonable_encoder(errors)},
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def handle_http_exception(_request: Request, exc: HTTPException) -> JSONResponse:
+    detail = exc.detail
+    message = detail if isinstance(detail, str) else "HTTP exception occurred."
+    details = detail if isinstance(detail, dict) else {}
+    logger.warning("http_%s: %s", exc.status_code, message)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": f"http_{exc.status_code}",
+            "message": message,
+            "details": details,
+        },
     )
 
 

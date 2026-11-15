@@ -302,6 +302,51 @@ def test_agent_payload_is_the_summary_document(tmp_path) -> None:
     assert len(payload["definitions"]) == 10
 
 
+def test_validation_error_and_http_exception_conforms_to_error_response(api_factory) -> None:
+    """Ensure 422 RequestValidationError and 404 HTTPException strictly match ErrorResponse contract."""
+    with api_factory(_nasa_handler()) as api:
+        # Invalid date triggering FastAPI RequestValidationError
+        resp_422 = api.client.get("/api/agro", params={"start_date": "not-a-date"})
+        # Nonexistent route triggering Starlette 404 HTTPException
+        resp_404 = api.client.get("/api/route_that_does_not_exist")
+
+    assert resp_422.status_code == 422
+    data_422 = resp_422.json()
+    assert data_422["error"] == "validation_error"
+    assert "start_date" in data_422["message"]
+    assert "validation_errors" in data_422["details"]
+
+    assert resp_404.status_code == 404
+    data_404 = resp_404.json()
+    assert data_404["error"] == "http_404"
+    assert data_404["message"] == "Not Found"
+    assert isinstance(data_404["details"], dict)
+
+
+def test_cors_preflight_and_headers(api_factory) -> None:
+    """Verify CORS middleware handles preflight OPTIONS and responds with origin headers."""
+    with api_factory(_nasa_handler()) as api:
+        # Preflight OPTIONS request
+        options_resp = api.client.options(
+            "/api/agro",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert options_resp.status_code == 200
+        assert options_resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
+        assert "GET" in options_resp.headers.get("access-control-allow-methods", "")
+
+        # GET request with Origin
+        get_resp = api.client.get(
+            "/health",
+            headers={"Origin": "http://localhost:5173"},
+        )
+        assert get_resp.status_code == 200
+        assert get_resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
 def _nasa_handler():
     def handler(request: httpx.Request) -> httpx.Response:
         if "nominatim" in request.url.host:

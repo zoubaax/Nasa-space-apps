@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_ai_service, get_simulation_service
 from app.models.ai import AiChatRequest, AiChatResponse, AiHealthStatus
+from app.models.climate import ErrorResponse
 from app.models.simulation import SimulationRequest, SimulationResponse
 from app.services.agri_simulation import AgriSimulationService
 from app.services.ai_service import AiService
@@ -16,10 +17,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
+_ERROR_RESPONSES = {
+    400: {"model": ErrorResponse},
+    404: {"model": ErrorResponse},
+    422: {"model": ErrorResponse},
+    500: {"model": ErrorResponse},
+    502: {"model": ErrorResponse},
+    503: {"model": ErrorResponse},
+    504: {"model": ErrorResponse},
+}
+
 
 @router.post(
     "/chat",
     response_model=AiChatResponse,
+    responses=_ERROR_RESPONSES,
     status_code=status.HTTP_200_OK,
     summary="Agro-Climatic Intelligence Chat",
     description=(
@@ -37,6 +49,7 @@ async def chat_endpoint(
 
 @router.post(
     "/chat/stream",
+    responses=_ERROR_RESPONSES,
     summary="Streaming AI Chat (SSE)",
     description="Streams the AI response chunk by chunk with metadata events.",
 )
@@ -59,6 +72,7 @@ async def chat_stream_endpoint(
 @router.get(
     "/health",
     response_model=AiHealthStatus,
+    responses=_ERROR_RESPONSES,
     summary="AI Intelligence Health Status",
 )
 def ai_health(
@@ -82,6 +96,7 @@ def ai_health(
 @router.post(
     "/simulate",
     response_model=SimulationResponse,
+    responses=_ERROR_RESPONSES,
     status_code=status.HTTP_200_OK,
     summary="Virtual Agricultural Laboratory Simulation",
     description=(

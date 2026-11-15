@@ -247,14 +247,23 @@ class SmapGeeService:
         end_date: date,
         variables: list[str] | None = None,
     ) -> list[ThreeHourlyPoint]:
+        today = datetime.now(timezone.utc).date()
+        if start_date > end_date:
+            raise InvalidRequestError("start_date must be on or before end_date.")
+        if start_date < self._settings.smap_gee_earliest_date:
+            raise InvalidRequestError(
+                f"Start date cannot be before SMAP launch: {self._settings.smap_gee_earliest_date.isoformat()}"
+            )
+        if start_date > today or end_date > today:
+            raise InvalidRequestError(
+                f"The requested period cannot extend after {today.isoformat()} (UTC)."
+            )
         days = (end_date - start_date).days + 1
         if days > self._settings.smap_gee_3hourly_max_days:
             raise InvalidRequestError(
                 f"3-hourly queries are restricted to a maximum of {self._settings.smap_gee_3hourly_max_days} days "
                 f"to prevent memory limits. Requested: {days} days."
             )
-        if start_date < self._settings.smap_gee_earliest_date:
-            raise InvalidRequestError(f"Start date cannot be before SMAP launch: {self._settings.smap_gee_earliest_date}")
 
         selected_vars = variables or AGRICULTURAL_VARIABLE_IDS
 
@@ -361,7 +370,10 @@ class SmapGeeService:
             "}"
         )
 
-        candidate_models = [self._settings.gemini_model, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+        candidate_models = [self._settings.gemini_model]
+        for fallback_m in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-lite-latest"):
+            if fallback_m not in candidate_models:
+                candidate_models.append(fallback_m)
         payload = {
             "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
             "generationConfig": {

@@ -66,6 +66,9 @@ async def get_smap_gee_timeseries(
             st = start_date
             en = end_date
 
+    if st > en:
+        raise InvalidRequestError("start_date must be on or before end_date.")
+
     req = SmapGeeRequest(
         start_date=st,
         end_date=en,
@@ -94,6 +97,8 @@ async def get_smap_gee_3hourly(
     service: Annotated[SmapGeeService, Depends(get_smap_gee_service)],
     variables: Annotated[str | None, Query(description="Comma-separated band names")] = None,
 ) -> list[ThreeHourlyPoint]:
+    if start_date > end_date:
+        raise InvalidRequestError("start_date must be on or before end_date.")
     var_list = [v.strip() for v in variables.split(",") if v.strip()] if variables else None
     return await service.get_three_hourly(
         latitude=latitude,
