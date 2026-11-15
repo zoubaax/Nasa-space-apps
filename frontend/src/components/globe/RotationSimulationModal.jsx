@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TbX,
   TbAward,
@@ -21,6 +21,7 @@ export default function RotationSimulationModal({
   onClose,
   locationData,
   simulationData,
+  selectedYear = 2025,
   isLoading,
   error,
   onReSimulate,
@@ -28,7 +29,14 @@ export default function RotationSimulationModal({
   const [activeSoilType, setActiveSoilType] = useState('limoneux_profond');
   const [activeWaterAccess, setActiveWaterAccess] = useState('appoint');
   const [activeShock, setActiveShock] = useState('none');
+  const [activeYear, setActiveYear] = useState(selectedYear || 2025);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
+
+  useEffect(() => {
+    if (selectedYear) {
+      setActiveYear(selectedYear);
+    }
+  }, [selectedYear]);
 
   if (!isOpen) return null;
 
@@ -39,15 +47,17 @@ export default function RotationSimulationModal({
   const baseline = simulationData?.baseline_metrics || {};
   const tribunal = simulationData?.tribunal_verdicts || [];
 
-  const handleConfigChange = (newSoil, newWater, newShock) => {
+  const handleConfigChange = (newSoil, newWater, newShock, newYear = activeYear) => {
     setActiveSoilType(newSoil);
     setActiveWaterAccess(newWater);
     setActiveShock(newShock);
+    setActiveYear(newYear);
     if (onReSimulate) {
       onReSimulate({
         soilType: newSoil,
         waterAccess: newWater,
         climateShock: newShock,
+        year: newYear,
       });
     }
   };
@@ -105,14 +115,14 @@ export default function RotationSimulationModal({
               <p className="text-xs text-zinc-400 font-mono">
                 {locationData?.name || 'Selected Field'} • [
                 {locationData?.lat?.toFixed(3)}°N, {locationData?.lng?.toFixed(3)}°E] • NASA
-                Harvest Season {baseline.harvest_year ? `${baseline.harvest_year - 1}–${baseline.harvest_year}` : '2024–2025'}
+                Harvest Season {baseline.harvest_year ? `${baseline.harvest_year - 1}–${baseline.harvest_year}` : `${activeYear - 1}–${activeYear}`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleConfigChange(activeSoilType, activeWaterAccess, activeShock)}
+              onClick={() => handleConfigChange(activeSoilType, activeWaterAccess, activeShock, activeYear)}
               disabled={isLoading}
               type="button"
               className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700/80 hover:border-cyan-400 text-xs font-mono text-cyan-300 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
@@ -135,6 +145,25 @@ export default function RotationSimulationModal({
         {/* ── Interactive Scenario Controls Strip ── */}
         <div className="px-6 py-2.5 border-b border-zinc-800/80 bg-zinc-900/40 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
           <div className="flex flex-wrap items-center gap-4">
+            {/* Harvest Season Year */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono text-zinc-400">Harvest Year:</span>
+              <select
+                value={activeYear}
+                onChange={(e) =>
+                  handleConfigChange(activeSoilType, activeWaterAccess, activeShock, parseInt(e.target.value, 10))
+                }
+                disabled={isLoading}
+                className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
+              >
+                {[2025, 2024, 2023, 2022, 2021].map((yr) => (
+                  <option key={yr} value={yr}>
+                    Harvest {yr} ({yr - 1}–{yr})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Soil Type */}
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-mono text-zinc-400">Soil:</span>

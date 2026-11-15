@@ -18,6 +18,8 @@ import {
 export default function FieldTelemetryCard({
   locationData,
   telemetry,
+  selectedYear = 2025,
+  onYearChange,
   onEvaluateRotation,
   onClose,
 }) {
@@ -78,6 +80,31 @@ export default function FieldTelemetryCard({
           <span>{lat >= 0 ? `${lat.toFixed(4)}°N` : `${Math.abs(lat).toFixed(4)}°S`}</span>
           <span>•</span>
           <span>{lng >= 0 ? `${lng.toFixed(4)}°E` : `${Math.abs(lng).toFixed(4)}°W`}</span>
+        </div>
+
+        {/* Dynamic Year Selector (Multi-Year NASA Observations) */}
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-zinc-800/80">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1">
+            <span>NASA Year:</span>
+          </span>
+          <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-xl border border-zinc-800">
+            {[2021, 2022, 2023, 2024, 2025].map((yr) => (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => onYearChange && onYearChange(yr)}
+                disabled={isLoading}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-mono transition-all cursor-pointer ${
+                  selectedYear === yr
+                    ? 'bg-cyan-500 text-zinc-950 font-bold shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+                title={`Fetch NASA observations for ${yr}`}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

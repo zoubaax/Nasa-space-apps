@@ -52,6 +52,7 @@ export default function EarthOrbitGlobe({
   const [environmentalData, setEnvironmentalData] = useState(null);
   const [showTelemetryCard, setShowTelemetryCard] = useState(false);
   const [currentPitch, setCurrentPitch] = useState(0);
+  const [selectedYear, setSelectedYear] = useState(2025);
 
   // Digital twin simulation state
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
@@ -133,7 +134,7 @@ export default function EarthOrbitGlobe({
       });
 
       // 4. In background, set real loading state and request authentic observations
-      setEnvironmentalData({ isLoading: true, isLiveBackend: false, isSmapLoading: true });
+      setEnvironmentalData({ isLoading: true, isLiveBackend: false, isSmapLoading: true, selectedYear });
 
       // Request authentic observations with progressive rendering (Climate in <1s, SMAP in ~2-7s)
       fetchEnvironmentalTelemetry(
@@ -141,7 +142,8 @@ export default function EarthOrbitGlobe({
         targetCoords[1],
         (partialTelemetry) => {
           setEnvironmentalData(partialTelemetry);
-        }
+        },
+        selectedYear
       ).then((liveTelemetry) => {
         setEnvironmentalData(liveTelemetry);
       });
@@ -377,6 +379,28 @@ export default function EarthOrbitGlobe({
     mapRef.current.easeTo({ pitch: currentPitch > 20 ? 0 : 50, duration: 800 });
   };
 
+  const handleYearChange = (newYear) => {
+    setSelectedYear(newYear);
+    if (selectedLocation?.coordinates) {
+      setEnvironmentalData((prev) => ({
+        ...(prev || {}),
+        isLoading: true,
+        isSmapLoading: true,
+        selectedYear: newYear,
+      }));
+      fetchEnvironmentalTelemetry(
+        selectedLocation.coordinates[0],
+        selectedLocation.coordinates[1],
+        (partialTelemetry) => {
+          setEnvironmentalData(partialTelemetry);
+        },
+        newYear
+      ).then((liveTelemetry) => {
+        setEnvironmentalData(liveTelemetry);
+      });
+    }
+  };
+
   const handleEvaluateRotation = async (loc, customOptions = {}) => {
     const targetLoc = loc || selectedLocation;
     if (!targetLoc) return;
@@ -385,8 +409,13 @@ export default function EarthOrbitGlobe({
     setIsSimulationLoading(true);
     setSimulationError(null);
 
+    const mergedOptions = {
+      year: selectedYear,
+      ...customOptions,
+    };
+
     try {
-      const result = await simulateCropRotation(targetLoc, customOptions);
+      const result = await simulateCropRotation(targetLoc, mergedOptions);
       setSimulationData(result);
     } catch (err) {
       console.warn('Simulation request failed:', err);
@@ -427,6 +456,8 @@ export default function EarthOrbitGlobe({
         <FieldTelemetryCard
           locationData={selectedLocation}
           telemetry={environmentalData}
+          selectedYear={selectedYear}
+          onYearChange={handleYearChange}
           onEvaluateRotation={(loc) => {
             handleEvaluateRotation(loc);
           }}
@@ -440,6 +471,7 @@ export default function EarthOrbitGlobe({
         onClose={() => setIsSimulationOpen(false)}
         locationData={selectedLocation}
         simulationData={simulationData}
+        selectedYear={selectedYear}
         isLoading={isSimulationLoading}
         error={simulationError}
         onReSimulate={(options) => handleEvaluateRotation(selectedLocation, options)}

@@ -127,15 +127,17 @@ export function classifyClimate(precipMm, tempC) {
  * from the FastAPI backend (with reverse proxy via /api).
  * Returns strict live data or explicit null/unobserved states without synthetic dummy values.
  */
-export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate) {
+export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate, year = 2025) {
   try {
     const latFixed = Number(lat.toFixed(4));
     const lngFixed = Number(lng.toFixed(4));
+    const selectedYear = Number(year) || 2025;
 
     let state = {
       isLoading: false,
       isLiveBackend: false,
       isSmapLoading: true,
+      selectedYear,
       climateZone: 'Continental / Temperate',
       annualRainfallMm: null,
       meanTempC: null,
@@ -164,7 +166,7 @@ export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate)
 
     // 1. Fetch NASA POWER Climate Summary (fast: ~0.5s)
     const climatePromise = fetch(
-      `/api/climate/summary?latitude=${latFixed}&longitude=${lngFixed}&start_date=2025-01-01&end_date=2025-12-31`
+      `/api/climate/summary?latitude=${latFixed}&longitude=${lngFixed}&start_date=${selectedYear}-01-01&end_date=${selectedYear}-12-31`
     ).then(async (resp) => {
       if (resp.ok) {
         const climateJson = await resp.json();
@@ -228,7 +230,7 @@ export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate)
 
     // 2. Fetch NASA SMAP Level-4 GEE Timeseries
     const smapPromise = fetch(
-      `/api/smap-gee/timeseries?latitude=${latFixed}&longitude=${lngFixed}&year=2025`
+      `/api/smap-gee/timeseries?latitude=${latFixed}&longitude=${lngFixed}&year=${selectedYear}`
     ).then(async (resp) => {
       if (resp.ok) {
         const smapJson = await resp.json();
