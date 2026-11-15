@@ -58,12 +58,23 @@ class SoilSpecialistAgent(BaseAgent):
             f"حرارة مهد البذر: {soil_temp:.1f}°م",
         ]
 
+        in_situ = dossier.get("in_situ_sensor", {})
+        if in_situ and in_situ.get("is_connected"):
+            adc = in_situ.get("adc_raw", 0)
+            vwc = in_situ.get("vwc_m3_m3", 0.0)
+            delta = in_situ.get("smap_fusion_delta", 0.0)
+            evidence.append(
+                f"مجس التربة الميداني (ESP32 على GPIO34): {vwc * 100:.1f}% VWC ({adc} ADC، فارق SMAP: {delta:+.3f} م³/م³)"
+            )
+
         # Deterministic fallback when Gemini is offline
         if not self._settings.gemini_api_key:
             summary = (
                 f"تبلغ رطوبة منطقة الجذور من قمر SMAP L4 حوالي {sm_rz:.3f} م³/م³ (رتبة الجفاف: {drought_pctl:.1f}%)، "
                 f"مما يمنح مخزوناً مائياً متاحاً يقدر بـ {stored_water_mm:.1f} مم فوق نقطة الذبول، وهو ما يصنف التربة في حالة '{hydration}'."
             )
+            if in_situ and in_situ.get("is_connected"):
+                summary += f" كما يُؤكد مجس ESP32 الميداني (GPIO34) رطوبة موضعية بنسبة {in_situ.get('vwc_m3_m3', 0.0) * 100:.1f}%."
             return SoilSpecialistReport(
                 status="success",
                 summary=summary,

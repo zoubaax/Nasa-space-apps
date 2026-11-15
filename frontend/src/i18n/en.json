@@ -302,5 +302,19 @@
       "landsat": "Surface Reflectance / NDVI",
       "sentinel": "10m High-Res Vegetation"
     }
+  },
+  "chat": {
+    "openChatBtn": "💬 AI Agronomist Chat",
+    "askAboutPlot": "💬 Ask AI Orchestrator About This Field",
+    "title": "AI Agronomist Orchestrator",
+    "defaultPlot": "Selected Farm Plot",
+    "clearChat": "Reset Conversation",
+    "subagentsLabel": "Subagents:",
+    "evidenceBy": "Grounded by:",
+    "analyzingIntent": "Analyzing query and dispatching sub-agents...",
+    "agentsWorking": "Orchestrator coordinating subagents...",
+    "inputPlaceholder": "Ask about soil moisture, irrigation, or rotations in Darija, French, English...",
+    "send": "Send",
+    "disclaimer": "Evidence-grounded in NASA SMAP L4 & POWER observations. Audited against hallucinations."
   }
 }

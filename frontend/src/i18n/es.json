@@ -302,5 +302,19 @@
       "landsat": "Reflectancia Superficie / NDVI",
       "sentinel": "Vegetación Alta Resolución 10m"
     }
+  },
+  "chat": {
+    "openChatBtn": "💬 Chat Agrónomo IA",
+    "askAboutPlot": "💬 Consultar al Orquestador IA sobre esta Parcela",
+    "title": "Orquestador IA Agronómico",
+    "defaultPlot": "Parcela Seleccionada",
+    "clearChat": "Reiniciar conversación",
+    "subagentsLabel": "Subagentes:",
+    "evidenceBy": "Validado por:",
+    "analyzingIntent": "Analizando consulta y asignando subagentes...",
+    "agentsWorking": "El orquestador coordina los subagentes...",
+    "inputPlaceholder": "Pregunte sobre riego, humedad del suelo o rotación de cultivos...",
+    "send": "Enviar",
+    "disclaimer": "Basado en observaciones reales de NASA SMAP L4 y POWER. Auditado contra alucinaciones."
   }
 }

@@ -192,6 +192,26 @@ class AiContextBuilder:
                 "description": self._describe_chart(request.chart_id),
             }
 
+        # 5. Gather In-Situ IoT Soil Sensor (ESP32 Capacitive v1.2 on GPIO34)
+        try:
+            from app.api.deps import get_sensor_service
+            sensor_service = get_sensor_service()
+            smap_rz = None
+            if "smap_l4" in evidence and "annual_metrics" in evidence["smap_l4"]:
+                smap_rz = evidence["smap_l4"]["annual_metrics"].get("sm_rootzone", {}).get("mean")
+            sensor_telemetry = sensor_service.get_latest_telemetry(smap_rz)
+            if sensor_telemetry.is_connected:
+                sources_used.append("In-Situ ESP32 Soil Sensor (GPIO34)")
+                evidence["in_situ_sensor"] = sensor_telemetry.model_dump()
+            else:
+                evidence["in_situ_sensor"] = {
+                    "is_connected": False,
+                    "status": "standby",
+                    "note": "Optional in-situ probe is in auto-scanning standby mode; operating with NASA SMAP L4 as ground truth.",
+                }
+        except Exception as e_sensor:
+            logger.warning("In-situ sensor gathering failed: %s", e_sensor)
+
         evidence["sources_used"] = sources_used
         return evidence
 

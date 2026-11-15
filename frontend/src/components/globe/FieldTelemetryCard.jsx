@@ -26,6 +26,7 @@ export default function FieldTelemetryCard({
   selectedYear = 2025,
   onYearChange,
   onEvaluateRotation,
+  onOpenChat,
   onClose,
 }) {
   const { t, language, isRtl } = useTranslation();
@@ -744,7 +745,17 @@ export default function FieldTelemetryCard({
       </div>
 
       {/* ── High-Craft Full-Screen Launch CTA Button ── */}
-      <div className="p-4 border-t border-zinc-800 bg-[#0f131c]/90 shrink-0">
+      <div className="p-4 border-t border-zinc-800 bg-[#0f131c]/90 shrink-0 space-y-2">
+        {onOpenChat && (
+          <button
+            onClick={onOpenChat}
+            type="button"
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-200 font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span>{t('chat.askAboutPlot', {}, '💬 Ask AI Orchestrator About This Field')}</span>
+          </button>
+        )}
         <button
           onClick={() => onEvaluateRotation(locationData, telemetry)}
           disabled={isLoading}

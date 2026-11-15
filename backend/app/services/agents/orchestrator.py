@@ -137,6 +137,9 @@ class OrchestratorService:
             self.agronomy_agent.agent_name,
             self.guardrail_agent.agent_name,
         ])
+        in_situ = dossier.get("in_situ_sensor", {})
+        if in_situ.get("is_connected"):
+            specialists_consulted.append("مجس التربة الميداني ESP32 (GPIO34)")
 
         # Step 1: Parallel Fan-Out (Climate + Soil)
         clim_rep, soil_rep = await asyncio.gather(
@@ -205,6 +208,14 @@ class OrchestratorService:
         else:
             yield f"data: {json.dumps({'event': 'agent_start', 'agent_id': 'climate_specialist', 'message': 'فحص مؤشرات المناخ من NASA POWER بالتوازي...'})}\n\n"
             yield f"data: {json.dumps({'event': 'agent_start', 'agent_id': 'soil_specialist', 'message': 'فحص رطوبة التربة من NASA SMAP L4 بالتوازي...'})}\n\n"
+            in_situ = dossier.get("in_situ_sensor", {})
+            if in_situ.get("is_connected"):
+                sensor_msg = "فحص قراءات مجس التربة الميداني ESP32 (GPIO34)..."
+                if detected_language == "fr":
+                    sensor_msg = "Lecture de la sonde de sol in-situ ESP32 (GPIO34)..."
+                elif detected_language in {"en", "auto"}:
+                    sensor_msg = "Querying in-situ ESP32 soil probe (GPIO34)..."
+                yield f"data: {json.dumps({'event': 'agent_start', 'agent_id': 'sensor_specialist', 'message': sensor_msg})}\n\n"
 
         # Execute reasoning
         res = await self.execute(request, dossier, detected_language)

@@ -15,7 +15,8 @@ import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
 import RotationSimulationModal from './RotationSimulationModal';
 import CinematicHeroOverlay from './CinematicHeroOverlay';
-import { Globe2 } from 'lucide-react';
+import AgroChatDrawer from '../chat/AgroChatDrawer';
+import { Globe2, MessageSquare, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
@@ -64,6 +65,9 @@ export default function EarthOrbitGlobe({
   const [simulationData, setSimulationData] = useState(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(false);
   const [simulationError, setSimulationError] = useState(null);
+
+  // Multi-Agent Chatbot Drawer state
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // ─── Modern Location Pin Marker ───────────────────────────────────────────
   const createLocationPinMarker = (label) => {
@@ -559,9 +563,25 @@ export default function EarthOrbitGlobe({
               onEvaluateRotation={(loc, tele) => {
                 handleEvaluateRotation(loc, {}, tele || environmentalData);
               }}
+              onOpenChat={() => setIsChatOpen(true)}
               onClose={() => setShowTelemetryCard(false)}
             />
           )}
+
+          {/* Bottom-Center: Floating AI Agronomist Chat Trigger */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
+            <button
+              type="button"
+              onClick={() => setIsChatOpen(true)}
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-[#0b0e14]/90 hover:bg-zinc-900 border border-emerald-500/40 hover:border-emerald-400 text-zinc-100 hover:text-white font-mono text-xs sm:text-sm font-bold shadow-[0_0_25px_rgba(16,185,129,0.3)] backdrop-blur-2xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+            >
+              <div className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30 transition">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <span>{t('chat.openChatBtn', {}, '💬 AI Agronomist Chat')}</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+          </div>
 
           {/* Bottom-Left: Satellite Constellations */}
           <div className="absolute bottom-6 left-5 z-20 hidden md:flex">
@@ -597,6 +617,15 @@ export default function EarthOrbitGlobe({
         isLoading={isSimulationLoading}
         error={simulationError}
         onReSimulate={(options) => handleEvaluateRotation(selectedLocation, options)}
+      />
+
+      {/* AI Agronomist Multi-Agent Chat Drawer */}
+      <AgroChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        selectedLocation={selectedLocation}
+        telemetry={environmentalData}
+        selectedYear={selectedYear}
       />
     </div>
   );
