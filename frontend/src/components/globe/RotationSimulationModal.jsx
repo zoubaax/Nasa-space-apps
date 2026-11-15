@@ -22,28 +22,21 @@ function resolveCropName(crop, t) {
   const raw = String(crop).trim();
 
   // Strip year references like "(سنة 1)", "(Year 1)", "(an 1)" so pills display cleanly with sequence numbers
-  const clean = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
+  const clean = raw.replace(/\s*\((?:سنة|year|an|\d)\s*\d*\)\s*/gi, '').trim();
 
-  // Direct slug lookup if already clean latin slug (e.g. ble_dur, orge, jachere)
+  // If the crop is already a natural localized description from AI (e.g. contains Arabic script or custom terroir phrasing)
+  // preserve it verbatim so we don't overwrite Gemini's nuanced agronomic predictions!
+  if (/[\u0600-\u06FF]/.test(clean)) {
+    return clean;
+  }
+
+  // Direct slug lookup if it's a raw technical slug (e.g. ble_dur, orge, jachere)
   const slug = clean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   if (slug && t(`crops.${slug}`) && t(`crops.${slug}`) !== `crops.${slug}`) {
     return t(`crops.${slug}`);
   }
 
-  // Robust multilingual matching for Arabic, French, and English crop names
-  if (/قمح.*صلب|blé.*dur|durum/i.test(clean)) return t('crops.ble_dur', {}, 'Durum Wheat');
-  if (/قمح.*لين|blé.*tendre|bread.*wheat|soft.*wheat/i.test(clean)) return t('crops.ble_tendre', {}, 'Bread Wheat');
-  if (/شعير|barley|orge/i.test(clean)) return t('crops.orge', {}, 'Barley');
-  if (/قطاني|عدس|حمص|lentille|chiche|légumineuse|legume/i.test(clean)) return t('crops.pois_chiche_lentilles', {}, 'Legumes (Lentils / Chickpeas)');
-  if (/علف|بقوليات خضراء|engrais_vert|fourrage|forage|green manure/i.test(clean)) return t('crops.engrais_vert', {}, 'Forage & Green Manure');
-  if (/راحة|مغطاة|jachere|fallow|cover/i.test(clean)) return t('crops.jachere', {}, 'Active Cover Fallow');
-  if (/فول|feve|faba/i.test(clean)) return t('crops.feve', {}, 'Faba Bean');
-  if (/لوزيرن|luzerne|alfalfa/i.test(clean)) return t('crops.luzerne', {}, 'Alfalfa');
-  if (/شوفان|خرطال|avoine|oat/i.test(clean)) return t('crops.avoine', {}, 'Oats');
-  if (/عباد|نوار.*شمس|tournesol|sunflower/i.test(clean)) return t('crops.tournesol', {}, 'Sunflower');
-  if (/كولزا|colza|canola/i.test(clean)) return t('crops.colza', {}, 'Canola');
-
-  return slug ? t(`crops.${slug}`, {}, clean) : clean;
+  return clean;
 }
 
 export default function RotationSimulationModal({
@@ -65,34 +58,78 @@ export default function RotationSimulationModal({
   const [activePrimaryCereal, setActivePrimaryCereal] = useState('ble_dur');
   const [selectedPlanId, setSelectedPlanId] = useState(null);
 
-  useEffect(() => {
-    if (selectedYear) {
-      setActiveYear(selectedYear);
-    }
-  }, [selectedYear]);
-
-  // Dynamically adapt default crop to the clicked geographic terroir
-  useEffect(() => {
-    if (locationData?.country_code) {
-      const code = locationData.country_code.toLowerCase();
-      if (code === 'us' || code === 'ca' || code === 'br' || code === 'ar') {
-        setActivePrimaryCereal('mais');
-      } else if (code === 'fr' || code === 'de' || code === 'gb' || code === 'pl' || code === 'ua') {
-        setActivePrimaryCereal('ble_tendre');
-      } else if (code === 'es' || code === 'ma' || code === 'dz' || code === 'tn' || code === 'it' || code === 'eg') {
-        setActivePrimaryCereal('ble_dur');
-      }
-    }
-  }, [locationData]);
-
-  if (!isOpen) return null;
-
   const plans = simulationData?.plans || [];
   const winnerId = simulationData?.winner_plan_id || plans[0]?.id;
   const currentSelectedPlan =
     plans.find((p) => p.id === (selectedPlanId || winnerId)) || plans[0];
   const baseline = simulationData?.baseline_metrics || {};
   const tribunal = simulationData?.tribunal_verdicts || [];
+
+  useEffect(() => {
+    if (selectedYear) {
+      setActiveYear(selectedYear);
+    }
+  }, [selectedYear]);
+
+  // Sync active controls directly with simulation results when loaded
+  useEffect(() => {
+    if (simulationData?.soil_type) {
+      setActiveSoilType(simulationData.soil_type);
+    }
+    if (simulationData?.water_access) {
+      setActiveWaterAccess(simulationData.water_access);
+    }
+    if (simulationData?.shock_applied) {
+      setActiveShock(simulationData.shock_applied);
+    }
+    if (simulationData?.baseline_metrics?.primary_cereal) {
+      setActivePrimaryCereal(simulationData.baseline_metrics.primary_cereal);
+    }
+  }, [simulationData]);
+
+  // Dynamically auto-detect Soil texture, Water access, and Crop focus from real NASA observations
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const rain = baseline?.annual_precipitation_mm;
+    const smap = baseline?.sowing_period_moisture_m3m3;
+    const countryCode = (locationData?.country_code || '').toLowerCase();
+
+    if (rain !== undefined) {
+      // 1. Soil auto-detection from rainfall and SMAP root-zone moisture
+      if (rain < 150 || (smap !== undefined && smap < 0.14)) {
+        setActiveSoilType('sableux'); // Sandy desert soil (e.g. Sahara, Dakhla, Imlili)
+      } else if (rain > 650) {
+        setActiveSoilType('argilo_limoneux');
+      } else if (rain > 450) {
+        setActiveSoilType('limoneux_profond');
+      } else {
+        setActiveSoilType('argilo_limoneux');
+      }
+
+      // 2. Water access auto-detection
+      if (rain < 120) {
+        setActiveWaterAccess('irrigue'); // Hyper-arid requires full irrigation/oasis
+      } else if (rain > 450) {
+        setActiveWaterAccess('bour'); // Rainfed in high rain
+      } else {
+        setActiveWaterAccess('appoint'); // Supplementary in semi-arid
+      }
+
+      // 3. Primary crop auto-detection from climate + geographic terroir
+      if (rain < 160) {
+        setActivePrimaryCereal('orge'); // In desert/arid border, barley is the resilient grain
+      } else if (countryCode === 'us' || countryCode === 'ca' || countryCode === 'br' || countryCode === 'ar') {
+        setActivePrimaryCereal('mais');
+      } else if (countryCode === 'fr' || countryCode === 'de' || countryCode === 'gb' || countryCode === 'pl' || countryCode === 'ua') {
+        setActivePrimaryCereal('ble_tendre');
+      } else if (countryCode === 'es' || countryCode === 'ma' || countryCode === 'dz' || countryCode === 'tn' || countryCode === 'it' || countryCode === 'eg') {
+        setActivePrimaryCereal('ble_dur');
+      }
+    }
+  }, [isOpen, baseline?.annual_precipitation_mm, baseline?.sowing_period_moisture_m3m3, locationData?.country_code]);
+
+  if (!isOpen) return null;
 
   const handleConfigChange = (
     newSoil = activeSoilType,

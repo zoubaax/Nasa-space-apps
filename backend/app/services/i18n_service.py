@@ -107,6 +107,7 @@ MANDATORY INSTRUCTIONS:
    - DO NOT alter, remove, or translate any JSON keys. Translate only the string values.
    - Strictly preserve all variable placeholders verbatim: {{val}}, {{min}}, {{max}}, {{rad}}, {{days}}, etc.
    - Ensure authentic, natural agronomic and technical phrasing.
+   - NEVER append regional place names, cities, or provinces (e.g., DO NOT add '(مكناس / سايس)' or specific territory names) to generic agronomic options like soil textures, irrigation methods, or crop types. Keep all UI options universal and objective.
 
 3. Return ONLY a single valid JSON object adhering to this schema:
 {{
@@ -131,7 +132,7 @@ INPUT JSON STRINGS:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.2,
+                "temperature": 0.1,
                 "responseMimeType": "application/json",
             },
         }

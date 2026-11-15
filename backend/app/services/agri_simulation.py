@@ -44,6 +44,17 @@ SOIL_PROFILES: dict[str, dict[str, Any]] = {
         "scs_cn": 75.0,    # USDA SCS Curve Number for cultivated silt-loam
         "fertility_bonus": 5.0,
     },
+    "argilo_limoneux": {
+        "label": "طمي طيني (Argilo-limoneux)",
+        "texture_fr": "Argile limoneuse / Clay loam",
+        "theta_fc": 0.34,
+        "theta_wp": 0.18,
+        "zr_m": 1.0,
+        "awc_mm": 160.0,   # TAW = 1000 * (0.34 - 0.18) * 1.0 = 160 mm
+        "depletion_fraction_p": 0.50,
+        "scs_cn": 79.0,
+        "fertility_bonus": 8.0,
+    },
     "argileux_lourd": {
         "label": "طين ثقيل (Argileux lourd)",
         "texture_fr": "Argile lourde / Vertisol",
@@ -651,9 +662,27 @@ class AgriSimulationService:
         raw_pctl = annual_metrics.get("sm_rootzone_pctl", {}).get("mean") if annual_metrics else None
         drought_pctl = float(raw_pctl) if raw_pctl is not None else 50.0
 
-        # 2. Extract Soil & Shock Metadata
-        soil_meta = SOIL_PROFILES.get(request.soil_type, SOIL_PROFILES["limoneux_profond"])
-        water_meta = WATER_ACCESS_FACTORS.get(request.water_access, WATER_ACCESS_FACTORS["appoint"])
+        # 2. Extract Soil & Shock Metadata (with Terroir-Adaptive Defaults)
+        active_soil = request.soil_type
+        active_water = request.water_access
+        active_cereal = getattr(request, "primary_cereal", "ble_dur")
+
+        # If auto or default was not customized by farmer for hyper-arid / desert terroir
+        if (active_soil in ("auto", "limoneux_profond")) and (precip_base < 150 or sm_rootzone_mean < 0.14):
+            active_soil = "sableux"
+        elif active_soil == "auto":
+            active_soil = "limoneux_profond" if precip_base > 450 else "argilo_limoneux"
+
+        if (active_water in ("auto", "appoint")) and precip_base < 120:
+            active_water = "irrigue"
+        elif active_water == "auto":
+            active_water = "bour" if precip_base > 450 else "appoint"
+
+        if (active_cereal in ("auto", "ble_dur")) and precip_base < 160:
+            active_cereal = "orge"
+
+        soil_meta = SOIL_PROFILES.get(active_soil, SOIL_PROFILES["limoneux_profond"])
+        water_meta = WATER_ACCESS_FACTORS.get(active_water, WATER_ACCESS_FACTORS["appoint"])
         shock_meta = CLIMATE_SHOCK_CONFIG.get(request.climate_shock, CLIMATE_SHOCK_CONFIG["none"])
 
         effective_precip = round(precip_base * shock_meta["precip_mult"], 1)
@@ -732,7 +761,7 @@ class AgriSimulationService:
         precip_daily = raw_params.get("PRECTOTCORR", {})
 
         # 5. Crop Growing Calendars & Staged Kc (Strict Contiguous Chronological Sequences)
-        cereal_key = getattr(request, "primary_cereal", "ble_dur")
+        cereal_key = active_cereal
         if cereal_key not in PRIMARY_CEREAL_CONFIGS:
             cereal_key = "ble_dur"
         cereal_cfg = PRIMARY_CEREAL_CONFIGS[cereal_key]
@@ -1043,12 +1072,14 @@ class AgriSimulationService:
             },
         }
 
+        baseline_metrics["primary_cereal"] = active_cereal
+
         return SimulationResponse(
             location_name=request.location.name or "Position sélectionnée",
             year=request.year,
-            soil_type=request.soil_type,
+            soil_type=active_soil,
             soil_type_label=soil_meta["label"],
-            water_access=request.water_access,
+            water_access=active_water,
             water_access_label=water_meta["label"],
             budget=request.budget,
             shock_applied=request.climate_shock,
@@ -1820,40 +1851,66 @@ class AgriSimulationService:
             try:
                 gemini_prompt = (
                     "You are the Lead Agronomic AI and Scientific Tribunal evaluating an agricultural digital twin simulation.\n"
-                    "Grounded strictly in the following REAL NASA Earth observations and calculated FAO-56 physics:\n"
+                    "Grounded strictly in the following REAL NASA Earth observations and calculated FAO-56 physics (DO NOT INVENT NUMBERS):\n"
                     f"- Farm Location: {loc_display} (Coordinates: {request.location.latitude:.4f}°, {request.location.longitude:.4f}°), Harvest Year: {request.year}\n"
                     f"- Administrative Terroir: {loc_region}, {loc_country} (ISO: {loc_country_code.upper()})\n"
-                    f"- Soil: {soil_meta['label']} / {soil_meta['texture_fr']} (TAW={soil_meta['awc_mm']}mm, Wilting point={soil_meta['theta_wp']} m³/m³)\n"
+                    f"- Soil Texture: {soil_meta['label']} / {soil_meta['texture_fr']} (TAW={soil_meta['awc_mm']}mm, Wilting point={soil_meta['theta_wp']} m³/m³)\n"
                     f"- Climate Scenario: {shock_meta['label']}\n"
-                    f"- NASA POWER Climate Observations: Seasonal rain={seasonal_gross_rain_mm}mm (Infiltrated={effective_seasonal_rain_infiltrated_mm}mm), Annual rain={precip}mm, Heat days(>=30°C)={hot_days}, Mean temp={temp:.1f}°C\n"
+                    f"- NASA POWER Observations: Seasonal rain={seasonal_gross_rain_mm}mm (Infiltrated={effective_seasonal_rain_infiltrated_mm}mm), Annual rain={precip}mm, Heat days(>=30°C)={hot_days}, Mean temp={temp:.1f}°C\n"
                     f"- NASA SMAP L4 Satellite Soil Moisture: Root-zone moisture={sm_rootzone} m³/m³, Sowing available soil water={stored_soil_water_at_sowing_mm}mm, Total water supply budget={total_water_supply}mm\n"
-                    f"- Plan 1 ({p1.name_ar} / {p1.name_fr}): Water need={p1.water_need_mm}mm, Deficit={p1.water_deficit_mm}mm, Stress risk={p1.water_stress_risk_pct}%, Soil health={p1.soil_health_score}/100\n"
-                    f"- Plan 2 ({p2.name_ar} / {p2.name_fr}): Water need={p2.water_need_mm}mm, Deficit={p2.water_deficit_mm}mm, Stress risk={p2.water_stress_risk_pct}%, Soil health={p2.soil_health_score}/100\n"
-                    f"- Plan 3 ({p3.name_ar} / {p3.name_fr}): Water need={p3.water_need_mm}mm, Deficit={p3.water_deficit_mm}mm, Stress risk={p3.water_stress_risk_pct}%, Soil health={p3.soil_health_score}/100\n"
+                    f"- Plan 1 Baseline ({p1.name_ar} / {p1.name_fr}): Water need={p1.water_need_mm}mm, Deficit={p1.water_deficit_mm}mm, Stress risk={p1.water_stress_risk_pct}%, Soil health={p1.soil_health_score}/100\n"
+                    f"- Plan 2 Baseline ({p2.name_ar} / {p2.name_fr}): Water need={p2.water_need_mm}mm, Deficit={p2.water_deficit_mm}mm, Stress risk={p2.water_stress_risk_pct}%, Soil health={p2.soil_health_score}/100\n"
+                    f"- Plan 3 Baseline ({p3.name_ar} / {p3.name_fr}): Water need={p3.water_need_mm}mm, Deficit={p3.water_deficit_mm}mm, Stress risk={p3.water_stress_risk_pct}%, Soil health={p3.soil_health_score}/100\n"
                     f"- Recommended Winner: {winner.name_ar} / {winner.name_fr} (Resilience={winner.resilience_score}/100, Evaporative water saved={evap_demand_saved_mm}mm [{round(evap_demand_saved_mm*10)} m³/ha], Deficit saved={deficit_saved_mm}mm [{round(deficit_saved_mm*10)} m³/ha])\n\n"
+                    "CRITICAL TERROIR & ROTATION PREDICTION RULES:\n"
+                    "You are a predictive agronomic engine. You must tailor the 3 strategy plans and their exact 3-crop sequences ('rotation_sequence': [Crop 1, Crop 2, Crop 3]) to the true climate and soil of this location:\n"
+                    "1. For hyper-arid or desert regions (annual rain < 150mm, e.g. Sahara, Dakhla, Imlili, Zagora):\n"
+                    "   DO NOT prescribe water-demanding continuous wheat monoculture! Predict realistic, drought-hardy desert agricultural practices (e.g. desert-resilient barley, oasis agroforestry, date palm intercropping, drought-tolerant alfalfa/sorghum, or protected drip farming).\n"
+                    "2. For Mediterranean/semi-arid plains (rain 250-500mm, e.g. Saïss, Chaouia, Andalusia):\n"
+                    "   Predict cereal-legume rotations (durum wheat, faba beans, chickpeas, lentils, barley).\n"
+                    "3. For temperate/continental grain belts (rain > 600mm, e.g. US Midwest, France, Ukraine):\n"
+                    "   Predict corn-soybean-wheat, rapeseed-wheat, or diversified living cover crops.\n\n"
                     "TERROIR & LANGUAGE DIRECTIVE:\n"
                     f"Generate authentic deliberations in the natural, agrarian language spoken by farmers in this exact region ({loc_display}, {loc_country}):\n"
                     "- If in Morocco: use authentic Moroccan Darija (الدارجة المغربية الفلاحية) in Arabic script.\n"
                     "- If in a Francophone country/region: use agronomic French.\n"
                     "- If in a Spanish-speaking country: use agricultural Spanish.\n"
                     "- If in an Arab country outside Morocco: use Modern Standard Arabic.\n"
-                    "- For all other international locations: use the primary local native language of that country (e.g. Japanese in Japan, German in Germany, Turkish in Turkey, Portuguese in Brazil, etc., or English if English-speaking or requested).\n"
+                    "- For all other international locations: use the primary local native language of that country, or English if requested.\n"
                     f"Target Language: {detected_language.upper()}\n\n"
                     "Return ONLY a JSON object with this exact structure:\n"
                     "{\n"
                     f'  "detected_language": "{detected_language}",\n'
                     '  "tribunal_agents": {\n'
-                    '    "climate_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing the heat & rain numbers"},\n'
-                    '    "hydrology_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing SMAP rootzone moisture vs wilting point and water budget"},\n'
+                    '    "climate_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences strictly citing the real NASA heat & rain numbers"},\n'
+                    '    "hydrology_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences strictly citing SMAP rootzone moisture vs wilting point and water budget"},\n'
                     '    "agronomist_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing crop rotation, root disease break, and nitrogen fixation"},\n'
                     '    "guardrail_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve", "argument": "2 sentences auditing mass balance and confirming zero mathematical error"}\n'
                     '  },\n'
                     '  "plan_summaries": {\n'
-                    '    "plan_1": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining monoculture risks given the NASA rainfall and heat", "pros": ["pro 1", "pro 2"], "cons": ["con 1", "con 2"]},\n'
-                    '    "plan_2": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining triennial legume benefits citing water savings and nitrogen", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]},\n'
-                    '    "plan_3": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining agroecology/cover benefits for drought safety", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]}\n'
+                    '    "plan_1": {\n'
+                    '      "name": "Localized Strategy Title (Grounded in terroir)",\n'
+                    '      "rotation_sequence": ["Crop 1", "Crop 2", "Crop 3"],\n'
+                    '      "summary": "2-3 sentences explaining baseline risks given the NASA rainfall and heat numbers",\n'
+                    '      "pros": ["Direct benefit 1", "Direct benefit 2"],\n'
+                    '      "cons": ["Direct risk 1", "Direct risk 2"]\n'
+                    '    },\n'
+                    '    "plan_2": {\n'
+                    '      "name": "Localized Strategy Title (Resilient rotation)",\n'
+                    '      "rotation_sequence": ["Crop 1", "Crop 2", "Crop 3"],\n'
+                    '      "summary": "2-3 sentences explaining legume/diversification benefits citing water savings and soil",\n'
+                    '      "pros": ["Direct benefit 1", "Direct benefit 2"],\n'
+                    '      "cons": ["Direct risk 1"]\n'
+                    '    },\n'
+                    '    "plan_3": {\n'
+                    '      "name": "Localized Strategy Title (Agroecological / Water efficiency)",\n'
+                    '      "rotation_sequence": ["Crop 1", "Crop 2", "Crop 3"],\n'
+                    '      "summary": "2-3 sentences explaining low-water cover/agroecology benefits for drought safety",\n'
+                    '      "pros": ["Direct benefit 1", "Direct benefit 2"],\n'
+                    '      "cons": ["Direct risk 1"]\n'
+                    '    }\n'
                     '  },\n'
-                    '  "overall_synthesis": "A rich structured decision synthesis comparing the winning plan against monoculture citing exact NASA mm and m3/ha savings and practical guidance for the farmer."\n'
+                    '  "overall_synthesis": "A rich structured decision synthesis comparing the winning plan against baseline citing exact NASA mm and m3/ha savings and practical guidance for the farmer."\n'
                     "}"
                 )
 
@@ -1864,7 +1921,7 @@ class AgriSimulationService:
                 payload = {
                     "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
                     "generationConfig": {
-                        "temperature": 0.3,
+                        "temperature": 0.1,
                         "responseMimeType": "application/json",
                         "maxOutputTokens": 2048,
                     },
@@ -1948,6 +2005,8 @@ class AgriSimulationService:
 
                                     if p1_data.get("name"):
                                         p1.name_localized = str(p1_data["name"])
+                                    if isinstance(p1_data.get("rotation_sequence"), list) and len(p1_data["rotation_sequence"]) >= 2:
+                                        p1.rotation_sequence = [str(x) for x in p1_data["rotation_sequence"][:3]]
                                     p1_sum = p1_data.get("summary") or p1_data.get("summary_darija")
                                     if p1_sum:
                                         p1.summary_localized = p1_sum
@@ -1959,6 +2018,8 @@ class AgriSimulationService:
 
                                     if p2_data.get("name"):
                                         p2.name_localized = str(p2_data["name"])
+                                    if isinstance(p2_data.get("rotation_sequence"), list) and len(p2_data["rotation_sequence"]) >= 2:
+                                        p2.rotation_sequence = [str(x) for x in p2_data["rotation_sequence"][:3]]
                                     p2_sum = p2_data.get("summary") or p2_data.get("summary_darija")
                                     if p2_sum:
                                         p2.summary_localized = p2_sum
@@ -1970,6 +2031,8 @@ class AgriSimulationService:
 
                                     if p3_data.get("name"):
                                         p3.name_localized = str(p3_data["name"])
+                                    if isinstance(p3_data.get("rotation_sequence"), list) and len(p3_data["rotation_sequence"]) >= 2:
+                                        p3.rotation_sequence = [str(x) for x in p3_data["rotation_sequence"][:3]]
                                     p3_sum = p3_data.get("summary") or p3_data.get("summary_darija")
                                     if p3_sum:
                                         p3.summary_localized = p3_sum

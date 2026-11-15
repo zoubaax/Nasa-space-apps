@@ -408,7 +408,7 @@ export default function EarthOrbitGlobe({
     }
   };
 
-  const handleEvaluateRotation = async (loc, customOptions = {}) => {
+  const handleEvaluateRotation = async (loc, customOptions = {}, telemetryData = null) => {
     const targetLoc = loc || selectedLocation;
     if (!targetLoc) return;
 
@@ -416,9 +416,49 @@ export default function EarthOrbitGlobe({
     setIsSimulationLoading(true);
     setSimulationError(null);
 
+    // Dynamic terroir inference from live NASA telemetry (zero hardcoded defaults)
+    const activeTelemetry = telemetryData || environmentalData;
+    const rain = activeTelemetry?.annualRainfallMm;
+    const smap = activeTelemetry?.smapMoistureM3;
+    const countryCode = (targetLoc.country_code || '').toLowerCase();
+
+    let inferredSoil = 'limoneux_profond';
+    let inferredWater = 'appoint';
+    let inferredCereal = 'ble_dur';
+
+    if (rain !== undefined && rain !== null) {
+      if (rain < 150 || (smap !== undefined && smap !== null && smap < 0.14)) {
+        inferredSoil = 'sableux'; // Desert sandy soil (e.g. Sahara, Imlili, Dakhla)
+        inferredWater = 'irrigue'; // Hyper-arid requires full irrigation / oasis
+        inferredCereal = 'orge'; // Drought-hardy desert barley
+      } else if (rain > 650) {
+        inferredSoil = 'argilo_limoneux';
+        inferredWater = 'bour';
+      } else if (rain > 450) {
+        inferredSoil = 'limoneux_profond';
+        inferredWater = 'bour';
+      } else {
+        inferredSoil = 'argilo_limoneux';
+        inferredWater = 'appoint';
+      }
+
+      if (rain >= 160) {
+        if (['us', 'ca', 'br', 'ar'].includes(countryCode)) {
+          inferredCereal = 'mais';
+        } else if (['fr', 'de', 'gb', 'pl', 'ua'].includes(countryCode)) {
+          inferredCereal = 'ble_tendre';
+        } else {
+          inferredCereal = 'ble_dur';
+        }
+      }
+    }
+
     const mergedOptions = {
       year: selectedYear,
       language: language,
+      soilType: inferredSoil,
+      waterAccess: inferredWater,
+      primaryCereal: inferredCereal,
       ...customOptions,
     };
 
@@ -466,8 +506,8 @@ export default function EarthOrbitGlobe({
           telemetry={environmentalData}
           selectedYear={selectedYear}
           onYearChange={handleYearChange}
-          onEvaluateRotation={(loc) => {
-            handleEvaluateRotation(loc);
+          onEvaluateRotation={(loc, tele) => {
+            handleEvaluateRotation(loc, {}, tele || environmentalData);
           }}
           onClose={() => setShowTelemetryCard(false)}
         />
