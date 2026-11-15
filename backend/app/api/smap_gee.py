@@ -137,7 +137,7 @@ def get_smap_variables() -> dict:
     responses=_ERROR_RESPONSES,
     summary="Interactive scientific explanation of any SMAP variable in Moroccan Darija (الدارجة المغربية)",
 )
-def explain_smap_variable(
+async def explain_smap_variable(
     variable: Annotated[str, Query(description="SMAP variable id (e.g. sm_surface, sm_rootzone, land_evapotranspiration_flux)")],
     service: Annotated[SmapGeeService, Depends(get_smap_gee_service)],
     value: Annotated[float | None, Query(description="Current or selected observation value")] = None,
@@ -145,7 +145,7 @@ def explain_smap_variable(
     location: Annotated[str, Query(description="Selected location name")] = "مكناس، المغرب",
     previous_value: Annotated[float | None, Query(description="Previous period value for trend comparison")] = None,
 ) -> DarijaExplanationResponse:
-    return service.explain_variable(
+    return await service.explain_variable_async(
         var_id=variable,
         value=value,
         period=period,

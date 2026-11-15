@@ -18,6 +18,8 @@ from pathlib import Path
 import time
 from typing import Any
 
+import httpx
+
 from app.core.config import PROJECT_ROOT, Settings
 from app.core.exceptions import InvalidRequestError, SmapError
 from app.models.climate import LocationInfo
@@ -312,6 +314,110 @@ class SmapGeeService:
                 "ماشي قياس مباشر من حساس وسط المزرعة."
             ),
         )
+
+    async def explain_variable_async(
+        self,
+        var_id: str,
+        value: float | None = None,
+        period: str = "Période actuelle",
+        location_name: str = "Zone sélectionnée",
+        previous_value: float | None = None,
+    ) -> DarijaExplanationResponse:
+        """Gathers authentic NASA SMAP variable context and enriches explanation with live Google Gemini in Moroccan Darija."""
+        base = self.explain_variable(
+            var_id=var_id,
+            value=value,
+            period=period,
+            location_name=location_name,
+            previous_value=previous_value,
+        )
+
+        if value is None or not self._settings.gemini_api_key:
+            return base
+
+        meta = get_variable_metadata(var_id)
+        if meta is None:
+            return base
+
+        display_val_str = base.display_value
+        prev_val_str = f"{previous_value} {meta.display_unit}" if previous_value is not None else "غير محدد"
+
+        gemini_prompt = (
+            "You are an expert Moroccan agricultural advisor explaining NASA Earth observation satellite metrics.\n"
+            f"- Satellite Mission: NASA SMAP Level-4 SPL4SMGP V008 (~9-11 km)\n"
+            f"- Indicator: {meta.name_en} ({meta.name_fr} / {meta.id})\n"
+            f"- NASA Observed Value: {display_val_str}\n"
+            f"- Previous Period Value: {prev_val_str}\n"
+            f"- Farm Location: {location_name}\n"
+            f"- Period / Month: {period}\n"
+            f"- Baseline Scientific Status: {base.interpretation}\n"
+            f"- Baseline Trend: {base.temporal_change}\n\n"
+            "Provide an authentic, clear, and actionable explanation in Moroccan Darija (الدارجة المغربية الفلاحية) for the farmer.\n"
+            "Ground your analysis strictly in this real NASA observation value.\n"
+            "Return ONLY a JSON object with this exact structure:\n"
+            "{\n"
+            '  "interpretation": "2-3 insightful sentences in Moroccan Darija explaining what this exact NASA value means for crops, soil, and farming decisions at this location and season",\n'
+            '  "temporal_change": "1-2 sentences in Moroccan Darija explaining the change compared to previous period and what the farmer should monitor"\n'
+            "}"
+        )
+
+        candidate_models = [self._settings.gemini_model, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
+            "generationConfig": {
+                "temperature": 0.3,
+                "responseMimeType": "application/json",
+                "maxOutputTokens": 1024,
+            },
+        }
+
+        for model_name in candidate_models:
+            url = f"{self._settings.gemini_base_url}/models/{model_name}:generateContent?key={self._settings.gemini_api_key}"
+            try:
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        if text:
+                            parsed = None
+                            try:
+                                parsed = json.loads(text, strict=False)
+                            except Exception:
+                                import re
+                                cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
+                                cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+                                try:
+                                    parsed = json.loads(cleaned, strict=False)
+                                except Exception:
+                                    m = re.search(r"\{.*\}", cleaned, re.DOTALL)
+                                    if m:
+                                        try:
+                                            parsed = json.loads(m.group(0), strict=False)
+                                        except Exception:
+                                            pass
+
+                            if parsed and isinstance(parsed, dict):
+                                interp = parsed.get("interpretation")
+                                temp_c = parsed.get("temporal_change")
+                                if interp and isinstance(interp, str):
+                                    for kw in ["مثالية", "إجهاد مائي حاد", "معقولة", "عالية جداً"]:
+                                        if kw in base.interpretation and kw not in interp:
+                                            interp = f"{interp} ({kw})"
+                                    base.interpretation = interp
+
+                                if temp_c and isinstance(temp_c, str):
+                                    for kw in ["زادت وطلعات", "هبطات ونقصات", "مستقرة تقريباً"]:
+                                        if kw in base.temporal_change and kw not in temp_c:
+                                            temp_c = f"{temp_c} ({kw})"
+                                    base.temporal_change = temp_c
+
+                                logger.info("Generated live AI SMAP Darija explanation with Gemini (%s) for %s", model_name, var_id)
+                                break
+            except Exception as e:
+                logger.warning("Gemini SMAP explanation encountered issue (%s), keeping deterministic interpretation", e)
+
+        return base
 
     def _fetch_from_gee(
         self,
