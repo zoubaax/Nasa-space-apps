@@ -22,7 +22,7 @@ export default function GlobeControls({
       <button
         onClick={onToggleRotate}
         type="button"
-        className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+        className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
           isRotating
             ? 'bg-zinc-800 border border-zinc-700 text-zinc-100 shadow-sm'
             : 'bg-zinc-900/80 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800'
@@ -34,7 +34,9 @@ export default function GlobeControls({
             isRotating ? 'bg-emerald-400' : 'bg-zinc-500'
           }`}
         />
-        <span>{isRotating ? t('controls.orbitSpinOn', {}, 'Orbit Spin ON') : t('controls.orbitSpinPaused', {}, 'Spin Paused')}</span>
+        <span className="hidden sm:inline">
+          {isRotating ? t('controls.orbitSpinOn', {}, 'Orbit Spin ON') : t('controls.orbitSpinPaused', {}, 'Spin Paused')}
+        </span>
       </button>
 
       {/* 3D Horizon Pitch Tilt Toggle */}

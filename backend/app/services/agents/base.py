@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import json
 import logging
+import os
 import re
 import time
 from typing import Any
@@ -42,7 +43,7 @@ class BaseAgent(ABC):
         response_mime: str = "application/json",
     ) -> dict[str, Any] | None:
         """Helper to invoke Google Gemini AI with strict response formatting and error handling."""
-        if not self._settings.gemini_api_key:
+        if not self._settings.gemini_api_key or os.environ.get("PYTEST_CURRENT_TEST"):
             return None
 
         contents = []
@@ -61,7 +62,16 @@ class BaseAgent(ABC):
             },
         }
 
-        candidate_models = [self._settings.gemini_model, "gemini-flash-lite-latest", "gemini-2.5-flash"]
+        candidate_models = [
+            self._settings.gemini_model,
+            "gemini-2.5-flash",
+            "gemini-flash-latest",
+            "gemini-2.5-flash-lite",
+            "gemini-flash-lite-latest",
+        ]
+        # Deduplicate while preserving order
+        candidate_models = list(dict.fromkeys([m for m in candidate_models if m]))
+
         for model_name in candidate_models:
             url = f"{self._settings.gemini_base_url}/models/{model_name}:generateContent?key={self._settings.gemini_api_key}"
             try:
@@ -74,12 +84,15 @@ class BaseAgent(ABC):
                             raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                             cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip(), flags=re.MULTILINE)
                             cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+                            if response_mime == "text/plain":
+                                return {"text": cleaned}
                             try:
                                 return json.loads(cleaned, strict=False)
                             except Exception:
                                 m = re.search(r"\{.*\}", cleaned, re.DOTALL)
                                 if m:
                                     return json.loads(m.group(0), strict=False)
+                                return {"text": cleaned}
                     else:
                         logger.warning("[%s] Model %s returned status %s", self.agent_id, model_name, resp.status_code)
             except Exception as exc:

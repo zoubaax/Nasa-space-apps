@@ -62,6 +62,28 @@ class I18nTranslationService:
             self._mem_cache[cache_key] = res
             return res
 
+        # Instant fast-path for Arab world territories (0ms latency, zero rate limits)
+        c_code = ((loc.country_code if loc else "") or "").lower()
+        c_country_lower = ((loc.country if loc else "") or "").lower()
+        arab_codes = {
+            "ma", "dz", "tn", "ly", "eg", "sd", "mr", "sa", "ae", "qa",
+            "kw", "bh", "om", "ye", "jo", "lb", "sy", "iq", "ps", "so", "dj", "km"
+        }
+        arab_names = {
+            "morocco", "maroc", "egypt", "algeria", "algerie", "tunisia", "tunisie",
+            "libya", "sudan", "saudi", "emirates", "qatar", "kuwait", "bahrain",
+            "oman", "yemen", "jordan", "lebanon", "syria", "iraq", "palestine", "mauritania"
+        }
+        is_arab = (
+            req_lang in ("ar", "darija", "arabic")
+            or c_code in arab_codes
+            or any(name in c_country_lower for name in arab_names)
+        )
+        if is_arab:
+            res = self._build_offline_fallback(request)
+            self._mem_cache[cache_key] = res
+            return res
+
         # In testing or when Gemini key is not configured, provide clean test fallback
         if os.environ.get("PYTEST_CURRENT_TEST") or not self._settings.gemini_api_key:
             res = self._build_offline_fallback(request)
@@ -137,7 +159,7 @@ INPUT JSON STRINGS:
             },
         }
 
-        candidate_models = [self._settings.gemini_model, "gemini-2.0-flash", "gemini-1.5-flash"]
+        candidate_models = [self._settings.gemini_model, "gemini-flash-latest", "gemini-2.5-flash-lite"]
         for model_name in candidate_models:
             url = f"{self._settings.gemini_base_url}/models/{model_name}:generateContent?key={self._settings.gemini_api_key}"
             try:
@@ -170,21 +192,51 @@ INPUT JSON STRINGS:
         return None
 
     def _build_offline_fallback(self, request: TranslationRequest) -> TranslationResponse:
-        """Deterministic offline fallback for test environments."""
+        """Deterministic offline fallback for test environments and all Arabic territories."""
         loc = request.location
-        c_code = (loc.country_code if loc else "") or ""
+        c_code = ((loc.country_code if loc else "") or "").lower()
+        c_country_lower = ((loc.country if loc else "") or "").lower()
         req_lang = (request.target_language or "auto").lower()
 
-        is_arab = req_lang in ("ar", "darija") or c_code == "ma" or (loc and "morocco" in (loc.country or "").lower())
+        arab_codes = {
+            "ma", "dz", "tn", "ly", "eg", "sd", "mr", "sa", "ae", "qa",
+            "kw", "bh", "om", "ye", "jo", "lb", "sy", "iq", "ps", "so", "dj", "km"
+        }
+        arab_names = {
+            "morocco", "maroc", "egypt", "algeria", "algerie", "tunisia", "tunisie",
+            "libya", "sudan", "saudi", "emirates", "qatar", "kuwait", "bahrain",
+            "oman", "yemen", "jordan", "lebanon", "syria", "iraq", "palestine", "mauritania"
+        }
+        arab_flags = {
+            "ma": "🇲🇦", "dz": "🇩🇿", "tn": "🇹🇳", "ly": "🇱🇾", "eg": "🇪🇬",
+            "sd": "🇸🇩", "mr": "🇲🇷", "sa": "🇸🇦", "ae": "🇦🇪", "qa": "🇶🇦",
+            "kw": "🇰🇼", "bh": "🇧🇭", "om": "🇴🇲", "ye": "🇾🇪", "jo": "🇯🇴",
+            "lb": "🇱🇧", "sy": "🇸🇾", "iq": "🇮🇶", "ps": "🇵🇸", "so": "🇸🇴",
+            "dj": "🇩🇯", "km": "🇰🇲",
+        }
+
+        is_arab = (
+            req_lang in ("ar", "darija", "arabic")
+            or c_code in arab_codes
+            or any(name in c_country_lower for name in arab_names)
+        )
         direction = "rtl" if is_arab else "ltr"
         lang_code = "ar" if is_arab else ("fr" if c_code == "fr" else ("es" if c_code == "es" else "en"))
 
+        flag = "🌐"
+        if is_arab:
+            flag = arab_flags.get(c_code, "🇸🇦" if "saudi" in c_country_lower else "🇲🇦")
+        elif lang_code == "fr":
+            flag = "🇫🇷"
+        elif lang_code == "es":
+            flag = "🇪🇸"
+
         return TranslationResponse(
             language_code=lang_code,
-            language_name="Arabic / Darija" if is_arab else ("French" if lang_code == "fr" else "English"),
-            language_native="العربية" if is_arab else ("Français" if lang_code == "fr" else "English"),
+            language_name="Arabic / Darija" if is_arab else ("French" if lang_code == "fr" else ("Spanish" if lang_code == "es" else "English")),
+            language_native="العربية" if is_arab else ("Français" if lang_code == "fr" else ("Español" if lang_code == "es" else "English")),
             country=loc.country if loc else "Global",
-            country_flag="🇲🇦" if is_arab else ("🇫🇷" if lang_code == "fr" else "🌐"),
+            country_flag=flag,
             direction=direction,
             translated_strings=request.strings,
             cached=False,

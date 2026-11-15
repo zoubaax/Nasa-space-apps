@@ -4,6 +4,37 @@ import { translations } from '../i18n/translations';
 
 const LanguageContext = createContext(null);
 
+const ARABIC_COUNTRIES = {
+  ma: { name: 'Morocco', native: 'المغرب · الدارجة', flag: '🇲🇦' },
+  dz: { name: 'Algeria', native: 'الجزائر · العربية', flag: '🇩🇿' },
+  tn: { name: 'Tunisia', native: 'تونس · العربية', flag: '🇹🇳' },
+  eg: { name: 'Egypt', native: 'مصر · العربية', flag: '🇪🇬' },
+  sa: { name: 'Saudi Arabia', native: 'السعودية · العربية', flag: '🇸🇦' },
+  ae: { name: 'United Arab Emirates', native: 'الإمارات · العربية', flag: '🇦🇪' },
+  qa: { name: 'Qatar', native: 'قطر · العربية', flag: '🇶🇦' },
+  kw: { name: 'Kuwait', native: 'الكويت · العربية', flag: '🇰🇼' },
+  bh: { name: 'Bahrain', native: 'البحرين · العربية', flag: '🇧🇭' },
+  om: { name: 'Oman', native: 'عمان · العربية', flag: '🇴🇲' },
+  jo: { name: 'Jordan', native: 'الأردن · العربية', flag: '🇯🇴' },
+  lb: { name: 'Lebanon', native: 'لبنان · العربية', flag: '🇱🇧' },
+  iq: { name: 'Iraq', native: 'العراق · العربية', flag: '🇮🇶' },
+  sy: { name: 'Syria', native: 'سوريا · العربية', flag: '🇸🇾' },
+  ye: { name: 'Yemen', native: 'اليمن · العربية', flag: '🇾🇪' },
+  ly: { name: 'Libya', native: 'ليبيا · العربية', flag: '🇱🇾' },
+  sd: { name: 'Sudan', native: 'السودان · العربية', flag: '🇸🇩' },
+  mr: { name: 'Mauritania', native: 'موريتانيا · العربية', flag: '🇲🇷' },
+  ps: { name: 'Palestine', native: 'فلسطين · العربية', flag: '🇵🇸' },
+  so: { name: 'Somalia', native: 'الصومال · العربية', flag: '🇸🇴' },
+  dj: { name: 'Djibouti', native: 'جيبوتي · العربية', flag: '🇩🇯' },
+  km: { name: 'Comoros', native: 'جزر القمر · العربية', flag: '🇰🇲' },
+};
+
+const ARABIC_NAMES = [
+  'morocco', 'maroc', 'egypt', 'algeria', 'algerie', 'tunisia', 'tunisie',
+  'libya', 'sudan', 'saudi', 'emirates', 'qatar', 'kuwait', 'bahrain',
+  'oman', 'yemen', 'jordan', 'lebanon', 'syria', 'iraq', 'palestine', 'mauritania'
+];
+
 export function LanguageProvider({ children }) {
   // Current active language info (dynamically resolved from map location or choice)
   const [langInfo, setLangInfo] = useState({
@@ -40,41 +71,7 @@ export function LanguageProvider({ children }) {
 
       const cCode = (locationData.country_code || '').toLowerCase();
       const cCountry = (locationData.country || '').toLowerCase();
-      const isMorocco = cCode === 'ma' || cCountry.includes('morocco') || cCountry.includes('maroc');
-
-      // Instant optimistic local resolution if Moroccan terroir or known language
-      if (isMorocco && !isManualEnglish) {
-        const moroccoInfo = {
-          code: 'ar',
-          name: 'Moroccan Darija',
-          native: 'الدارجة المغربية',
-          country: 'Morocco',
-          flag: '🇲🇦',
-          dir: 'rtl',
-        };
-        setLangInfo(moroccoInfo);
-        setActiveDict(translations.ar);
-      } else if (cCode === 'fr' && !isManualEnglish) {
-        setLangInfo({
-          code: 'fr',
-          name: 'French',
-          native: 'Français',
-          country: 'France',
-          flag: '🇫🇷',
-          dir: 'ltr',
-        });
-        setActiveDict(translations.fr);
-      } else if (cCode === 'es' && !isManualEnglish) {
-        setLangInfo({
-          code: 'es',
-          name: 'Spanish',
-          native: 'Español',
-          country: 'Spain',
-          flag: '🇪🇸',
-          dir: 'ltr',
-        });
-        setActiveDict(translations.es);
-      }
+      const isArabicCountry = Boolean(ARABIC_COUNTRIES[cCode]) || ARABIC_NAMES.some((n) => cCountry.includes(n));
 
       const cacheKey = `${locationData.country_code || ''}:${locationData.country || ''}:${locationData.lat || ''},${locationData.lng || ''}`;
 
@@ -88,13 +85,50 @@ export function LanguageProvider({ children }) {
         return;
       }
 
+      // ── Arabic countries: 100% local resolution, never call backend ──────────
+      // The backend fast-path returns the ENGLISH strings unchanged (no translation),
+      // which then overwrite the pre-baked translations.ar when merged → reverting UI to English.
+      // We already have the complete translations.ar bundle locally, so skip the network call.
+      if (isArabicCountry && !isManualEnglish) {
+        const arabData = ARABIC_COUNTRIES[cCode] || {
+          name: locationData.country || 'Arab World',
+          native: 'العربية',
+          flag: '🌐',
+        };
+        const arabicInfo = {
+          code: 'ar',
+          name: cCode === 'ma' ? 'Moroccan Darija' : 'Arabic',
+          native: arabData.native,
+          country: arabData.name,
+          flag: arabData.flag,
+          dir: 'rtl',
+        };
+        cacheRef.current[cacheKey] = { info: arabicInfo, dict: translations.ar };
+        setLangInfo(arabicInfo);
+        setActiveDict(translations.ar);
+        return; // ← Done! No backend call needed.
+      }
+
+      // ── French / Spanish: also serve locally without network call ─────────
+      if ((cCode === 'fr' || cCode === 'es') && !isManualEnglish) {
+        const localCode = cCode;
+        const localDict = translations[localCode] || en;
+        cacheRef.current[cacheKey] = {
+          info: { code: localCode, name: localCode === 'fr' ? 'French' : 'Spanish', native: localCode === 'fr' ? 'Français' : 'Español', country: locationData.country || '', flag: localCode === 'fr' ? '🇫🇷' : '🇪🇸', dir: 'ltr' },
+          dict: localDict,
+        };
+        setLangInfo(cacheRef.current[cacheKey].info);
+        setActiveDict(localDict);
+        return;
+      }
+
       try {
         setIsTranslating(true);
         const resp = await fetch('/api/i18n/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            target_language: isMorocco ? 'ar' : 'auto',
+            target_language: 'auto',
             location: {
               name: locationData.displayName || locationData.name || '',
               country: locationData.country || '',
@@ -110,13 +144,13 @@ export function LanguageProvider({ children }) {
           const data = await resp.json();
           if (data && data.translated_strings) {
             const resolvedCode = (data.language_code || 'en').toLowerCase();
-            const fallbackPrebaked = translations[resolvedCode] || (data.direction === 'rtl' ? translations.ar : null);
+            const fallbackPrebaked = translations[resolvedCode] || null;
             
-            // Merge translated strings with pre-baked base so no keys are ever missing
-            const mergedDict = {
-              ...(fallbackPrebaked || en),
-              ...data.translated_strings,
-            };
+            // For non-Arabic/non-bundled languages: merge pre-baked base + backend translations
+            // But NEVER let backend overwrite Arabic keys — guard by checking direction
+            const mergedDict = fallbackPrebaked
+              ? { ...fallbackPrebaked, ...data.translated_strings }
+              : { ...en, ...data.translated_strings };
 
             const newInfo = {
               code: resolvedCode,
@@ -127,10 +161,7 @@ export function LanguageProvider({ children }) {
               dir: data.direction || 'ltr',
             };
 
-            cacheRef.current[cacheKey] = {
-              info: newInfo,
-              dict: mergedDict,
-            };
+            cacheRef.current[cacheKey] = { info: newInfo, dict: mergedDict };
 
             setLangInfo(newInfo);
             if (!isManualEnglish) {

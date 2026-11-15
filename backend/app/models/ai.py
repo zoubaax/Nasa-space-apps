@@ -30,7 +30,7 @@ class AiChatRequest(BaseModel):
     mode: Literal["agricultural", "scientific"] = "agricultural"
     chart_id: str | None = Field(default=None, description="Optional active chart context (e.g. moisture, drought, temperature, water)")
     variable_id: str | None = Field(default=None, description="Optional focused variable (e.g. sm_rootzone, temp_layer1)")
-    language: Literal["auto", "darija", "fr", "en", "es", "ar"] = "auto"
+    language: Literal["auto", "darija", "fr", "en", "es", "ar", "location"] = "auto"
     history: list[AiChatMessage] = Field(default_factory=list)
 
 

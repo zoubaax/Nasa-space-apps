@@ -42,11 +42,11 @@ class LocalizationSpecialistAgent(BaseAgent):
         if not self._settings.gemini_api_key or os.environ.get("PYTEST_CURRENT_TEST"):
             loc_name = loc.get("name") or "المنطقة المحددة"
             if lang == "darija":
-                header = f"### 🌾 تقرير الذكاء الاصطناعي لمنطقة {loc_name} (سنة {context.year})"
+                header = f"### 🌾 تقرير الذكاء الفائق (SI) لمنطقة {loc_name} (سنة {context.year})"
             elif lang == "fr":
-                header = f"### 🌾 Diagnostic Agro-Climatique FIELDShift AI — {loc_name} ({context.year})"
+                header = f"### 🌾 Diagnostic Agro-Climatique FIELDShift SI — {loc_name} ({context.year})"
             else:
-                header = f"### 🌾 Agro-Climatic Report FIELDShift AI — {loc_name} ({context.year})"
+                header = f"### 🌾 Agro-Climatic Report FIELDShift SI — {loc_name} ({context.year})"
 
             parts = [header]
             if clim_text:
@@ -59,9 +59,23 @@ class LocalizationSpecialistAgent(BaseAgent):
                 parts.append(f"\n> ℹ️ *ملاحظة علمية: {guard.disclaimers_enforced[0]}*")
             return "\n\n".join(parts)
 
+        # Choose dialect guidance based on location and detected language
+        dialect_instruction = "Respond in clear, professional English."
+        if lang in ("darija", "ar"):
+            dialect_instruction = (
+                "You are an expert Moroccan agronomist (المرشد الفلاحي). "
+                "Respond in authentic, warm, respectful Moroccan Darija (الدارجة المغربية) using Arabic script. "
+                "Use natural Moroccan farming vocabulary (الري، السقي، مهد البذور، رطوبة الجذور، الشتا، الغلة، الحرث). "
+                "Greet the farmer warmly (e.g. 'مرحبا بك أ سي الفلاح' or 'على حساب معطيات أقمار ناسا الفضائية')."
+            )
+        elif lang == "fr":
+            dialect_instruction = "Respond in professional French as an expert agricultural engineer (Diagnostic agro-climatique, humidité du sol, stratégie culturale)."
+        elif lang == "es":
+            dialect_instruction = "Respond in fluent Spanish as an agricultural specialist (Diagnóstico agroclimático, humedad del suelo, recomendaciones agronómicas)."
+
         prompt = f"""You are the Lead Agronomic Communicator synthesizing specialized findings for {loc.get('name', 'this farm')}.
 USER QUESTION: {context.user_query}
-TARGET LANGUAGE / DIALECT: {lang} (If Morocco/Darija: write in authentic, warm, respectful Moroccan Darija in Arabic script).
+TARGET LANGUAGE / DIALECT DIRECTIVE: {dialect_instruction}
 
 SPECIALIST FINDINGS:
 1. Climate Specialist: {clim_text}
@@ -69,10 +83,10 @@ SPECIALIST FINDINGS:
 3. Agronomist Advice: {agro_text}
 
 MANDATORY RULES:
-- Write a unified, natural answer that directly answers the farmer's question.
-- Do NOT say 'Specialist 1 said...'; blend findings seamlessly into a professional consultation.
+- Write a unified, natural, helpful answer that directly answers the farmer's question.
+- Do NOT say 'Specialist 1 said...'; blend findings seamlessly into a single authoritative consultation.
 - Strictly preserve all verified numbers ({clim.total_precip_mm if clim else ''} mm, {soil.sm_rootzone if soil else ''} m³/m³).
-- Keep formatting clean with clear markdown paragraphs.
+- Keep formatting clean with clear markdown paragraphs and bullet points where helpful.
 """
         res = await self._call_gemini(prompt, temperature=0.2, response_mime="text/plain")
         if res and isinstance(res, dict) and res.get("text"):

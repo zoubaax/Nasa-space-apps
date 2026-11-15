@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "FieldShift AI",
+    "appName": "FieldShift SI",
     "orbit": "Orbite Terrestre",
     "backToOrbit": "Vue Orbitale",
     "coordinates": "Coordonnées",
@@ -22,18 +22,21 @@
     "dismiss": "Fermer"
   },
   "hero": {
-    "eyebrow": "OBSERVATION DE LA TERRE NASA · AGRONOMIE · IA",
+    "eyebrow": "OBSERVATION DE LA TERRE NASA · AGRONOMIE · SI (SUPER INTELLIGENCE)",
     "title": "Farmer Eye",
     "subtitle": "Le Deuxième Œil de l'Agriculteur.",
     "description": "Transformer les observations satellitaires de la NASA et la science agronomique en décisions culturales climato-résilientes.",
-    "clickToExplore": "Cliquez n'importe où pour explorer ➔",
-    "clickToEnter": "Cliquez pour entrer"
+    "getMyLocation": "📍 Localiser mon champ (GPS)",
+    "locating": "Détection des coordonnées du champ…",
+    "clickGlobeHint": "Ou cliquez directement sur le globe 3D pour atterrir sur une parcelle",
+    "clickToExplore": "Cliquez sur le globe pour explorer ➔",
+    "clickToEnter": "Cliquez sur le globe pour entrer"
   },
   "mascot": {
     "greeting": "Bienvenue sur Farmer Eye ! 👋",
-    "role": "Votre Guide Agronomique 3D",
-    "message": "Je suis là pour vous accompagner dans l'exploration des données spatiales NASA et des rotations culturales résilientes. Cliquez n'importe où pour décoller !",
-    "actionHint": "Cliquez n'importe où pour lancer ➔"
+    "role": "Votre Guide Agronomique 3D (SI)",
+    "message": "Je suis là pour vous accompagner dans l'exploration des données spatiales NASA et des rotations culturales résilientes. Localisez votre champ ou cliquez sur le globe 3D pour commencer !",
+    "actionHint": "Localisez votre champ ou cliquez sur le globe ➔"
   },
   "hud": {
     "missionTitle": "Farmer Eye · Orbite Terrestre",
@@ -47,7 +50,8 @@
     "dataBridge": "Passerelle Données NASA :",
     "fastApiOnline": "FastAPI Connecté",
     "connecting": "Connexion en cours…",
-    "orbitingDeepSpace": "Orbite Profonde"
+    "orbitingDeepSpace": "Orbite Profonde",
+    "fieldTelemetryReady": "Données du champ prêtes"
   },
   "toolbar": {
     "searchPlaceholder": "Rechercher ferme, ville ou coordonnées…",
@@ -63,6 +67,7 @@
     "detectedFarm": "Ma Ferme (Position Détectée)"
   },
   "telemetry": {
+    "showCardBtn": "📊 Afficher les données du champ",
     "fieldLocked": "Parcelle Verrouillée",
     "smapGrid": "Grille SMAP 9km",
     "regionalSmap": "SMAP Régional",
@@ -113,7 +118,7 @@
     "simIrrigate": "Irriguer",
     "simDry": "Sécheresse",
     "simReset": "Réinitialiser",
-    "explainBtn": "Analyse Paramétrique IA",
+    "explainBtn": "Analyse Paramétrique SI",
     "queryingGee": "Assimilation Radar GEE Niveau-4…",
     "rainfallTitle": "Précipitations NASA POWER",
     "dryDays": "Jours Secs (<1mm)",
@@ -156,7 +161,7 @@
     "adviceAction": "Conseils & Stratégie Opérationnelle au Champ",
     "scientificNote": "Note de Vérification Scientifique NASA",
     "closeDrawer": "Fermer l'Analyse",
-    "analyzingText": "Interrogation de l'IA et analyse des observations satellitaires NASA…"
+    "analyzingText": "Interrogation du SI (Super Intelligence) et analyse des observations satellitaires NASA…"
   },
   "simulation": {
     "modalTitle": "Laboratoire de Simulation des Rotations",
@@ -304,9 +309,9 @@
     }
   },
   "chat": {
-    "openChatBtn": "💬 Chat Agronome IA",
-    "askAboutPlot": "💬 Consulter l'Orchestrateur IA sur cette Parcelle",
-    "title": "Orchestrateur IA Agronomique",
+    "openChatBtn": "💬 Chat Agronome SI",
+    "askAboutPlot": "💬 Consulter l'Orchestrateur SI sur cette Parcelle",
+    "title": "Orchestrateur SI Agronomique",
     "defaultPlot": "Parcelle Sélectionnée",
     "clearChat": "Réinitialiser la conversation",
     "subagentsLabel": "Sous-agents :",

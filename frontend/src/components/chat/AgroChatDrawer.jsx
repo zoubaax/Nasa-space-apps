@@ -9,15 +9,47 @@ import {
   ShieldCheck,
   Droplets,
   Sun,
-  Leaf,
   Cpu,
   RefreshCw,
   Compass,
-  AlertCircle,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
+import Mascot3DViewer from '../globe/Mascot3DViewer';
+
+// Resolve localized agricultural language based on the selected location on Earth
+const resolveLocationLanguage = (location, defaultLang = 'auto') => {
+  if (!location) return defaultLang === 'ar' ? 'darija' : defaultLang;
+  const cCode = (location.country_code || '').toLowerCase();
+  const cName = (location.country || location.name || '').toLowerCase();
+  const coords = location.coordinates || [-5.55, 33.89];
+  const lng = coords[0];
+  const lat = coords[1];
+
+  // Morocco check (bounding box + keywords)
+  if (
+    cCode === 'ma' ||
+    cName.includes('morocco') ||
+    cName.includes('maroc') ||
+    cName.includes('المغرب') ||
+    cName.includes('saïss') ||
+    cName.includes('meknes') ||
+    cName.includes('zaouiat') ||
+    (lat >= 21.0 && lat <= 36.0 && lng >= -17.0 && lng <= -1.0)
+  ) {
+    return 'darija';
+  }
+  // France
+  if (cCode === 'fr' || cName.includes('france') || cName.includes('toulouse') || cName.includes('paris')) {
+    return 'fr';
+  }
+  // Spain / Hispanic
+  if (cCode === 'es' || cName.includes('spain') || cName.includes('españa') || cName.includes('madrid')) {
+    return 'es';
+  }
+  return defaultLang === 'ar' ? 'darija' : defaultLang || 'en';
+};
 
 export default function AgroChatDrawer({
   isOpen,
@@ -37,6 +69,8 @@ export default function AgroChatDrawer({
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const activeLocationLang = resolveLocationLanguage(selectedLocation, language);
 
   // Suggested questions by language
   const suggestedQuestions = {
@@ -70,14 +104,17 @@ export default function AgroChatDrawer({
     ],
   };
 
-  const currentSuggestions = suggestedQuestions[language] || suggestedQuestions.en;
+  const currentSuggestions =
+    activeLocationLang === 'darija'
+      ? suggestedQuestions.ar
+      : suggestedQuestions[activeLocationLang] || suggestedQuestions.en;
 
   // Initial welcome message
   useEffect(() => {
     if (messages.length === 0) {
       let welcomeText = '';
-      if (language === 'ar') {
-        welcomeText = `مرحباً بك! أنا **منسق الذكاء الاصطناعي الفلاحي (FieldShift AI Orchestrator)**.
+      if (activeLocationLang === 'darija' || language === 'ar') {
+        welcomeText = `مرحباً بك! أنا **منسق الذكاء الفائق الفلاحي (FieldShift SI Orchestrator - Super Intelligence)**.
 أقوم بالتنسيق المباشر بين 5 وكلاء متخصصين:
 * ☀️ **وكيل المناخ (NASA POWER)**
 * 💧 **وكيل هيدرولوجيا التربة (NASA SMAP L4)**
@@ -85,9 +122,9 @@ export default function AgroChatDrawer({
 * 📡 **وكيل الحساسات الميدانية (ESP32)**
 * 🛡️ **وكيل الحارس العلمي والتدقيق ضد الهلوسة**
 
-اختر أي بقعة على الكرة الأرضية واسألني عن الري، الرطوبة، أو الدورات الزراعية المناسبة!`;
-      } else if (language === 'fr') {
-        welcomeText = `Bonjour ! Je suis **l'Orchestrateur IA FieldShift**.
+أجيبك تلقائياً بـ Super Intelligence (SI) حسب موقع الحقل المحدد. اسألني عن الري، الرطوبة، أو أفضل الدورات الزراعية!`;
+      } else if (activeLocationLang === 'fr' || language === 'fr') {
+        welcomeText = `Bonjour ! Je suis **l'Orchestrateur SI FieldShift (Super Intelligence)**.
 Je supervise et coordonne 5 sous-agents scientifiques spécialisés :
 * ☀️ **Agent Climat (NASA POWER)**
 * 💧 **Agent Hydrologie du Sol (NASA SMAP L4)**
@@ -95,17 +132,27 @@ Je supervise et coordonne 5 sous-agents scientifiques spécialisés :
 * 📡 **Agent Capteur In-Situ (ESP32 GPIO34)**
 * 🛡️ **Agent Garde-Fou Scientifique (Zéro-Hallucination)**
 
-Sélectionnez une parcelle et posez vos questions sur l'irrigation, l'humidité ou les rotations culturales !`;
+Je vous réponds automatiquement via Super Intelligence (SI) selon la localisation de votre parcelle. Posez vos questions sur l'irrigation, l'humidité ou les rotations !`;
+      } else if (activeLocationLang === 'es' || language === 'es') {
+        welcomeText = `¡Hola! Soy el **Orquestador SI FieldShift (Super Intelligence)**.
+Superviso y coordino 5 subagentes científicos especializados:
+* ☀️ **Agente Clima (NASA POWER)**
+* 💧 **Agente Hidrología del Suelo (NASA SMAP L4)**
+* 🚜 **Agente Agronomía y Prácticas Culturales**
+* 📡 **Agente Sensor In-Situ (ESP32 GPIO34)**
+* 🛡️ **Agente Guardián Científico (Cero Alucinaciones)**
+
+Respondo automáticamente mediante Super Intelligence (SI) en función de la ubicación de su parcela. ¡Pregúnteme sobre riego, humedad o rotaciones de cultivos!`;
       } else {
-        welcomeText = `Welcome! I am the **FieldShift AI Orchestrator**.
-I coordinate 5 specialized scientific sub-agents:
+        welcomeText = `Hello! I am the **FieldShift SI Agronomist Orchestrator (Super Intelligence)**.
+I supervise 5 specialized subagents grounded in NASA satellite observations:
 * ☀️ **Climate Specialist (NASA POWER)**
 * 💧 **Soil Hydrology Specialist (NASA SMAP L4)**
-* 🚜 **Field Agronomy Advisor**
-* 📡 **In-Situ IoT Soil Probe Specialist (ESP32 GPIO34)**
-* 🛡️ **Scientific Guardrail Sentinel (Zero-Hallucination)**
+* 🚜 **Field Agronomist Specialist**
+* 📡 **In-Situ Sensor Specialist (ESP32 GPIO34)**
+* 🛡️ **Scientific Guardrail Sentinel (Zero-Hallucination Audit)**
 
-Select any farm on the 3D globe and ask me about irrigation, soil moisture, or crop rotations!`;
+I automatically adapt my answers to your selected farm's terroir and language using Super Intelligence (SI)!`;
       }
 
       setMessages([
@@ -115,15 +162,16 @@ Select any farm on the 3D globe and ask me about irrigation, soil moisture, or c
           content: welcomeText,
           specialists_consulted: [
             'NASA POWER Climate',
-            'NASA SMAP L4 Hydrology',
+            'NASA SMAP L4 Soil Moisture',
             'FieldShift Agronomy',
-            'Scientific Guardrail',
+            'ESP32 IoT Probe',
+            'Guardrail Sentinel',
           ],
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     }
-  }, [language]);
+  }, [language, activeLocationLang]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -162,7 +210,7 @@ Select any farm on the 3D globe and ask me about irrigation, soil moisture, or c
 
     const payload = {
       message: query,
-      language: language === 'ar' ? 'darija' : language,
+      language: activeLocationLang,
       location: {
         name: locationName,
         latitude: lat,
@@ -312,7 +360,7 @@ Select any farm on the 3D globe and ask me about irrigation, soil moisture, or c
             content:
               language === 'ar'
                 ? 'تعذر الاتصال بالخادم حالياً. يرجى التأكد من تشغيل خادم FastAPI على المنفذ 8000.'
-                : 'Unable to reach the AI Orchestrator service. Please ensure the FastAPI backend is running.',
+                : 'Unable to reach the SI Orchestrator service. Please ensure the FastAPI backend is running.',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         ]);
@@ -402,18 +450,29 @@ Select any farm on the 3D globe and ask me about irrigation, soil moisture, or c
       {/* ── 1. Header ── */}
       <div className="relative p-4 sm:p-5 border-b border-zinc-800/80 bg-gradient-to-b from-cyan-950/20 to-transparent flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400">
-            <Sparkles className="w-5 h-5 animate-pulse" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0b0e14]" />
+          <div className="relative flex items-center justify-center w-11 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 overflow-hidden shrink-0">
+            <div className="w-10 h-12 pointer-events-none filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <Mascot3DViewer modelSrc="/models/gardener.glb" cameraControls={false} />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0b0e14] z-10" />
           </div>
 
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h2 className="font-display font-bold text-sm sm:text-base text-zinc-100">
-                {t('chat.title', {}, 'AI Agronomist Orchestrator')}
+                {t('chat.title', {}, 'SI Agronomist Orchestrator')}
               </h2>
               <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                 DAG Multi-Agent
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                {activeLocationLang === 'darija'
+                  ? '🇲🇦 الدارجة المغربية'
+                  : activeLocationLang === 'fr'
+                  ? '🇫🇷 Français'
+                  : activeLocationLang === 'es'
+                  ? '🇪🇸 Español'
+                  : '🌐 Global EN'}
               </span>
             </div>
             <p className="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5 mt-0.5 truncate">

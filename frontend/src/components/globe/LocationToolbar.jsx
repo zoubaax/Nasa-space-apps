@@ -243,7 +243,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
           <button
             type="button"
             onClick={() => toggleLanguageMode('native')}
-            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 ${
               !isManualEnglish
                 ? 'bg-zinc-800 text-zinc-100 font-bold shadow-xs border border-zinc-700/80'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -251,13 +251,13 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
             title={`Local Native Language: ${langInfo?.name || 'Local'} (${langInfo?.country || 'Detected Region'})`}
           >
             <span className="text-sm">{langInfo?.flag || '🌐'}</span>
-            <span className="max-w-[95px] truncate">{langInfo?.native || langInfo?.name || 'Native'}</span>
+            <span className="hidden sm:inline max-w-[95px] truncate">{langInfo?.native || langInfo?.name || 'Native'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => toggleLanguageMode('en')}
-            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 ${
               isManualEnglish
                 ? 'bg-zinc-800 text-zinc-100 font-bold shadow-xs border border-zinc-700/80'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -265,11 +265,11 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
             title="Switch to Global English"
           >
             <span className="text-sm">🇺🇸</span>
-            <span>EN</span>
+            <span className="hidden xs:inline">EN</span>
           </button>
 
           {isTranslating && (
-            <span className="px-2 py-1 text-xs text-zinc-400 animate-pulse flex items-center gap-1">
+            <span className="px-1.5 py-1 text-xs text-zinc-400 animate-pulse flex items-center gap-1">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" />
             </span>
           )}
@@ -282,7 +282,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
             setShowTerroirs(!showTerroirs);
             setIsOpenDropdown(false);
           }}
-          className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 border transition cursor-pointer ${
+          className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 border transition cursor-pointer ${
             showTerroirs
               ? 'bg-zinc-800 border-zinc-700 text-zinc-100 shadow-sm'
               : 'bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800'
@@ -295,7 +295,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
 
         {/* Live Search Input with Ctrl+K Badge */}
         <div className="relative flex items-center">
-          <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} w-4 h-4 text-zinc-400 pointer-events-none`} />
+          <Search className={`absolute ${isRtl ? 'right-2.5 sm:right-3' : 'left-2.5 sm:left-3'} w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 pointer-events-none`} />
           <input
             ref={searchInputRef}
             type="text"
@@ -306,7 +306,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
               setShowTerroirs(false);
             }}
             placeholder={t('toolbar.searchPlaceholder', {}, 'Search farm, city or lat,lng…')}
-            className={`w-48 sm:w-64 md:w-80 ${isRtl ? 'pr-9 pl-14' : 'pl-9 pr-14'} py-2 rounded-xl bg-zinc-900 border border-zinc-700/80 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition`}
+            className={`w-28 xs:w-36 sm:w-56 md:w-72 lg:w-80 ${isRtl ? 'pr-8 sm:pr-9 pl-8 sm:pl-14' : 'pl-8 sm:pl-9 pr-8 sm:pr-14'} py-1.5 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-700/80 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition`}
           />
           {searchQuery ? (
             <button
@@ -315,9 +315,9 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
                 setSearchResults([]);
               }}
               type="button"
-              className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} p-1 text-zinc-400 hover:text-zinc-200 cursor-pointer`}
+              className={`absolute ${isRtl ? 'left-2' : 'right-2'} p-1 text-zinc-400 hover:text-zinc-200 cursor-pointer`}
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           ) : (
             <span className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 bg-zinc-800 border border-zinc-700 pointer-events-none`}>
@@ -325,7 +325,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
             </span>
           )}
           {isSearching && (
-            <Loader2 className={`absolute ${isRtl ? 'left-9' : 'right-9'} w-4 h-4 animate-spin text-zinc-400`} />
+            <Loader2 className={`absolute ${isRtl ? 'left-7 sm:left-9' : 'right-7 sm:right-9'} w-3.5 h-3.5 animate-spin text-zinc-400`} />
           )}
         </div>
 
@@ -334,7 +334,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
           onClick={handleLocateMe}
           disabled={isLocating || isFlying}
           type="button"
-          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer whitespace-nowrap border ${
+          className={`flex items-center gap-1.5 p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer whitespace-nowrap border ${
             isLocating
               ? 'bg-zinc-800 border-zinc-600 text-zinc-100 animate-pulse'
               : 'bg-zinc-900/80 hover:bg-zinc-800 border-zinc-800 text-zinc-200 hover:text-white shadow-sm'
@@ -346,13 +346,13 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
           ) : (
             <LocateFixed className="w-4 h-4 text-zinc-300" />
           )}
-          <span>{isLocating ? t('toolbar.locating', {}, 'Locating…') : t('toolbar.myGps', {}, 'GPS')}</span>
+          <span className="hidden sm:inline">{isLocating ? t('toolbar.locating', {}, 'Locating…') : t('toolbar.myGps', {}, 'GPS')}</span>
         </button>
       </div>
 
       {/* Moroccan Terroirs Drawer */}
       {showTerroirs && (
-        <div className="w-80 sm:w-96 rounded-2xl bg-[#0b0e14]/98 border border-zinc-800 shadow-2xl p-3 z-50 text-zinc-100">
+        <div className="w-[calc(100vw-2rem)] sm:w-96 max-h-[70vh] overflow-y-auto rounded-2xl bg-[#0b0e14]/98 border border-zinc-800 shadow-2xl p-3 z-50 text-zinc-100">
           <div className="px-2 py-1.5 text-xs sm:text-sm font-bold text-zinc-300 flex items-center justify-between border-b border-zinc-800 mb-2">
             <span className="flex items-center gap-2">
               <Compass className="w-4 h-4 text-zinc-400" /> {t('toolbar.moroccanTerroirs', {}, 'Moroccan Terroirs (حقول المغرب)')}

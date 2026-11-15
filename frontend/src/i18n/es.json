@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "FieldShift AI",
+    "appName": "FieldShift SI",
     "orbit": "Órbita Terrestre",
     "backToOrbit": "Vista Orbital",
     "coordinates": "Coordenadas",
@@ -22,18 +22,21 @@
     "dismiss": "Cerrar"
   },
   "hero": {
-    "eyebrow": "OBSERVACIÓN DE LA TIERRA NASA · AGRONOMÍA · IA",
+    "eyebrow": "OBSERVACIÓN DE LA TIERRA NASA · AGRONOMÍA · SI (SUPER INTELIGENCIA)",
     "title": "Farmer Eye",
     "subtitle": "El Segundo Ojo del Agricultor.",
     "description": "Transformar las observaciones de la NASA y la ciencia agronómica en decisiones de cultivo climáticamente resilientes.",
-    "clickToExplore": "Haga clic en cualquier lugar para explorar ➔",
-    "clickToEnter": "Haga clic para entrar"
+    "getMyLocation": "📍 Obtener la ubicación de mi parcela",
+    "locating": "Detectando coordenadas de la parcela…",
+    "clickGlobeHint": "O haga clic directamente en el globo 3D para explorar cualquier parcela",
+    "clickToExplore": "Haga clic en el globo para explorar ➔",
+    "clickToEnter": "Haga clic en el globo para entrar"
   },
   "mascot": {
     "greeting": "¡Bienvenido a Farmer Eye! 👋",
-    "role": "Tu Guía Agronómico 3D",
-    "message": "Estoy aquí para ayudarte a explorar las observaciones de la NASA y las rotaciones climato-resilientes. ¡Haz clic en cualquier lugar para despegar!",
-    "actionHint": "Haz clic en cualquier lugar para iniciar ➔"
+    "role": "Tu Guía Agronómico 3D (SI)",
+    "message": "Estoy aquí para ayudarte a explorar las observaciones de la NASA y las rotaciones climato-resilientes. ¡Ubica tu parcela o haz clic en el globo 3D para comenzar!",
+    "actionHint": "Ubica tu parcela o haz clic en el globo ➔"
   },
   "hud": {
     "missionTitle": "Farmer Eye · Órbita Terrestre",
@@ -47,7 +50,8 @@
     "dataBridge": "Puente de Datos NASA:",
     "fastApiOnline": "FastAPI En Línea",
     "connecting": "Conectando…",
-    "orbitingDeepSpace": "Órbita Profunda"
+    "orbitingDeepSpace": "Órbita Profunda",
+    "fieldTelemetryReady": "Datos de parcela listos"
   },
   "toolbar": {
     "searchPlaceholder": "Buscar finca, ciudad o coordenadas…",
@@ -63,6 +67,7 @@
     "detectedFarm": "Mi Parcela (GPS Detectado)"
   },
   "telemetry": {
+    "showCardBtn": "📊 Mostrar datos del campo",
     "fieldLocked": "Parcela Bloqueada",
     "smapGrid": "Malla SMAP 9km",
     "regionalSmap": "SMAP Regional",
@@ -113,7 +118,7 @@
     "simIrrigate": "Regar",
     "simDry": "Sequía",
     "simReset": "Restablecer",
-    "explainBtn": "Análisis Paramétrico IA",
+    "explainBtn": "Análisis Paramétrico SI",
     "queryingGee": "Asimilando radar GEE Nivel-4…",
     "rainfallTitle": "Precipitación NASA POWER",
     "dryDays": "Días Secos (<1mm)",
@@ -156,7 +161,7 @@
     "adviceAction": "Recomendaciones & Estrategia Operativa en Campo",
     "scientificNote": "Nota de Verificación Científica NASA",
     "closeDrawer": "Cerrar Análisis",
-    "analyzingText": "Consultando a la IA y analizando observaciones de la NASA…"
+    "analyzingText": "Consultando al SI (Super Intelligence) y analizando observaciones de la NASA…"
   },
   "simulation": {
     "modalTitle": "Laboratorio de Simulación de Rotaciones",
@@ -304,9 +309,9 @@
     }
   },
   "chat": {
-    "openChatBtn": "💬 Chat Agrónomo IA",
-    "askAboutPlot": "💬 Consultar al Orquestador IA sobre esta Parcela",
-    "title": "Orquestador IA Agronómico",
+    "openChatBtn": "💬 Chat Agrónomo SI",
+    "askAboutPlot": "💬 Consultar al Orquestador SI sobre esta Parcela",
+    "title": "Orquestador SI Agronómico",
     "defaultPlot": "Parcela Seleccionada",
     "clearChat": "Reiniciar conversación",
     "subagentsLabel": "Subagentes:",

@@ -16,6 +16,8 @@ import {
   Activity,
   Radio,
   Power,
+  Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 import { fetchVariableExplanation } from '../../utils/geo';
 import { useTranslation } from '../../context/LanguageContext';
@@ -159,7 +161,8 @@ export default function FieldTelemetryCard({
 
   return (
     <div
-      className={`absolute top-20 ${isRtl ? 'left-4 sm:left-6' : 'right-4 sm:right-6'} z-30 w-[460px] xl:w-[500px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-5rem)] flex flex-col rounded-2xl bg-[#0b0e14]/98 border border-zinc-800 backdrop-blur-2xl shadow-2xl text-zinc-100 font-body overflow-hidden select-none transition-all duration-300`}
+      className="absolute top-20 z-30 w-[calc(100vw-2rem)] sm:w-[440px] md:w-[460px] xl:w-[490px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-14.5rem)] flex flex-col rounded-2xl bg-[#0b0e14]/98 border border-zinc-800 backdrop-blur-2xl shadow-2xl text-zinc-100 font-body overflow-hidden select-none transition-all duration-300"
+      style={{ right: '1.25rem', left: 'auto' }}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       {/* ── Header Section ── */}
@@ -745,28 +748,18 @@ export default function FieldTelemetryCard({
       </div>
 
       {/* ── High-Craft Full-Screen Launch CTA Button ── */}
-      <div className="p-4 border-t border-zinc-800 bg-[#0f131c]/90 shrink-0 space-y-2">
-        {onOpenChat && (
-          <button
-            onClick={onOpenChat}
-            type="button"
-            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-200 font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>{t('chat.askAboutPlot', {}, '💬 Ask AI Orchestrator About This Field')}</span>
-          </button>
-        )}
+      <div className="p-3.5 sm:p-4 border-t border-zinc-800 bg-[#0f131c]/90 shrink-0">
         <button
           onClick={() => onEvaluateRotation(locationData, telemetry)}
           disabled={isLoading}
           type="button"
-          className="w-full py-3.5 px-5 rounded-2xl bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-950 font-black text-sm sm:text-base transition cursor-pointer disabled:opacity-50 shadow-lg flex items-center justify-between group"
+          className="w-full py-3 sm:py-3.5 px-4 sm:px-5 rounded-2xl bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-950 font-black text-xs sm:text-base transition cursor-pointer disabled:opacity-50 shadow-lg flex items-center justify-between group"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <Maximize2 className="w-4 h-4 text-zinc-900" />
             <span>{t('telemetry.evaluateRotationBtn', {}, 'Evaluate Crop Rotation Scenarios')}</span>
           </div>
-          <span className="px-2.5 py-1 rounded-lg bg-zinc-900 text-zinc-100 text-xs font-mono font-bold group-hover:bg-zinc-800 transition">
+          <span className="px-2 sm:px-2.5 py-1 rounded-lg bg-zinc-900 text-zinc-100 text-xs font-mono font-bold group-hover:bg-zinc-800 transition">
             {t('telemetry.fullScreenBtn', {}, 'Full Screen ➔')}
           </span>
         </button>

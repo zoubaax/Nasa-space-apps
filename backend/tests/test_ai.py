@@ -65,7 +65,7 @@ def test_ai_chat_darija_grounded_response(client: TestClient) -> None:
     assert res.status_code == 200
     data = res.json()
 
-    assert "تقرير الذكاء الاصطناعي لمنطقة" in data["reply"]
+    assert "تقرير الذكاء الفائق (SI) لمنطقة" in data["reply"]
     assert data["language_detected"] == "darija"
     assert "NASA SMAP Level-4 SPL4SMGP V008 (~9-11 km)" in data["sources_used"]
     assert len(data["specialists_consulted"]) == 4

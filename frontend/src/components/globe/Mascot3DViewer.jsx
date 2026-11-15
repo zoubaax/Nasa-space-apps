@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 export default function Mascot3DViewer({
   modelSrc = '/models/gardener.glb',
   className = '',
+  cameraControls = true,
+  autoRotate = true,
 }) {
   const [isReady, setIsReady] = useState(false);
 
@@ -21,8 +23,8 @@ export default function Mascot3DViewer({
         <model-viewer
           src={modelSrc}
           alt="3D Cartoon Gardener Mascot"
-          auto-rotate
-          camera-controls
+          auto-rotate={autoRotate ? '' : undefined}
+          camera-controls={cameraControls ? '' : undefined}
           autoplay
           shadow-intensity="1.5"
           shadow-softness="0.9"

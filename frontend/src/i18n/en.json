@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "FieldShift AI",
+    "appName": "FieldShift SI",
     "orbit": "Earth Orbit",
     "backToOrbit": "Orbit View",
     "coordinates": "Coordinates",
@@ -25,15 +25,18 @@
     "eyebrow": "NASA EARTH OBSERVATION · AGRICULTURE · SCIENCE",
     "title": "Farmer Eye",
     "subtitle": "The Farmer's Second Eyes.",
-    "description": "Turning NASA Earth observations, agricultural science, and artificial intelligence into clearer, climate-resilient farming decisions.",
-    "clickToExplore": "Click anywhere to explore ➔",
-    "clickToEnter": "Click to enter experience"
+    "description": "Turning NASA Earth observations, agricultural science, and Super Intelligence (SI) into clearer, climate-resilient farming decisions.",
+    "getMyLocation": "📍 Get My Farm Location",
+    "locating": "Detecting Field Coordinates…",
+    "clickGlobeHint": "Or click directly on any farm on the 3D globe to explore",
+    "clickToExplore": "Click on the globe to explore ➔",
+    "clickToEnter": "Click on the globe to enter experience"
   },
   "mascot": {
     "greeting": "Welcome to Farmer Eye! 👋",
-    "role": "Your 3D AI Agronomist",
-    "message": "I'm here to help you navigate NASA Earth observations, soil moisture, and climate-resilient crop rotations. Click anywhere to start our journey!",
-    "actionHint": "Click anywhere to launch ➔"
+    "role": "Your 3D SI Agronomist",
+    "message": "I'm here to help you navigate NASA Earth observations, soil moisture, and climate-resilient crop rotations. Locate your farm or click on the 3D globe to begin!",
+    "actionHint": "Locate farm or click globe ➔"
   },
   "hud": {
     "missionTitle": "Farmer Eye · Earth Orbit",
@@ -47,7 +50,8 @@
     "dataBridge": "NASA Data Bridge:",
     "fastApiOnline": "FastAPI Online",
     "connecting": "Connecting…",
-    "orbitingDeepSpace": "Orbiting Deep Space"
+    "orbitingDeepSpace": "Orbiting Deep Space",
+    "fieldTelemetryReady": "Field Telemetry Ready"
   },
   "toolbar": {
     "searchPlaceholder": "Search farm, city or lat,lng…",
@@ -63,6 +67,7 @@
     "detectedFarm": "My Farm (Detected GPS)"
   },
   "telemetry": {
+    "showCardBtn": "📊 Show Field Telemetry",
     "fieldLocked": "Field Target Locked",
     "smapGrid": "SMAP 9km Grid",
     "regionalSmap": "Regional SMAP",
@@ -113,7 +118,7 @@
     "simIrrigate": "Irrigate",
     "simDry": "Drought",
     "simReset": "Reset",
-    "explainBtn": "AI Parameter Analysis",
+    "explainBtn": "SI Parameter Analysis",
     "queryingGee": "Querying GEE Level-4 Radar Assimilation…",
     "rainfallTitle": "NASA POWER Precipitation",
     "dryDays": "Dry Days (<1mm)",
@@ -304,9 +309,9 @@
     }
   },
   "chat": {
-    "openChatBtn": "💬 AI Agronomist Chat",
-    "askAboutPlot": "💬 Ask AI Orchestrator About This Field",
-    "title": "AI Agronomist Orchestrator",
+    "openChatBtn": "💬 SI Agronomist Chat",
+    "askAboutPlot": "💬 Ask SI Orchestrator About This Field",
+    "title": "SI Agronomist Orchestrator",
     "defaultPlot": "Selected Farm Plot",
     "clearChat": "Reset Conversation",
     "subagentsLabel": "Subagents:",

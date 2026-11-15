@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Globe, Compass, MapPin, Wifi } from 'lucide-react';
+import { Globe, Compass, MapPin, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function MissionHUD({
@@ -7,9 +7,12 @@ export default function MissionHUD({
   isFlying = false,
   coordsRef,
   altitudeRef,
+  onOpenTelemetry,
+  hasTelemetry = false,
 }) {
   const { t, isRtl } = useTranslation();
   const [backendOnline, setBackendOnline] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Ping backend health
   useEffect(() => {
@@ -36,27 +39,43 @@ export default function MissionHUD({
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       {/* ── Mission Title Card ── */}
-      <div className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-[#0b0e14]/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl text-zinc-100">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 text-zinc-200 shrink-0 shadow-inner">
-          <Globe className={`w-5 h-5 ${isFlying ? 'animate-spin' : ''}`} />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-sm sm:text-base font-bold text-white leading-snug">
-              {t('hud.missionTitle', {}, 'Farmer Eye · Earth Orbit')}
-            </h1>
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700">
-              {t('hud.nasaBadge', {}, 'NASA EO')}
-            </span>
+      <div
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="pointer-events-auto flex items-center justify-between gap-3 px-3.5 sm:px-4 py-2 sm:py-3 rounded-2xl bg-[#0b0e14]/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl text-zinc-100 cursor-pointer sm:cursor-default"
+      >
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          <div className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 text-zinc-200 shrink-0 shadow-inner">
+            <Globe className={`w-4 h-4 sm:w-5 sm:h-5 ${isFlying ? 'animate-spin' : ''}`} />
           </div>
-          <p className="text-xs text-zinc-400 mt-0.5 font-medium">
-            {t('hud.missionSubtitle', {}, 'NASA SMAP L4 · POWER AG · FAO-56 Digital Twin')}
-          </p>
+          <div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="font-display text-xs sm:text-base font-bold text-white leading-snug truncate max-w-[140px] xs:max-w-[180px] sm:max-w-none">
+                {t('hud.missionTitle', {}, 'Farmer Eye · Earth Orbit')}
+              </h1>
+              <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-bold rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700 shrink-0">
+                {t('hud.nasaBadge', {}, 'NASA EO')}
+              </span>
+            </div>
+            <p className="hidden xs:block text-[11px] sm:text-xs text-zinc-400 mt-0.5 font-medium truncate max-w-[170px] sm:max-w-none">
+              {t('hud.missionSubtitle', {}, 'NASA SMAP L4 · POWER AG · FAO-56 Digital Twin')}
+            </p>
+          </div>
         </div>
+
+        {/* Mobile Expand / Collapse Chevron */}
+        <button
+          type="button"
+          className="sm:hidden p-1 rounded-lg text-zinc-400 hover:text-white"
+          aria-label={isExpanded ? 'Collapse HUD' : 'Expand HUD'}
+        >
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* ── Real-Time Telemetry & Data Bridge Readout ── */}
-      <div className="p-4 rounded-2xl bg-[#0b0e14]/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl text-xs sm:text-sm text-zinc-300 space-y-2.5">
+      <div className={`p-3.5 sm:p-4 rounded-2xl bg-[#0b0e14]/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl text-xs sm:text-sm text-zinc-300 space-y-2 sm:space-y-2.5 transition-all duration-300 ${
+        isExpanded ? 'block' : 'hidden sm:block'
+      }`}>
         <div className="flex justify-between items-center text-xs sm:text-sm">
           <span className="text-zinc-400 flex items-center gap-2 font-medium">
             <Compass className="w-4 h-4 text-zinc-400" /> {t('hud.altitudeLabel', {}, 'Orbit Altitude')}
@@ -99,6 +118,22 @@ export default function MissionHUD({
             {backendOnline ? t('hud.fastApiOnline', {}, 'FastAPI Online') : t('hud.connecting', {}, 'Connecting…')}
           </span>
         </div>
+
+        {/* Reopen Field Telemetry Card (when dismissed) */}
+        {hasTelemetry && onOpenTelemetry && (
+          <div className="pt-2.5 border-t border-zinc-800/90 flex items-center justify-between text-xs">
+            <span className="text-zinc-400 font-medium">
+              {t('hud.fieldTelemetryReady', {}, 'Field Telemetry Ready')}
+            </span>
+            <button
+              type="button"
+              onClick={onOpenTelemetry}
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-semibold transition cursor-pointer"
+            >
+              <span>{t('telemetry.showCardBtn', {}, '📊 Show Field Telemetry')}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

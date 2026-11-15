@@ -2308,7 +2308,7 @@ async function executeAiPageChat(userText) {
     } catch (fallbackErr) {
       if (thinkingBox && thinkingBox.parentNode) thinkingBox.remove();
       contentDiv.style.display = "block";
-      contentDiv.innerHTML = `<p style="color:#b91c1c">⚠️ تعذر الاتصال بالذكاء الاصطناعي: ${fallbackErr.message}</p>`;
+      contentDiv.innerHTML = `<p style="color:#b91c1c">⚠️ تعذر الاتصال بـ Super Intelligence (SI): ${fallbackErr.message}</p>`;
     }
   } finally {
     if (sendBtn) sendBtn.disabled = false;

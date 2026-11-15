@@ -15,13 +15,60 @@ import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
 import RotationSimulationModal from './RotationSimulationModal';
 import CinematicHeroOverlay from './CinematicHeroOverlay';
+import Mascot3DViewer from './Mascot3DViewer';
 import AgroChatDrawer from '../chat/AgroChatDrawer';
-import { Globe2, MessageSquare, Sparkles } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
 if (typeof maplibregl.setWorkerUrl === 'function') {
   maplibregl.setWorkerUrl('/maplibre-gl-worker.js');
+}
+
+// Helper to strictly determine if a screen point is physically on the 3D Earth globe sphere
+function isPointOnGlobe(map, point, lngLat) {
+  if (!map || !point || !lngLat) return false;
+
+  // 1. At orbital view (zoom < 4), enforce strict radial bounding around the globe sphere
+  const zoom = map.getZoom();
+  if (zoom < 4) {
+    try {
+      const center = map.project(map.getCenter());
+      const radius = ((512 * Math.pow(2, zoom)) / (2 * Math.PI)) * 1.08;
+      const distFromCenter = Math.hypot(point.x - center.x, point.y - center.y);
+      if (distFromCenter > radius) {
+        return false;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  // 2. Check MapLibre internal surface hit test if available
+  if (map.transform && typeof map.transform.isPointOnMapSurface === 'function') {
+    try {
+      if (!map.transform.isPointOnMapSurface(point)) {
+        return false;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  // 3. Mathematical Reprojection Test:
+  // Points on the physical globe surface reproject to within 5px of click position.
+  // Points in deep space clamp to the horizon or edge, causing large reprojection error.
+  try {
+    const proj = map.project(lngLat);
+    const reprojDist = Math.hypot(proj.x - point.x, proj.y - point.y);
+    if (reprojDist > 5) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  return true;
 }
 
 export default function EarthOrbitGlobe({
@@ -215,6 +262,7 @@ export default function EarthOrbitGlobe({
     });
 
     mapRef.current = map;
+    window._map = map;
 
     // Default arrow cursor on black space
     if (map.getCanvas()) {
@@ -263,10 +311,10 @@ export default function EarthOrbitGlobe({
       mouseRafRef.current = requestAnimationFrame(() => {
         mouseRafRef.current = null;
         const canvas = map.getCanvas();
-        const onEarth = e.lngLat && !isNaN(e.lngLat.lat) && !isNaN(e.lngLat.lng);
+        const onEarth = isPointOnGlobe(map, e.point, e.lngLat);
 
         if (canvas && !isInteractingRef.current) {
-          canvas.style.cursor = onEarth ? 'grab' : 'default';
+          canvas.style.cursor = onEarth ? 'pointer' : 'default';
         }
 
         if (coordsRef.current) {
@@ -285,6 +333,15 @@ export default function EarthOrbitGlobe({
 
     map.on('mousedown', (e) => {
       mouseDownPosRef.current = { x: e.point.x, y: e.point.y };
+      isInteractingRef.current = true;
+      hasDraggedRef.current = false;
+    });
+
+    map.on('touchstart', (e) => {
+      if (e.points && e.points[0]) {
+        mouseDownPosRef.current = { x: e.points[0].x, y: e.points[0].y };
+      }
+      isInteractingRef.current = true;
       hasDraggedRef.current = false;
     });
 
@@ -296,22 +353,56 @@ export default function EarthOrbitGlobe({
       if (map.getCanvas()) map.getCanvas().style.cursor = 'grabbing';
     });
 
+    map.on('drag', () => {
+      isInteractingRef.current = true;
+      hasDraggedRef.current = true;
+    });
+
     map.on('dragend', () => {
       isInteractingRef.current = false;
       if (map.getCanvas()) map.getCanvas().style.cursor = 'default';
-      // Keep hasDraggedRef true for 200ms to block the trailing click event after release
+      // Keep hasDraggedRef true for 250ms to block the trailing click event after release
       setTimeout(() => {
         hasDraggedRef.current = false;
+      }, 250);
+    });
+
+    map.on('mouseup', () => {
+      setTimeout(() => {
+        isInteractingRef.current = false;
+      }, 80);
+    });
+
+    map.on('touchend', () => {
+      setTimeout(() => {
+        isInteractingRef.current = false;
+      }, 80);
+    });
+
+    map.on('zoomstart', () => {
+      isInteractingRef.current = true;
+      isSpinningRef.current = false;
+      setIsRotating(false);
+    });
+
+    map.on('zoomend', () => {
+      setTimeout(() => {
+        isInteractingRef.current = false;
       }, 200);
     });
 
-    // Click anywhere on Earth to zoom into a farm location (ONLY on true stationary clicks)
+    // Click anywhere on Earth to zoom into a farm location (ONLY on true stationary clicks ON THE GLOBE)
     map.on('click', (e) => {
       if (hasDraggedRef.current) return;
 
       const dx = e.point.x - mouseDownPosRef.current.x;
       const dy = e.point.y - mouseDownPosRef.current.y;
       if (Math.hypot(dx, dy) > 6) return; // Ignored if user was dragging/turning the Earth!
+
+      // CRITICAL: Block all clicks that fall in deep space outside the 3D Earth sphere!
+      if (!isPointOnGlobe(map, e.point, e.lngLat)) {
+        return;
+      }
 
       if (e.lngLat && !isNaN(e.lngLat.lat) && !isNaN(e.lngLat.lng)) {
         flyToLocationRef.current?.({
@@ -502,6 +593,7 @@ export default function EarthOrbitGlobe({
       {/* ── MODE 1: CINEMATIC HERO OVERLAY (From Reference Design) ── */}
       {!isExperienceMode && (
         <CinematicHeroOverlay
+          onFlyToLocation={flyToLocation}
           onEnterExperience={() =>
             flyToLocation({
               name: 'Saïss / Meknes, Morocco',
@@ -526,30 +618,20 @@ export default function EarthOrbitGlobe({
       {/* ── MODE 2: ACTIVE MISSION OPERATIONS HUD ── */}
       {isExperienceMode && (
         <>
-          {/* Top Return-to-Orbit Pill */}
-          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30">
-            <button
-              type="button"
-              onClick={handleResetOrbit}
-              className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#0b0e14]/95 hover:bg-zinc-800 border border-zinc-800 shadow-xl text-xs sm:text-sm font-bold text-zinc-100 hover:text-white backdrop-blur-2xl transition cursor-pointer"
-            >
-              <Globe2 className="w-4 h-4 text-zinc-400" />
-              <span>{t('common.backToOrbit', {}, 'Orbit View')}</span>
-            </button>
-          </div>
-
           {/* Top-Left: Mission HUD */}
-          <div className="absolute top-5 left-5 z-20">
+          <div className="absolute top-3 left-3 sm:top-5 sm:left-5 z-20">
             <MissionHUD
               selectedLocation={selectedLocation}
               isFlying={!isRotating && !showTelemetryCard}
               coordsRef={coordsRef}
               altitudeRef={altitudeRef}
+              onOpenTelemetry={() => setShowTelemetryCard(true)}
+              hasTelemetry={Boolean(selectedLocation && !showTelemetryCard)}
             />
           </div>
 
           {/* Top-Right: Location Toolbar */}
-          <div className="absolute top-5 right-5 z-20">
+          <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20">
             <LocationToolbar onFlyToLocation={flyToLocation} isFlying={false} />
           </div>
 
@@ -568,28 +650,49 @@ export default function EarthOrbitGlobe({
             />
           )}
 
-          {/* Bottom-Center: Floating AI Agronomist Chat Trigger */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
+          {/* Bottom-Right: Standalone 3D AI Agronomist Persona (Like Codex Persona, without words) */}
+          <div
+            className="absolute bottom-3 sm:bottom-6 z-30 select-none"
+            style={{ right: '0.75rem', left: 'auto' }}
+          >
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-[#0b0e14]/90 hover:bg-zinc-900 border border-emerald-500/40 hover:border-emerald-400 text-zinc-100 hover:text-white font-mono text-xs sm:text-sm font-bold shadow-[0_0_25px_rgba(16,185,129,0.3)] backdrop-blur-2xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+              className="relative w-16 h-20 sm:w-24 sm:h-28 md:w-28 md:h-32 flex items-center justify-center cursor-pointer group transition-transform duration-300 hover:scale-110 focus:outline-none"
+              title={t('chat.openChatBtn', {}, 'Chat with SI Agronomist')}
             >
-              <div className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30 transition">
-                <MessageSquare className="w-4 h-4" />
+              {/* Subtle ambient glow aura under the character */}
+              <div className="absolute inset-x-1 sm:inset-x-2 bottom-1 h-5 sm:h-6 rounded-full bg-emerald-500/20 blur-md group-hover:bg-emerald-400/40 transition-all duration-500 pointer-events-none" />
+
+              {/* Little Live AI pulse indicator at top-right of persona */}
+              <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 z-10 flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#0b0e14]/90 border border-emerald-500/40 shadow-md">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <span>{t('chat.openChatBtn', {}, '💬 AI Agronomist Chat')}</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+
+              {/* Standalone 3D Model */}
+              <div className="w-full h-full pointer-events-none filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.85)] group-hover:drop-shadow-[0_0_25px_rgba(16,185,129,0.5)] transition-all duration-300">
+                <Mascot3DViewer
+                  modelSrc="/models/gardener.glb"
+                  cameraControls={false}
+                  autoRotate={true}
+                />
+              </div>
             </button>
           </div>
 
-          {/* Bottom-Left: Satellite Constellations */}
-          <div className="absolute bottom-6 left-5 z-20 hidden md:flex">
+          {/* Bottom-Left: Satellite Constellations (Stacked above controls on desktop) */}
+          <div
+            className="absolute bottom-22 z-20 hidden md:flex"
+            style={{ left: '1.25rem', right: 'auto' }}
+          >
             <SatelliteConstellations />
           </div>
 
-          {/* Bottom-Right: Orbit Controls */}
-          <div className="absolute bottom-6 right-5 z-20">
+          {/* Bottom-Left: Orbit Controls */}
+          <div
+            className="absolute bottom-3 sm:bottom-6 z-20"
+            style={{ left: '0.75rem', right: 'auto' }}
+          >
             <GlobeControls
               isRotating={isRotating}
               onToggleRotate={() => {

@@ -20,7 +20,7 @@ from app.services.ai_context import AiContextBuilder
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are FieldShift AI, the Senior Agro-Climatic Intelligence Assistant powered by NASA Earth Observations.
+SYSTEM_PROMPT = """You are FieldShift SI (Super Intelligence), the Senior Agro-Climatic Intelligence Assistant powered by NASA Earth Observations. Always refer to your system as SI or Super Intelligence.
 You assist Moroccan farmers, agronomists, hydrologists, and agricultural researchers.
 
 YOUR PRIMARY CAPABILITIES:
@@ -76,9 +76,68 @@ class AiService:
             return False
         return bool(self._settings.gemini_api_key)
 
+    def resolve_language_from_location(self, location: AiLocationContext | None) -> str:
+        """Determines the appropriate agricultural language/dialect based on the farm location on Earth."""
+        if not location:
+            return "en"
+
+        loc_country = (getattr(location, "country", None) or "").lower()
+        loc_name = (getattr(location, "name", None) or "").lower()
+        lat = float(getattr(location, "latitude", 0.0) or 0.0)
+        lon = float(getattr(location, "longitude", 0.0) or 0.0)
+
+        # 1. Morocco (Territorial bounding box + names/country keywords) -> Moroccan Darija
+        is_morocco = (
+            "morocco" in loc_country
+            or "maroc" in loc_country
+            or "morocco" in loc_name
+            or "المغرب" in loc_name
+            or "saïss" in loc_name
+            or "meknes" in loc_name
+            or "gharb" in loc_name
+            or "tadla" in loc_name
+            or "souss" in loc_name
+            or "chaouia" in loc_name
+            or "zaouiat" in loc_name
+            or (21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0)
+        )
+        if is_morocco:
+            return "darija"
+
+        # 2. France / Francophone Europe
+        if "france" in loc_country or "france" in loc_name or "toulouse" in loc_name or "paris" in loc_name or (42.0 <= lat <= 51.5 and -5.0 <= lon <= 8.5):
+            return "fr"
+
+        # 3. Spain / Latin America
+        if "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name or (36.0 <= lat <= 43.8 and -9.3 <= lon <= 3.3):
+            return "es"
+
+        # 4. Germany
+        if "germany" in loc_country or "deutschland" in loc_country:
+            return "de"
+
+        # 5. Japan
+        if "japan" in loc_country or "nippon" in loc_country:
+            return "ja"
+
+        # 6. Turkey
+        if "turkey" in loc_country or "türkiye" in loc_country:
+            return "tr"
+
+        # 7. Brazil / Portugal
+        if "brazil" in loc_country or "portugal" in loc_country:
+            return "pt"
+
+        return "en"
+
     def detect_language(self, text: str, requested: str = "auto", location: AiLocationContext | None = None) -> str:
-        if requested and requested != "auto":
+        # If requested explicitly (and not auto/location), honor user choice
+        if requested and requested not in ("auto", "location"):
             return requested.lower()
+
+        # If location is provided and requested is auto/location, default to location's native language
+        location_lang = self.resolve_language_from_location(location)
+
         # Check Arabic script presence or common Darija keywords
         arabic_chars = len(re.findall(r"[\u0600-\u06FF]", text))
         if arabic_chars > 2:
@@ -96,28 +155,7 @@ class AiService:
         if words.intersection(spanish_words):
             return "es"
 
-        # If text is neutral/unclear, resolve from location context
-        if location:
-            loc_country = (getattr(location, "country", None) or "").lower()
-            loc_name = (getattr(location, "name", None) or "").lower()
-            lat = getattr(location, "latitude", 0.0)
-            lon = getattr(location, "longitude", 0.0)
-            if "morocco" in loc_country or "maroc" in loc_country or "morocco" in loc_name or "المغرب" in loc_name or (21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0):
-                return "darija"
-            if "france" in loc_country or "france" in loc_name or "toulouse" in loc_name or "paris" in loc_name:
-                return "fr"
-            if "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name:
-                return "es"
-            if "germany" in loc_country or "deutschland" in loc_country:
-                return "de"
-            if "japan" in loc_country or "nippon" in loc_country:
-                return "ja"
-            if "turkey" in loc_country or "türkiye" in loc_country:
-                return "tr"
-            if "brazil" in loc_country or "portugal" in loc_country:
-                return "pt"
-
-        return "en"
+        return location_lang
 
     def _build_context_prompt(self, dossier: dict[str, Any], user_message: str, detected_lang: str) -> str:
         loc = dossier.get("location", {})
@@ -282,7 +320,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
         water_st = agro.get("water_stress_status", "moderee")
 
         if lang == "darija":
-            reply = f"""### 🌾 تقرير الذكاء الاصطناعي لمنطقة {loc.get('name')} (سنة {request.year})
+            reply = f"""### 🌾 تقرير الذكاء الفائق (SI) لمنطقة {loc.get('name')} (سنة {request.year})
 
 **1. حالة رطوبة التربة (NASA SMAP L4) :**
 - **رطوبة منطقة الجذور (0-100 سم) :** {rz_sm if rz_sm is not None else 'غير متوفرة'} m³/m³.
@@ -301,7 +339,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
 
 ⚠️ **تنبيه علمي :** هاد القياسات مأخوذة من أقمار وكالة NASA الاصطناعية على مساحة شبكية تقريبية (9-11 كلم)، وما كتعوضش التحليل المباشر بتربة الحقل."""
         elif lang == "fr":
-            reply = f"""### 🌾 Diagnostic Agro-Climatique FIELDShift AI — {loc.get('name')} ({request.year})
+            reply = f"""### 🌾 Diagnostic Agro-Climatique FIELDShift SI — {loc.get('name')} ({request.year})
 
 **1. État Hydrique du Sol (NASA SMAP L4) :**
 - **Humidité zone racinaire (0-100 cm) :** {rz_sm if rz_sm is not None else 'N/D'} m³/m³.
@@ -320,7 +358,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
 
 ⚠️ **Note de traçabilité :** Données satellitaires issues de la grille spatiale EASE-Grid 2.0 (~9-11 km)."""
         else:
-            reply = f"""### 🌾 FIELDShift AI Agro-Climatic Report — {loc.get('name')} ({request.year})
+            reply = f"""### 🌾 FIELDShift SI Agro-Climatic Report — {loc.get('name')} ({request.year})
 
 **1. Soil Moisture State (NASA SMAP L4):**
 - **Root-zone soil moisture (0-100 cm):** {rz_sm if rz_sm is not None else 'N/A'} m³/m³.
