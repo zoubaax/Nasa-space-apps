@@ -17,6 +17,7 @@ class AgroRecommendation(BaseModel):
     rule: str
     observed: str
     message: str
+    message_darija: str | None = None
 
 
 class RotationStep(BaseModel):
@@ -24,6 +25,7 @@ class RotationStep(BaseModel):
 
     order: int
     action: str
+    action_darija: str | None = None
 
 
 class AgroResponse(BaseModel):
@@ -42,4 +44,5 @@ class AgroResponse(BaseModel):
     indicator_units: dict[str, str | None]
     recommendations: list[AgroRecommendation]
     rotation: list[RotationStep]
+    synthesis_darija: str | None = None
     notes: list[str] = Field(default_factory=list)

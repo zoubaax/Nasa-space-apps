@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from app.api.deps import get_climate_service
 from app.models.agro import AgroResponse
 from app.models.climate import ErrorResponse
-from app.services.agro import advise
+from app.services.agro import advise, advise_async
 from app.services.climate_service import ClimateDataService, ClimateRequest, ThresholdOverrides
 
 router = APIRouter(prefix="/api", tags=["agro"])
@@ -59,4 +59,4 @@ async def get_agro(
             dry_day_precipitation_mm=dry_day_threshold,
         ),
     )
-    return advise(summary)
+    return await advise_async(summary)
