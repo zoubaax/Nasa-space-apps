@@ -732,11 +732,12 @@ class AgriSimulationService:
             (sim_wheat["irrigation_applied_mm"] + sim_lentil["irrigation_applied_mm"] + sim_barley["irrigation_applied_mm"]) / 3.0,
             1,
         )
-        irr_pumping_saved_mm = round(sim_wheat["irrigation_applied_mm"] - p2_irr_mean, 1) if winner.id == p2.id else 0.0
+        irr_saved_p2 = round(sim_wheat["irrigation_applied_mm"] - p2_irr_mean, 1)
+        irr_pumping_saved_mm = irr_saved_p2 if winner.id == p2.id else 0.0
         irr_pumping_saved_m3_ha = round(irr_pumping_saved_mm * 10.0, 1)
 
-        # 8. Assemble AI Scientific Tribunal
-        tribunal = await self._evaluate_tribunal(
+        # 8. Assemble AI Deliberation (Tribunal + Dynamic Plan Summaries & Pros/Cons + Overall Synthesis)
+        tribunal, overall_synthesis = await self._evaluate_ai_deliberation(
             request=request,
             plans=plans,
             winner=winner,
@@ -755,16 +756,7 @@ class AgriSimulationService:
             seasonal_gross_rain_mm=sim_wheat["gross_rain_mm"],
             evap_demand_saved_mm=evap_demand_saved_mm,
             deficit_saved_mm=deficit_saved_mm,
-        )
-
-        overall_synthesis = self._build_darija_synthesis(
-            winner=winner,
-            plans=plans,
-            location=request.location.name or "الموقع المختار",
-            year=request.year,
-            shock_meta=shock_meta,
-            soil_meta=soil_meta,
-            tribunal=tribunal,
+            irr_saved_p2=irr_saved_p2,
         )
 
         baseline_metrics = {
@@ -1190,7 +1182,7 @@ class AgriSimulationService:
 
         return [plan1, plan2, plan3]
 
-    async def _evaluate_tribunal(
+    async def _evaluate_ai_deliberation(
         self,
         *,
         request: SimulationRequest,
@@ -1211,9 +1203,12 @@ class AgriSimulationService:
         seasonal_gross_rain_mm: float,
         evap_demand_saved_mm: float,
         deficit_saved_mm: float,
-    ) -> list[TribunalAgentVerdict]:
-        """Runs multi-agent panel review powered by live Google Gemini LLM with physical guardrail verification."""
+        irr_saved_p2: float = 0.0,
+    ) -> tuple[list[TribunalAgentVerdict], str]:
+        """Runs unified multi-agent panel review and dynamic plan deliberation powered by live Google Gemini LLM with physical guardrail verification."""
         p1 = plans[0]
+        p2 = plans[1]
+        p3 = plans[2]
 
         # 1. Physics-based mathematical verification and baseline stances
         clim_stance = "favorable" if winner.water_deficit_mm < 35.0 and winner.water_stress_risk_pct < 30.0 else "reserve"
@@ -1253,73 +1248,7 @@ class AgriSimulationService:
             f"مطابق بدقة 100% بدون أي خطأ في ميزان الكتلة (0.0 مم). البيانات الفضائية (~9-11 كلم) هي تقديرات إقليمية."
         )
 
-        # 2. Attempt Live Gemini LLM Deliberation
-        settings = get_settings()
-        if settings.gemini_api_key:
-            try:
-                gemini_prompt = (
-                    "You are the AI Scientific Tribunal evaluating an agricultural digital twin simulation.\n"
-                    "Grounded strictly in the following REAL NASA Earth observations and calculated FAO-56 physics:\n"
-                    f"- Farm Location: {request.location.name} ({request.location.latitude:.4f}°N, {request.location.longitude:.4f}°W), Year: {request.year}\n"
-                    f"- Soil: {soil_meta['label']} (TAW={soil_meta['awc_mm']}mm, Wilting point={soil_meta['theta_wp']} m³/m³)\n"
-                    f"- Climate Scenario: {shock_meta['label']}\n"
-                    f"- NASA POWER Climate Observations: Seasonal rain={seasonal_gross_rain_mm}mm (Infiltrated={effective_seasonal_rain_infiltrated_mm}mm), Annual rain={precip}mm, Heat days(>=30°C)={hot_days}, Mean temp={temp:.1f}°C\n"
-                    f"- NASA SMAP L4 Satellite Soil Moisture: Root-zone moisture={sm_rootzone} m³/m³, Sowing available soil water={stored_soil_water_at_sowing_mm}mm, Total water supply budget={total_water_supply}mm\n"
-                    f"- Baseline Plan 1 ({p1.name_ar}): Water need={p1.water_need_mm}mm, Deficit={p1.water_deficit_mm}mm, Stress risk={p1.water_stress_risk_pct}%\n"
-                    f"- Winning Plan ({winner.name_ar}): Water need={winner.water_need_mm}mm, Deficit={winner.water_deficit_mm}mm, Stress risk={winner.water_stress_risk_pct}%, Water saved={evap_demand_saved_mm}mm ({round(evap_demand_saved_mm*10)} m³/ha)\n\n"
-                    "Generate a rigorous scientific deliberation from 4 independent agents in authentic Moroccan Darija (الدارجة المغربية الفلاحية).\n"
-                    "Return ONLY a JSON object with this exact structure:\n"
-                    "{\n"
-                    '  "climate_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing the heat & rain numbers", "key_evidence": "concise evidence citing mm rain and hot days"},\n'
-                    '  "hydrology_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing SMAP rootzone moisture vs wilting point and water budget", "key_evidence": "concise evidence citing SMAP m3/m3 and TAW"},\n'
-                    '  "agronomist_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing crop rotation, root disease break, and nitrogen fixation", "key_evidence": "concise evidence citing water saving and N fixation"},\n'
-                    '  "guardrail_agent": {"stance": "favorable"|"reserve", "argument_darija": "2 sentences in Darija auditing mass balance and confirming zero mathematical error", "key_evidence": "concise evidence citing mass balance error 0.0mm and FAO-56"}\n'
-                    "}"
-                )
-
-                candidate_models = [settings.gemini_model, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
-                payload = {
-                    "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
-                    "generationConfig": {
-                        "temperature": 0.3,
-                        "responseMimeType": "application/json",
-                        "maxOutputTokens": 1024,
-                    },
-                }
-
-                for model_name in candidate_models:
-                    url = f"{settings.gemini_base_url}/models/{model_name}:generateContent?key={settings.gemini_api_key}"
-                    async with httpx.AsyncClient(timeout=8.0) as client:
-                        resp = await client.post(url, json=payload)
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                            if text:
-                                parsed = json.loads(text)
-                                if "climate_agent" in parsed and "hydrology_agent" in parsed:
-                                    ca = parsed["climate_agent"]
-                                    ha = parsed["hydrology_agent"]
-                                    aa = parsed.get("agronomist_agent", {})
-                                    ga = parsed.get("guardrail_agent", {})
-
-                                    clim_stance = ca.get("stance", clim_stance)
-                                    clim_arg = ca.get("argument_darija", clim_arg)
-
-                                    hydro_stance = ha.get("stance", hydro_stance)
-                                    hydro_arg = ha.get("argument_darija", hydro_arg)
-
-                                    agro_stance = aa.get("stance", agro_stance)
-                                    agro_arg = aa.get("argument_darija", agro_arg)
-
-                                    guard_stance = ga.get("stance", guard_stance)
-                                    guard_arg = ga.get("argument_darija", guard_arg)
-
-                                    logger.info("Successfully generated live AI Tribunal deliberation with Gemini (%s)", model_name)
-                                    break
-            except Exception as gemini_err:
-                logger.warning("Live Gemini Tribunal generation encountered an issue (%s), using physics-grounded fallback", gemini_err)
-
-        return [
+        initial_tribunal = [
             TribunalAgentVerdict(
                 agent_role="خبير المناخ والأرصاد",
                 agent_name="وكيل NASA POWER Climat",
@@ -1353,6 +1282,202 @@ class AgriSimulationService:
                 key_evidence=guard_evidence,
             ),
         ]
+
+        overall_synthesis = self._build_darija_synthesis(
+            winner=winner,
+            plans=plans,
+            location=request.location.name or "الموقع المختار",
+            year=request.year,
+            shock_meta=shock_meta,
+            soil_meta=soil_meta,
+            tribunal=initial_tribunal,
+        )
+
+        # 2. Attempt Live Gemini LLM Deliberation (Tribunal + Plans Analysis + Overall Synthesis)
+        settings = get_settings()
+        if settings.gemini_api_key:
+            try:
+                gemini_prompt = (
+                    "You are the Lead Agronomic AI and Scientific Tribunal evaluating an agricultural digital twin simulation.\n"
+                    "Grounded strictly in the following REAL NASA Earth observations and calculated FAO-56 physics:\n"
+                    f"- Farm Location: {request.location.name} ({request.location.latitude:.4f}°N, {request.location.longitude:.4f}°W), Harvest Year: {request.year}\n"
+                    f"- Soil: {soil_meta['label']} (TAW={soil_meta['awc_mm']}mm, Wilting point={soil_meta['theta_wp']} m³/m³)\n"
+                    f"- Climate Scenario: {shock_meta['label']}\n"
+                    f"- NASA POWER Climate Observations: Seasonal rain={seasonal_gross_rain_mm}mm (Infiltrated={effective_seasonal_rain_infiltrated_mm}mm), Annual rain={precip}mm, Heat days(>=30°C)={hot_days}, Mean temp={temp:.1f}°C\n"
+                    f"- NASA SMAP L4 Satellite Soil Moisture: Root-zone moisture={sm_rootzone} m³/m³, Sowing available soil water={stored_soil_water_at_sowing_mm}mm, Total water supply budget={total_water_supply}mm\n"
+                    f"- Plan 1 ({p1.name_ar}): Water need={p1.water_need_mm}mm, Deficit={p1.water_deficit_mm}mm, Stress risk={p1.water_stress_risk_pct}%, Soil health={p1.soil_health_score}/100\n"
+                    f"- Plan 2 ({p2.name_ar}): Water need={p2.water_need_mm}mm, Deficit={p2.water_deficit_mm}mm, Stress risk={p2.water_stress_risk_pct}%, Soil health={p2.soil_health_score}/100\n"
+                    f"- Plan 3 ({p3.name_ar}): Water need={p3.water_need_mm}mm, Deficit={p3.water_deficit_mm}mm, Stress risk={p3.water_stress_risk_pct}%, Soil health={p3.soil_health_score}/100\n"
+                    f"- Recommended Winner: {winner.name_ar} (Resilience={winner.resilience_score}/100, Evaporative water saved={evap_demand_saved_mm}mm [{round(evap_demand_saved_mm*10)} m³/ha], Deficit saved={deficit_saved_mm}mm [{round(deficit_saved_mm*10)} m³/ha])\n\n"
+                    "Generate authentic, insightful deliberations in Moroccan Darija (الدارجة المغربية الفلاحية) grounded strictly in these NASA metrics.\n"
+                    "Return ONLY a JSON object with this exact structure:\n"
+                    "{\n"
+                    '  "tribunal_agents": {\n'
+                    '    "climate_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing the heat & rain numbers"},\n'
+                    '    "hydrology_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing SMAP rootzone moisture vs wilting point and water budget"},\n'
+                    '    "agronomist_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument_darija": "2-3 dynamic sentences in Darija analyzing crop rotation, root disease break, and nitrogen fixation"},\n'
+                    '    "guardrail_agent": {"stance": "favorable"|"reserve", "argument_darija": "2 sentences in Darija auditing mass balance and confirming zero mathematical error"}\n'
+                    '  },\n'
+                    '  "plan_summaries": {\n'
+                    '    "plan_1": {"summary_darija": "2-3 sentences in Darija explaining monoculture risks given the NASA rainfall and heat", "pros": ["pro 1 in Arabic", "pro 2 in Arabic"], "cons": ["con 1 in Arabic", "con 2 in Arabic"]},\n'
+                    '    "plan_2": {"summary_darija": "2-3 sentences in Darija explaining triennial legume benefits citing water savings and nitrogen", "pros": ["pro 1 in Arabic", "pro 2 in Arabic"], "cons": ["con 1 in Arabic"]},\n'
+                    '    "plan_3": {"summary_darija": "2-3 sentences in Darija explaining agroecology/cover benefits for drought safety", "pros": ["pro 1 in Arabic", "pro 2 in Arabic"], "cons": ["con 1 in Arabic"]}\n'
+                    '  },\n'
+                    '  "overall_synthesis_darija": "A rich 3-point structured Darija decision synthesis comparing the winning plan against monoculture citing exact NASA mm and m3/ha savings and practical guidance for the farmer."\n'
+                    "}"
+                )
+
+                candidate_models = [settings.gemini_model, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": gemini_prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "responseMimeType": "application/json",
+                        "maxOutputTokens": 2048,
+                    },
+                }
+
+                for model_name in candidate_models:
+                    url = f"{settings.gemini_base_url}/models/{model_name}:generateContent?key={settings.gemini_api_key}"
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        resp = await client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            if text:
+                                parsed = None
+                                try:
+                                    parsed = json.loads(text, strict=False)
+                                except Exception:
+                                    import re
+                                    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.MULTILINE)
+                                    cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+                                    try:
+                                        parsed = json.loads(cleaned, strict=False)
+                                    except Exception:
+                                        m = re.search(r"\{.*\}", cleaned, re.DOTALL)
+                                        if m:
+                                            try:
+                                                parsed = json.loads(m.group(0), strict=False)
+                                            except Exception:
+                                                pass
+
+                                if not parsed or not isinstance(parsed, dict):
+                                    continue
+
+                                # Parse Tribunal Agents
+                                ta = parsed.get("tribunal_agents")
+                                if not ta and "climate_agent" in parsed:
+                                    ta = parsed
+                                if isinstance(ta, dict):
+                                    ca = ta.get("climate_agent", {})
+                                    ha = ta.get("hydrology_agent", {})
+                                    aa = ta.get("agronomist_agent", {})
+                                    ga = ta.get("guardrail_agent", {})
+
+                                    clim_stance = ca.get("stance", clim_stance)
+                                    clim_arg = ca.get("argument_darija", clim_arg)
+
+                                    hydro_stance = ha.get("stance", hydro_stance)
+                                    hydro_arg = ha.get("argument_darija", hydro_arg)
+
+                                    agro_stance = aa.get("stance", agro_stance)
+                                    agro_arg = aa.get("argument_darija", agro_arg)
+
+                                    guard_stance = ga.get("stance", guard_stance)
+                                    guard_arg = ga.get("argument_darija", guard_arg)
+
+                                # Parse Plan Summaries, Pros & Cons
+                                ps = parsed.get("plan_summaries")
+                                if isinstance(ps, dict):
+                                    p1_data = ps.get("plan_1", {})
+                                    p2_data = ps.get("plan_2", {})
+                                    p3_data = ps.get("plan_3", {})
+
+                                    if p1_data.get("summary_darija"):
+                                        p1.summary_darija = p1_data["summary_darija"]
+                                    if isinstance(p1_data.get("pros"), list) and p1_data["pros"]:
+                                        p1.pros = [str(x) for x in p1_data["pros"][:4]]
+                                    if isinstance(p1_data.get("cons"), list) and p1_data["cons"]:
+                                        p1.cons = [str(x) for x in p1_data["cons"][:4]]
+
+                                    if p2_data.get("summary_darija"):
+                                        p2.summary_darija = p2_data["summary_darija"]
+                                    if isinstance(p2_data.get("pros"), list) and p2_data["pros"]:
+                                        p2_pros = [str(x) for x in p2_data["pros"][:4]]
+                                        irr_guard = f"تقليص مياه السقي المحاكى: {irr_saved_p2} مم ({round(irr_saved_p2 * 10)} م³/هكتار كتقدير محاكاة غير مثبت بعدادات ضخ ميدانية، و0 مم فالبور)"
+                                        if not any("تقليص مياه السقي المحاكى" in p for p in p2_pros):
+                                            p2_pros.insert(1, irr_guard)
+                                        p2.pros = p2_pros
+                                    if isinstance(p2_data.get("cons"), list) and p2_data["cons"]:
+                                        p2.cons = [str(x) for x in p2_data["cons"][:3]]
+
+                                    if p3_data.get("summary_darija"):
+                                        p3.summary_darija = p3_data["summary_darija"]
+                                    if isinstance(p3_data.get("pros"), list) and p3_data["pros"]:
+                                        p3.pros = [str(x) for x in p3_data["pros"][:4]]
+                                    if isinstance(p3_data.get("cons"), list) and p3_data["cons"]:
+                                        p3.cons = [str(x) for x in p3_data["cons"][:3]]
+
+                                # Parse Overall Synthesis
+                                raw_synth = parsed.get("overall_synthesis_darija")
+                                if raw_synth and "الخطة" in raw_synth:
+                                    if "تنبيه علمي" not in raw_synth:
+                                        raw_synth += (
+                                            "\n\n⚠️ **تنبيه علمي وأمانة مهنية :** هذه الأرقام هي نتائج محاكاة رقمية تقديرية مبنية على معطيات NASA الفضائية الشاملة (~9-11 كلم). "
+                                            "لا يمكن لأي نظام ذكاء اصطناعي ضمان كميات الإنتاج أو تعويض التحاليل المخبرية لتربة حقلكم الفعلي (NPK، الحموضة، الملوحة)."
+                                        )
+                                    overall_synthesis = raw_synth
+
+                                logger.info("Successfully generated live AI deliberation and plan synthesis with Gemini (%s)", model_name)
+                                break
+            except Exception as gemini_err:
+                logger.warning("Live Gemini deliberation generation encountered an issue (%s), using physics-grounded fallback", gemini_err)
+
+        final_tribunal = [
+            TribunalAgentVerdict(
+                agent_role="خبير المناخ والأرصاد",
+                agent_name="وكيل NASA POWER Climat",
+                avatar="🌦️",
+                stance=clim_stance,
+                argument_darija=clim_arg,
+                key_evidence=clim_evidence,
+            ),
+            TribunalAgentVerdict(
+                agent_role="أخصائي التربة والمياه",
+                agent_name="وكيل NASA SMAP L4 Hydrologie",
+                avatar="💧",
+                stance=hydro_stance,
+                argument_darija=hydro_arg,
+                key_evidence=hydro_evidence,
+            ),
+            TribunalAgentVerdict(
+                agent_role="الخبير الزراعي الميداني",
+                agent_name="وكيل الفلاحة المغربية (FieldShift Agro)",
+                avatar="👨‍🌾",
+                stance=agro_stance,
+                argument_darija=agro_arg,
+                key_evidence=agro_evidence,
+            ),
+            TribunalAgentVerdict(
+                agent_role="المحقق العلمي وتدقيق الأرقام",
+                agent_name="وكيل التدقيق العلمي (Evidence Guardrail)",
+                avatar="🛡️",
+                stance=guard_stance,
+                argument_darija=guard_arg,
+                key_evidence=guard_evidence,
+            ),
+        ]
+
+        return final_tribunal, overall_synthesis
+
+    async def _evaluate_tribunal(
+        self,
+        **kwargs,
+    ) -> list[TribunalAgentVerdict]:
+        """Backward-compatible wrapper for Tribunal evaluation."""
+        tribunal, _ = await self._evaluate_ai_deliberation(**kwargs)
+        return tribunal
 
     async def _load_historical_observations(self, *, latitude: float, longitude: float, year: int) -> dict[str, Any]:
         """Loads real historical NASA observations from verified cached datasets and runs retrospective simulation."""
