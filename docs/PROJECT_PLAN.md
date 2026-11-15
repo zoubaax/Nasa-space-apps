@@ -1,7 +1,7 @@
-# FieldShift AI — Master Project & Implementation Plan
+# Farmer's Eye — Master Project & Implementation Plan
 
 > **Competition:** NASA Space Apps Challenge 2026 — *Field Shift: Adapting Farms with NASA Data*  
-> **Product Name:** FieldShift AI  
+> **Product Name:** Farmer's Eye  
 > **Tagline:** Adaptive Crop Rotation with NASA Earth Observations + Local IoT  
 > **Document Version:** 1.0.0 (Updated with Google Earth Engine architecture)  
 > **Date:** November 14, 2026  
@@ -14,7 +14,7 @@
 Farmers worldwide face unprecedented climate volatility: shifting rainy seasons, chronic groundwater depletion, extreme heat waves, and soil degradation. Most farmers rely on historical habits (e.g., continuous mono-cropping of cereals), which amplifies vulnerability to drought and depletes soil nutrients.
 
 ### 1.2 Our Solution
-**FieldShift AI** is an explainable, scientifically defensible crop-rotation decision-support platform. It bridges the gap between **coarse regional satellite observations** and **local on-farm realities**:
+**Farmer's Eye** is an explainable, scientifically defensible crop-rotation decision-support platform. It bridges the gap between **coarse regional satellite observations** and **local on-farm realities**:
 1. **Regional Environmental Context:** Google Earth Engine (SMAP 9 km soil moisture & GPM IMERG precipitation) + NASA POWER (daily agrometeorology & temperature).
 2. **Local Farm Ground Truth:** ESP32 soil moisture sensor telemetry with explicit calibration and depth tracking.
 3. **Deterministic Agronomic Engine:** Hard crop constraints, seasonal water balances, crop-family succession rules, and multi-factor scoring (no hallucinated LLM numbers).
@@ -193,7 +193,7 @@ Phase 0: Setup & Specs ──► Phase 1: Data Adapters ──► Phase 2: IoT P
 ```
 
 ### Phase 0: Project Foundation & Tracking (Immediate)
-- [x] Master Context defined (`docs/FieldShift_AI_Master_Context.md`).
+- [x] Master Context defined (`docs/FARMER_EYE_MASTER_CONTEXT.md`).
 - [x] Google Earth Engine architectural transition approved.
 - [ ] Create `docs/PROGRESS.md` to track live implementation milestones.
 - [ ] Initialize Python backend environment with `pyproject.toml` (FastAPI, Pydantic, httpx, earthengine-api, pytest).
@@ -242,7 +242,7 @@ Phase 0: Setup & Specs ──► Phase 1: Data Adapters ──► Phase 2: IoT P
 1. **The Hook (0:00 - 0:20):**  
    *"Farmers in drought-prone regions like Morocco are losing crops because traditional crop choices no longer match shifting rainfall patterns. But generic AI chatbots hallucinate agricultural advice, while regional satellites are too coarse for farm-level decisions."*
 2. **The Innovation (0:20 - 0:45):**  
-   *"FieldShift AI solves this by fusing Google Earth Engine satellite data (SMAP L4 9km soil moisture + GPM IMERG rain) with real on-farm ESP32 soil probe readings, evaluated through a deterministic, peer-reviewed agronomic engine."*
+   *"Farmer's Eye solves this by fusing Google Earth Engine satellite data (SMAP L4 9km soil moisture + GPM IMERG rain) with real on-farm ESP32 soil probe readings, evaluated through a deterministic, peer-reviewed agronomic engine."*
 3. **The Live Demo (0:45 - 1:30):**  
    * **Show Farm Map & Satellite Footprint:** Demonstrating honest 9 km spatial representation.  
    * **Show Live Sensor Tile:** Demonstrating real-time ESP32 telemetry with clear ADC calibration status.  
@@ -250,5 +250,5 @@ Phase 0: Setup & Specs ──► Phase 1: Data Adapters ──► Phase 2: IoT P
    * **Move What-If Slider to -30% Drought:** Watch the engine dynamically recalculate and prove why the resilient rotation survives while the baseline fails.  
    * **Open Provenance Drawer:** Showing every NASA product ID, collection date, and uncertainty flag.
 4. **Conclusion & Impact (1:30 - 2:00):**  
-   *"FieldShift AI delivers transparent, evidence-backed decision support: saving water, rebuilding soil resilience, and empowering farmers with the full power of NASA Earth observations."*
+   *"Farmer's Eye delivers transparent, evidence-backed decision support: saving water, rebuilding soil resilience, and empowering farmers with the full power of NASA Earth observations."*
 

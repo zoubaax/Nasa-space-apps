@@ -1,10 +1,10 @@
-# FieldShift AI: Orchestrator & Sub-Agent Architecture
+# Farmer's Eye: Orchestrator & Sub-Agent Architecture
 
 ## 1. Executive Summary
 
-This document specifies the target architecture for transitioning FieldShift's conversational intelligence from a monolithic prompt in `AiService` to a **Hierarchical Orchestrator with Domain-Specific Sub-Agents**.
+This document specifies the target architecture for transitioning Farmer's Eye's conversational intelligence from a monolithic prompt in `AiService` to a **Hierarchical Orchestrator with Domain-Specific Sub-Agents**.
 
-FieldShift integrates high-resolution NASA satellite datasets (SMAP Level-4 soil moisture via Google Earth Engine) and atmospheric agroclimatology (NASA POWER) with agronomic simulation engines. Decomposing intelligence into specialized sub-agents guarantees:
+Farmer's Eye integrates high-resolution NASA satellite datasets (SMAP Level-4 soil moisture via Google Earth Engine) and atmospheric agroclimatology (NASA POWER) with agronomic simulation engines. Decomposing intelligence into specialized sub-agents guarantees:
 - **Zero Hallucination**: Verification guardrails cross-reference claims directly against raw satellite records.
 - **Explainable Reasoning**: Granular visibility into how each specialist reached its conclusions.
 - **Real-Time Streaming**: Incremental Server-Sent Events (SSE) notifying the user when each specialist is working.
@@ -36,7 +36,7 @@ flowchart TD
     subgraph Data Gathering & Domain Agents
         Orch -->|Fan-Out Async| ClimateAgent[Climate Specialist\nNASA POWER API]
         Orch -->|Fan-Out Async| SoilAgent[Soil & Hydrology Specialist\nSMAP L4 / GEE]
-        ClimateAgent --> AgroAgent[Agronomy & Simulation Specialist\nFieldShift Agro Rules & Sim]
+        ClimateAgent --> AgroAgent[Agronomy & Simulation Specialist\nFarmer's Eye Agro Rules & Sim]
         SoilAgent --> AgroAgent
     end
 
@@ -163,7 +163,7 @@ sequenceDiagram
 
 ---
 
-## 6. Implementation Strategies for FieldShift
+## 6. Implementation Strategies for Farmer's Eye
 
 ### Option A: Native Async Orchestrator (Recommended)
 * **Description**: Implement using Python's native `asyncio`, typing, and Pydantic models.

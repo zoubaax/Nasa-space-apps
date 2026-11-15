@@ -123,7 +123,7 @@ To maintain modularity and respect the project's existing structure, the followi
    - Register `app.include_router(sensors_router)`.
    - Update server startup configuration to bind to `0.0.0.0`.
 4. **`backend/app/services/ai_context.py`**:
-   - Inject the latest in-situ sensor readings into the AI ground-truth dossier (`AiContextBuilder`), allowing FieldShift AI to compare coarse SMAP satellite root-zone moisture (~9-11 km) with actual real-time probe readings.
+   - Inject the latest in-situ sensor readings into the AI ground-truth dossier (`AiContextBuilder`), allowing Farmer's Eye to compare coarse SMAP satellite root-zone moisture (~9-11 km) with actual real-time probe readings.
 
 ---
 
@@ -353,7 +353,7 @@ When authorized to proceed with implementation, execute in this precise order:
 ### Phase 5: End-to-End Validation & Feature Integration
 1. **Live Ingestion Test**: Let the ESP32 transmit for 10 minutes (10 measurements). Verify all 10 appear sequentially in `data/sensors/soil_history.jsonl` with no data loss.
 2. **Reboot Test**: Power cycle the ESP32. Verify `boot_id` changes, counter resets, and the backend continues appending without error.
-3. **Downstream Integration**: Connect `SensorService.get_latest_measurement()` into `AiContextBuilder` (`backend/app/services/ai_context.py`) so FieldShift AI can correlate real-time in-situ soil readings with NASA SMAP Level-4 satellite observations.
+3. **Downstream Integration**: Connect `SensorService.get_latest_measurement()` into `AiContextBuilder` (`backend/app/services/ai_context.py`) so Farmer's Eye can correlate real-time in-situ soil readings with NASA SMAP Level-4 satellite observations.
 
 ---
 

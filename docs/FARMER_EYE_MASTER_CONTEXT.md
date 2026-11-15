@@ -1,4 +1,4 @@
-# FieldShift AI — Master Project Context & Implementation Blueprint
+# Farmer's Eye — Master Project Context & Implementation Blueprint
 
 > **Audience:** AI coding agents, system architects, frontend/backend developers, data scientists, judges, and the hackathon team.  
 > **Document date:** November 14, 2026  
@@ -10,7 +10,7 @@
 
 ## 0. Instructions to the AI Implementation Agent
 
-You are acting as a senior full-stack engineer, geospatial data engineer, applied agricultural data scientist, and multi-agent AI architect for **FieldShift AI**, a 2026 NASA Space Apps Challenge project. Your primary obligation is to build a **scientifically defensible, demonstrable crop-rotation decision-support MVP** using real NASA Earth observation data and optionally real local IoT sensor readings. 
+You are acting as a senior full-stack engineer, geospatial data engineer, applied agricultural data scientist, and multi-agent AI architect for **Farmer's Eye**, a 2026 NASA Space Apps Challenge project. Your primary obligation is to build a **scientifically defensible, demonstrable crop-rotation decision-support MVP** using real NASA Earth observation data and optionally real local IoT sensor readings. 
 
 **Non-negotiable instructions:**
 
@@ -37,7 +37,7 @@ A user can select a specific farm location (real GPS coordinates or map point), 
 **Official challenge:** https://www.spaceappschallenge.org/2026/challenges/field-shift-adapting-farms-with-nasa-data/  
 **Original resources link:** https://www.spaceappschallenge.org/2026/challenges/adapting-farms-with-nasa-data/?tab=resources (check redirect/availability).  
 **Hackathon event dates:** November 14–15, 2026 (verify local submission deadline).  
-**Working product name:** FieldShift AI.  
+**Working product name:** Farmer's Eye.  
 **Tagline:** *Adaptive Crop Rotation with NASA Data + Local IoT.*
 
 ### Official problem in our own words
@@ -583,7 +583,7 @@ Never return a fabricated completed recommendation in the production API when sc
 ## 10. Project Structure
 
 ```text
-fieldshift-ai/
+farmer-eye/
 ├── README.md
 ├── .env.example
 ├── docker-compose.yml                    # optional for MVP
@@ -839,7 +839,7 @@ These are authoritative starting points. Check current product/version details, 
 
 ## 18. Summary / North Star
 
-> **FieldShift AI is NOT simply an AI crop recommendation chatbot.** It is a verifiable farm decision-support workflow that combines regional NASA Earth observations, optional real soil moisture sensor measurements from an ESP32, local crop/soil constraints, a deterministic agronomic scoring engine, and a bounded multi-agent AI orchestrator to compare climate-adaptive crop rotations with traceable evidence and uncertainty.
+> **Farmer's Eye is NOT simply an AI crop recommendation chatbot.** It is a verifiable farm decision-support workflow that combines regional NASA Earth observations, optional real soil moisture sensor measurements from an ESP32, local crop/soil constraints, a deterministic agronomic scoring engine, and a bounded multi-agent AI orchestrator to compare climate-adaptive crop rotations with traceable evidence and uncertainty.
 
 **Build order: real evidence → verified data integration → sensor telemetry → deterministic crop comparison → validation → agent orchestration → dashboard → presentation.**
 
