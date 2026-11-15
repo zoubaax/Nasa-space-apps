@@ -78,7 +78,8 @@ class SmapGeeService:
         if self._ee_initialized:
             return self._ee
         try:
-            import ee
+            import importlib
+            ee = importlib.import_module("ee")
             self._ee = ee
 
             # Check for configured service account credentials
