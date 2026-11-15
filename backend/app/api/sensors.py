@@ -77,3 +77,40 @@ async def trigger_sensor_simulation(
 ) -> SensorTelemetryData:
     logger.info("[Sensor Simulation] Trigger action: %s", trigger.action)
     return service.trigger_simulation(trigger)
+
+
+@router.post(
+    "/edge-broadcast/start",
+    responses=_ERROR_RESPONSES,
+    summary="Start Virtual ESP32 Edge Telemetry Broadcast",
+    description="Starts a background task continuously transmitting simulated ESP32 packets to trigger auto-detection.",
+)
+def start_edge_broadcast(
+    service: SensorService = Depends(get_sensor_service),
+) -> dict[str, Any]:
+    service.start_edge_broadcast(interval_seconds=4.0)
+    return {"status": "broadcasting", "is_broadcasting": True}
+
+
+@router.post(
+    "/edge-broadcast/stop",
+    responses=_ERROR_RESPONSES,
+    summary="Stop Virtual ESP32 Edge Telemetry Broadcast",
+    description="Stops the background virtual edge broadcast.",
+)
+def stop_edge_broadcast(
+    service: SensorService = Depends(get_sensor_service),
+) -> dict[str, Any]:
+    service.stop_edge_broadcast()
+    return {"status": "stopped", "is_broadcasting": False}
+
+
+@router.get(
+    "/edge-broadcast/status",
+    responses=_ERROR_RESPONSES,
+    summary="Get Edge Broadcast Status",
+)
+def get_edge_broadcast_status(
+    service: SensorService = Depends(get_sensor_service),
+) -> dict[str, Any]:
+    return {"is_broadcasting": service.is_broadcasting()}

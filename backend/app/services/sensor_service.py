@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import os
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,12 +41,71 @@ class SensorService:
         # In-memory virtual simulation state for live software testing
         self._is_active: bool = False
         self._is_simulated: bool = False
+        self._last_packet_time: float | None = None
         self._sim_adc_override: int | None = None
         self._sim_last_irrigation_ts: float | None = None
+        self._broadcast_thread: threading.Thread | None = None
+        self._broadcast_stop_event = threading.Event()
 
     def is_sensor_active(self) -> bool:
         """Indicates whether a physical or virtual sensor is actively providing telemetry."""
-        return self._is_active
+        if self._last_packet_time is None:
+            return False
+        return (time.time() - self._last_packet_time) <= 35.0
+
+    def is_broadcasting(self) -> bool:
+        """Checks if the background virtual edge broadcast task is currently active."""
+        return self._broadcast_thread is not None and self._broadcast_thread.is_alive()
+
+    def start_edge_broadcast(self, interval_seconds: float = 4.0) -> None:
+        """Starts a background thread continuously transmitting simulated ESP32 sensor packets."""
+        if self.is_broadcasting():
+            return
+        self._broadcast_stop_event.clear()
+        self._broadcast_thread = threading.Thread(
+            target=self._edge_broadcast_worker,
+            args=(interval_seconds,),
+            name="VirtualESP32Transmitter",
+            daemon=True,
+        )
+        self._broadcast_thread.start()
+        # Immediately record first packet so detection is instant
+        self._emit_simulated_packet(1)
+
+    def stop_edge_broadcast(self) -> None:
+        """Stops the background simulated edge transmitter."""
+        if self._broadcast_thread and self._broadcast_thread.is_alive():
+            self._broadcast_stop_event.set()
+            self._broadcast_thread.join(timeout=1.0)
+        self._broadcast_thread = None
+        self._last_packet_time = None
+        self._is_active = False
+
+    def _emit_simulated_packet(self, seq: int) -> None:
+        adc_val = self._sim_adc_override if self._sim_adc_override is not None else 2240
+        jitter = int(12 * math.sin(time.time() / 2.5))
+        adc_noisy = max(1200, min(3600, adc_val + jitter))
+        
+        payload = Esp32SoilPayload(
+            device_id="esp32-field-node-01",
+            seq=seq,
+            gpio_pin=34,
+            adc_raw=adc_noisy,
+            battery_mv=3310,
+            soil_temp_c=19.4,
+            rssi_dbm=-62,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+        )
+        self.record_payload(payload)
+
+    def _edge_broadcast_worker(self, interval_seconds: float = 4.0) -> None:
+        """Continuously generates realistic ESP32 telemetry packets to trigger auto-detection."""
+        seq = 2
+        logger.info("[Sensor] Starting background virtual ESP32 edge transmitter...")
+        while not self._broadcast_stop_event.wait(timeout=interval_seconds):
+            self._emit_simulated_packet(seq)
+            seq += 1
+        logger.info("[Sensor] Background virtual ESP32 edge transmitter stopped.")
 
     def get_standby_telemetry(self) -> SensorTelemetryData:
         """Returns standard standby state when no probe is currently transmitting."""
@@ -58,6 +118,8 @@ class SensorService:
             is_connected=False,
             is_optional=True,
             is_simulated=False,
+            is_broadcasting=self.is_broadcasting(),
+            detection_state="scanning_standby",
             timestamp=now.isoformat(),
             last_seen_seconds_ago=999999,
             adc_raw=0,
@@ -67,12 +129,12 @@ class SensorService:
             battery_mv=0,
             battery_pct=0,
             rssi_dbm=0,
-            hydration_verdict_ar="المستشعر الميداني اختياري وغير متصل حالياً",
-            hydration_verdict_fr="Capteur in-situ optionnel et non connecté actuellement",
-            hydration_verdict_en="In-situ sensor is optional and currently not connected",
-            action_advice_ar="النظام يعمل بكفاءة عبر رادار ناسا الفضائي (SMAP L4 & POWER). يمكنك تفعيل المحاكي برمجياً للاختبار.",
-            action_advice_fr="Le système fonctionne avec les observations satellite NASA. Vous pouvez activer le simulateur pour tester.",
-            action_advice_en="System operates via NASA satellite observations. You may activate the simulation to test in-situ features.",
+            hydration_verdict_ar="جاري مسح منفذ GPIO34... لا توجد إشارة مجس حالياً (اختياري / غير متصل)",
+            hydration_verdict_fr="Recherche sur port GPIO34... Aucun signal actif (optionnel / non connecté)",
+            hydration_verdict_en="Scanning GPIO34... No in-situ probe signal detected (optional / standby)",
+            action_advice_ar="المستشعر اختياري تماماً. النظام يعمل برادار ناسا SMAP الفضائي. عند وصول أي إشارة من الحقل يتم كشفها تلقائياً.",
+            action_advice_fr="Capteur in-situ optionnel. Fonctionne avec le radar NASA SMAP. Toute émission est auto-détectée en temps réel.",
+            action_advice_en="In-situ probe is optional. Operating via NASA SMAP radar. Any probe transmission will be auto-detected in real time.",
         )
 
     def calibrate_adc(self, adc_raw: int) -> tuple[float, float]:
@@ -113,7 +175,8 @@ class SensorService:
         batt_pct = max(0, min(100, int(((batt_mv - 3000) / 1200.0) * 100)))
 
         self._is_active = True
-        self._is_simulated = False
+        self._is_simulated = self.is_broadcasting()
+        self._last_packet_time = time.time()
 
         telemetry = SensorTelemetryData(
             device_id=payload.device_id,
@@ -122,7 +185,9 @@ class SensorService:
             status="connected",
             is_connected=True,
             is_optional=True,
-            is_simulated=False,
+            is_simulated=self._is_simulated,
+            is_broadcasting=self.is_broadcasting(),
+            detection_state="auto_detected",
             timestamp=ts_iso,
             last_seen_seconds_ago=0,
             adc_raw=payload.adc_raw,
@@ -145,8 +210,8 @@ class SensorService:
 
     def get_latest_telemetry(self, smap_rootzone_m3_m3: float | None = None) -> SensorTelemetryData:
         """Retrieves the latest sensor reading. Returns standby when probe is not connected."""
-        # 1. If not actively transmitting or simulated, return standby
-        if not self._is_active:
+        # 1. Auto-detect check: probe must have transmitted recently
+        if not self.is_sensor_active():
             return self.get_standby_telemetry()
 
         # 2. Check if real or simulated file exists
@@ -156,12 +221,10 @@ class SensorService:
                 telemetry = SensorTelemetryData(**data)
                 
                 # Check freshness
-                try:
-                    ts = datetime.fromisoformat(telemetry.timestamp.replace("Z", "+00:00"))
-                    diff_sec = int((datetime.now(timezone.utc) - ts).total_seconds())
-                    telemetry.last_seen_seconds_ago = max(0, diff_sec)
-                except Exception:
-                    telemetry.last_seen_seconds_ago = 12
+                packet_age = int(time.time() - self._last_packet_time) if self._last_packet_time else 2
+                telemetry.last_seen_seconds_ago = max(0, packet_age)
+                telemetry.is_broadcasting = self.is_broadcasting()
+                telemetry.detection_state = "auto_detected"
 
                 # If simulation override active, apply it
                 if self._sim_adc_override is not None:
@@ -185,9 +248,11 @@ class SensorService:
     def trigger_simulation(self, trigger: SensorSimulationTrigger) -> SensorTelemetryData:
         """Simulates physical events in software (connect, disconnect, irrigation pulse, dry spell)."""
         if trigger.action == "disconnect":
+            self.stop_edge_broadcast()
             self._is_active = False
             self._is_simulated = False
             self._sim_adc_override = None
+            self._last_packet_time = None
             if self._latest_file.exists():
                 try:
                     self._latest_file.unlink()
@@ -197,6 +262,7 @@ class SensorService:
 
         self._is_active = True
         self._is_simulated = True
+        self._last_packet_time = time.time()
 
         if trigger.action == "irrigate":
             # Irrigation wets soil -> raw ADC drops toward wet baseline (~1550)
@@ -238,41 +304,6 @@ class SensorService:
             is_connected=True,
             is_optional=True,
             is_simulated=True,
-            timestamp=now.isoformat(),
-            last_seen_seconds_ago=5,
-            adc_raw=adc_val,
-            adc_normalized_pct=norm_pct,
-            vwc_m3_m3=vwc,
-            soil_temp_c=round(temp_diurnal, 1),
-            battery_mv=3310,
-            battery_pct=92,
-            rssi_dbm=-62,
-            smap_rootzone_m3_m3=smap_baseline,
-            field_capacity_fc=0.32,
-            wilting_point_wp=0.16,
-            rootzone_depletion_dr_mm=max(0.0, round(1000.0 * (0.32 - vwc) * 0.4, 1)),
-        )
-
-        self._fuse_with_smap(reading, smap_baseline)
-        self._evaluate_hydration_verdicts(reading)
-        return reading
-        now = datetime.now(timezone.utc)
-        
-        # Diurnal fluctuation simulation: soil temperature peaks at 15:00 UTC
-        hour = now.hour + (now.minute / 60.0)
-        temp_diurnal = 18.0 + 4.5 * math.sin((hour - 9) * (math.pi / 12.0))
-
-        # Default healthy root-zone ADC ~ 2240 (corresponds to ~26.7% VWC, ~0.268 m3/m3)
-        adc_val = self._sim_adc_override if self._sim_adc_override is not None else 2240
-
-        norm_pct, vwc = self.calibrate_adc(adc_val)
-        smap_baseline = smap_rz if smap_rz is not None else 0.225
-
-        reading = SensorTelemetryData(
-            device_id="esp32-field-node-01",
-            gpio_pin=34,
-            sensor_model="Capacitive Soil Moisture Sensor v1.2",
-            status="connected",
             timestamp=now.isoformat(),
             last_seen_seconds_ago=5,
             adc_raw=adc_val,

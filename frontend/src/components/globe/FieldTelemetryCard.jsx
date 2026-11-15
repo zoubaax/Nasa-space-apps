@@ -60,10 +60,35 @@ export default function FieldTelemetryCard({
       }
     };
     fetchSensor();
+    // Continuous auto-detection polling every 3.5 seconds
+    const interval = setInterval(fetchSensor, 3500);
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, [telemetry?.smapSoilMoisture]);
+
+  const handleToggleBroadcast = async () => {
+    setIsSimulatingSensor(true);
+    try {
+      const endpoint = sensorData?.is_broadcasting
+        ? 'http://127.0.0.1:8000/api/sensors/edge-broadcast/stop'
+        : 'http://127.0.0.1:8000/api/sensors/edge-broadcast/start';
+      const res = await fetch(endpoint, { method: 'POST' });
+      if (res.ok) {
+        const smapParam = telemetry?.smapSoilMoisture ? `?smap_rootzone=${telemetry.smapSoilMoisture}` : '';
+        const pollRes = await fetch(`http://127.0.0.1:8000/api/sensors/soil-moisture/latest${smapParam}`);
+        if (pollRes.ok) {
+          const data = await pollRes.json();
+          setSensorData(data);
+        }
+      }
+    } catch (err) {
+      console.warn('Edge broadcast toggle failed:', err);
+    } finally {
+      setIsSimulatingSensor(false);
+    }
+  };
 
   const handleSimulateSensor = async (action) => {
     setIsSimulatingSensor(true);
@@ -403,24 +428,34 @@ export default function FieldTelemetryCard({
                     {sensorData?.is_connected ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {sensorData.is_simulated
-                          ? t('telemetry.iotVirtualActive', {}, 'Virtual ESP32 Live')
-                          : t('telemetry.iotActive', {}, 'ESP32 Live')}
+                        {t('telemetry.autoDetectedBadge', {}, 'Auto-Detected: ESP32 Live')}
                       </span>
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-zinc-800 text-zinc-400 border border-zinc-700/80 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                        {t('telemetry.iotOptionalStandby', {}, 'Optional • Not Connected')}
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-zinc-800 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
+                        <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
+                        {t('telemetry.autoScanning', {}, 'Auto-Scanning (Standby)')}
                       </span>
                     )}
                   </div>
 
-                  {/* ── State 1: Disconnected / Standby (Default, sensor is completely optional) ── */}
+                  {/* ── State 1: Auto-Scanning / Standby (Default, sensor is completely optional) ── */}
                   {!sensorData?.is_connected && (
                     <div className="space-y-2.5 pt-1">
-                      <p className="text-zinc-400 text-xs leading-relaxed">
-                        {t('telemetry.iotOptionalDesc', {}, 'In-situ soil probe is optional. FieldShift operates autonomously using NASA SMAP L4 radar & POWER observations. You can activate a virtual ESP32 sensor for demonstration.')}
-                      </p>
+                      <div className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+                        <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
+                          <span className="absolute w-full h-full rounded-full bg-cyan-400/20 animate-ping" />
+                          <Radio className="w-3.5 h-3.5 text-cyan-400 relative z-10" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-mono text-zinc-300 truncate">
+                            {t('telemetry.autoScanningBus', {}, 'Scanning network for ESP32 packet broadcast (GPIO34)...')}
+                          </p>
+                          <span className="text-[10px] text-zinc-500 block">
+                            {t('telemetry.iotAutoNotice', {}, 'In-situ sensor is completely optional. Any hardware probe or edge transmitter will be auto-detected in real time.')}
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60">
                         <span className="text-[11px] font-mono text-zinc-500">
                           {t('telemetry.radarFallback', {}, 'Ground Truth: NASA SMAP L4 Radar')}
@@ -428,11 +463,12 @@ export default function FieldTelemetryCard({
                         <button
                           type="button"
                           disabled={isSimulatingSensor}
-                          onClick={() => handleSimulateSensor('connect')}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 hover:border-emerald-500/40 transition cursor-pointer disabled:opacity-50"
+                          onClick={handleToggleBroadcast}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 hover:border-emerald-500/40 transition cursor-pointer disabled:opacity-50"
+                          title="Simulate edge node transmission in code"
                         >
                           <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{t('telemetry.connectVirtualProbe', {}, '🔌 Connect Virtual ESP32 (Demo)')}</span>
+                          <span>{t('telemetry.startVirtualBroadcast', {}, '📡 Start Virtual Edge Broadcast')}</span>
                         </button>
                       </div>
                     </div>
@@ -539,16 +575,29 @@ export default function FieldTelemetryCard({
                           </button>
                         </div>
 
-                        <button
-                          type="button"
-                          disabled={isSimulatingSensor}
-                          onClick={() => handleSimulateSensor('disconnect')}
-                          className="px-2 py-1 rounded bg-zinc-800/80 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-zinc-700/60 hover:border-rose-500/30 text-[10px] transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                          title="Disconnect and return probe to standby"
-                        >
-                          <Power className="w-3 h-3 text-zinc-400" />
-                          <span>{t('telemetry.disconnectProbe', {}, 'Disconnect')}</span>
-                        </button>
+                        {sensorData.is_broadcasting ? (
+                          <button
+                            type="button"
+                            disabled={isSimulatingSensor}
+                            onClick={handleToggleBroadcast}
+                            className="px-2 py-1 rounded bg-zinc-800/80 hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-zinc-700/60 hover:border-rose-500/30 text-[10px] transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                            title="Stop edge broadcast transmission"
+                          >
+                            <Power className="w-3 h-3 text-rose-400" />
+                            <span>{t('telemetry.stopBroadcast', {}, 'Stop Broadcast')}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isSimulatingSensor}
+                            onClick={() => handleSimulateSensor('disconnect')}
+                            className="px-2 py-1 rounded bg-zinc-800/80 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-zinc-700/60 hover:border-rose-500/30 text-[10px] transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                            title="Disconnect probe and return to scanning standby"
+                          >
+                            <Power className="w-3 h-3 text-zinc-400" />
+                            <span>{t('telemetry.disconnectProbe', {}, 'Set Standby')}</span>
+                          </button>
+                        )}
                       </div>
                     </>
                   )}

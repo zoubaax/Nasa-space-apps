@@ -44,6 +44,8 @@ class SensorTelemetryData(BaseModel):
     is_connected: bool = False
     is_optional: bool = True
     is_simulated: bool = False
+    is_broadcasting: bool = False
+    detection_state: Literal["auto_detected", "scanning_standby"] = "scanning_standby"
     timestamp: str
     last_seen_seconds_ago: int = 0
 
