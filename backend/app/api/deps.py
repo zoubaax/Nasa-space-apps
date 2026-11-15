@@ -16,6 +16,7 @@ from app.services.i18n_service import I18nTranslationService
 from app.services.nasa_power import NasaPowerClient
 from app.services.smap import SmapService
 from app.services.smap_gee import SmapGeeService
+from app.services.sensor_service import SensorService
 
 
 def build_ai_service(
@@ -62,6 +63,19 @@ def get_simulation_service(request: Request) -> AgriSimulationService:
 
 def build_i18n_service(settings: Settings) -> I18nTranslationService:
     return I18nTranslationService(settings)
+
+
+def build_sensor_service(settings: Settings) -> SensorService:
+    return SensorService(settings)
+
+
+def get_sensor_service(request: Request) -> SensorService:
+    service = getattr(request.app.state, "sensor_service", None)
+    if service is None:
+        settings = get_app_settings(request)
+        service = build_sensor_service(settings)
+        request.app.state.sensor_service = service
+    return service
 
 
 def get_i18n_service(request: Request) -> I18nTranslationService:

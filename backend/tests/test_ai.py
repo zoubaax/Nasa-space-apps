@@ -136,7 +136,8 @@ def test_simulation_endpoint_baseline(client: TestClient) -> None:
     data = res.json()
     assert len(data["plans"]) == 3
     assert data["winner_plan_id"] in ["plan_rotation_triennale", "plan_agroecologie", "plan_monoculture"]
-    assert len(data["tribunal_verdicts"]) == 4
+    assert len(data["tribunal_verdicts"]) == 5
+    assert any("ESP32" in v["agent_name"] or "حساس" in v["agent_role"] for v in data["tribunal_verdicts"])
     assert "الخطة" in data["overall_synthesis_darija"]
     assert len(data["radar_dimensions"]) == 5
 

@@ -39,6 +39,49 @@ export default function FieldTelemetryCard({
   const [activeExplanation, setActiveExplanation] = useState(null);
   const [, setIsExplaining] = useState(false);
 
+  // In-Situ IoT Sensor Telemetry State (ESP32 Capacitive v1.2 on GPIO34)
+  const [sensorData, setSensorData] = useState(null);
+  const [isSimulatingSensor, setIsSimulatingSensor] = useState(false);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchSensor = async () => {
+      try {
+        const smapParam = telemetry?.smapSoilMoisture ? `?smap_rootzone=${telemetry.smapSoilMoisture}` : '';
+        const res = await fetch(`http://127.0.0.1:8000/api/sensors/soil-moisture/latest${smapParam}`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setSensorData(data);
+        }
+      } catch (err) {
+        console.warn('Sensor fetch failed:', err);
+      }
+    };
+    fetchSensor();
+    return () => {
+      isMounted = false;
+    };
+  }, [telemetry?.smapSoilMoisture]);
+
+  const handleSimulateSensor = async (action) => {
+    setIsSimulatingSensor(true);
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/sensors/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSensorData(data);
+      }
+    } catch (err) {
+      console.warn('Sensor simulation failed:', err);
+    } finally {
+      setIsSimulatingSensor(false);
+    }
+  };
+
   const handleExplain = async (variableId, value, fallbackTitle) => {
     if (value === null || value === undefined) return;
     setIsExplaining(true);
@@ -329,19 +372,133 @@ export default function FieldTelemetryCard({
                   </div>
                 </div>
 
-                {/* IoT Ground Sensor Calibration */}
-                <div className="p-3.5 rounded-xl bg-zinc-900/30 border border-zinc-800 text-xs sm:text-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-zinc-200 font-semibold flex items-center gap-2 text-xs">
-                      <Cpu className="w-4 h-4 text-zinc-400" /> {t('telemetry.iotBridge', {}, 'In-Situ IoT Telemetry Bridge')}
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                      {t('telemetry.iotStandby', {}, 'Standby')}
+                {/* In-Situ IoT Ground Sensor (ESP32 Capacitive v1.2 on GPIO34) */}
+                <div className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-xs sm:text-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <Cpu className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-zinc-100 font-bold text-xs block">
+                          {t('telemetry.iotBridge', {}, 'In-Situ IoT Telemetry Bridge')}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          ESP32 • Capacitive v1.2 (GPIO34)
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      {t('telemetry.iotActive', {}, 'ESP32 Live')}
                     </span>
                   </div>
-                  <p className="text-zinc-400 text-xs leading-normal">
-                    {t('telemetry.iotSupport', {}, 'Supports RS485 / Modbus ESP32 ground sensor calibration.')}
-                  </p>
+
+                  {sensorData && (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                        <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
+                            {t('telemetry.sensorVwc', {}, 'Soil VWC')}
+                          </span>
+                          <bdi className="text-base font-mono font-bold text-emerald-300 tabular-nums" dir="ltr">
+                            {(sensorData.vwc_m3_m3 * 100).toFixed(1)}%
+                          </bdi>
+                          <span className="text-[10px] text-zinc-400 block font-mono">
+                            {sensorData.vwc_m3_m3} m³/m³
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
+                            {t('telemetry.sensorAdc', {}, 'Raw ADC (34)')}
+                          </span>
+                          <bdi className="text-base font-mono font-bold text-zinc-100 tabular-nums" dir="ltr">
+                            {sensorData.adc_raw}
+                          </bdi>
+                          <span className="text-[10px] text-zinc-400 block font-mono">
+                            / 4095 (12-bit)
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
+                            {t('telemetry.sensorTemp', {}, 'Soil Temp')}
+                          </span>
+                          <bdi className="text-base font-mono font-bold text-zinc-100 tabular-nums" dir="ltr">
+                            {sensorData.soil_temp_c}°C
+                          </bdi>
+                          <span className="text-[10px] text-zinc-400 block font-mono">
+                            Batt: {sensorData.battery_pct}%
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                          <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-semibold">
+                            {t('telemetry.sensorDelta', {}, 'vs SMAP L4')}
+                          </span>
+                          <bdi className={`text-base font-mono font-bold tabular-nums ${
+                            (sensorData.discrepancy_delta_m3_m3 || 0) >= 0 ? 'text-cyan-300' : 'text-amber-300'
+                          }`} dir="ltr">
+                            {sensorData.discrepancy_delta_m3_m3 !== null ? `${sensorData.discrepancy_delta_m3_m3 >= 0 ? '+' : ''}${(sensorData.discrepancy_delta_m3_m3 * 100).toFixed(1)}%` : '0.0%'}
+                          </bdi>
+                          <span className="text-[10px] text-zinc-400 block font-mono truncate">
+                            {sensorData.fusion_status === 'irrigation_detected'
+                              ? t('telemetry.irrigationDetected', {}, 'Irrigation Event')
+                              : sensorData.fusion_status === 'localized_drought'
+                              ? t('telemetry.localDrought', {}, 'Local Stress')
+                              : t('telemetry.coherent', {}, 'Coherent')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Hydraulic Verdict */}
+                      <div className="p-2.5 rounded-lg bg-zinc-950/40 border border-zinc-800/60 text-xs">
+                        <p className="font-semibold text-zinc-200">
+                          {language === 'ar' ? sensorData.hydration_verdict_ar : language === 'fr' ? sensorData.hydration_verdict_fr : sensorData.hydration_verdict_en}
+                        </p>
+                        <p className="text-zinc-400 text-[11px] mt-0.5">
+                          {language === 'ar' ? sensorData.action_advice_ar : language === 'fr' ? sensorData.action_advice_fr : sensorData.action_advice_en}
+                        </p>
+                      </div>
+
+                      {/* Interactive Testing Toolbar (Code-Driven Testing) */}
+                      <div className="pt-1 flex flex-wrap items-center justify-between gap-1.5 border-t border-zinc-800/50">
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          {t('telemetry.simTest', {}, 'Simulate In-Situ Event:')}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={isSimulatingSensor}
+                            onClick={() => handleSimulateSensor('irrigate')}
+                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-emerald-950/60 text-emerald-300 hover:text-emerald-200 border border-zinc-700 hover:border-emerald-500/40 text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
+                            title="Simulate drip irrigation wetting front (drops ADC, raises VWC)"
+                          >
+                            💧 {t('telemetry.simIrrigate', {}, 'Irrigate')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isSimulatingSensor}
+                            onClick={() => handleSimulateSensor('dry_spell')}
+                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-amber-950/60 text-amber-300 hover:text-amber-200 border border-zinc-700 hover:border-amber-500/40 text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
+                            title="Simulate rapid root-zone depletion (raises ADC, drops VWC)"
+                          >
+                            ☀️ {t('telemetry.simDry', {}, 'Drought')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isSimulatingSensor}
+                            onClick={() => handleSimulateSensor('reset_optimal')}
+                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
+                            title="Reset to baseline optimal root-zone moisture"
+                          >
+                            🔄 {t('telemetry.simReset', {}, 'Reset')}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
