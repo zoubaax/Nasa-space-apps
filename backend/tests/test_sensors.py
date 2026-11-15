@@ -11,18 +11,17 @@ client = TestClient(app)
 
 
 def test_get_latest_sensor_telemetry_defaults() -> None:
-    """Verifies that the latest sensor endpoint returns calibrated Capacitive v1.2 data on GPIO34."""
+    """Verifies that the latest sensor endpoint starts in standby (optional) when not connected."""
     res = client.get("/api/sensors/soil-moisture/latest?smap_rootzone=0.22")
     assert res.status_code == 200
     data = res.json()
 
     assert data["gpio_pin"] == 34
     assert data["sensor_model"] == "Capacitive Soil Moisture Sensor v1.2"
-    assert data["status"] == "connected"
-    assert 0 <= data["adc_raw"] <= 4095
-    assert 0.05 <= data["vwc_m3_m3"] <= 0.50
-    assert data["fusion_status"] in ["coherent", "irrigation_detected", "localized_drought", "sensor_airgap"]
-    assert "رطوبة" in data["hydration_verdict_ar"]
+    assert data["status"] == "standby"
+    assert data["is_connected"] is False
+    assert data["is_optional"] is True
+    assert "اختياري" in data["hydration_verdict_ar"] or "غير متصل" in data["hydration_verdict_ar"]
 
 
 def test_ingest_real_esp32_payload() -> None:

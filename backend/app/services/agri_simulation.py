@@ -2031,16 +2031,20 @@ class AgriSimulationService:
                 argument_localized=guard_arg,
                 key_evidence=guard_evidence,
             ),
-            TribunalAgentVerdict(
-                agent_role=role_sensor,
-                agent_name=name_sensor,
-                avatar="📡",
-                stance=sensor_stance,
-                argument_darija=sensor_arg,
-                argument_localized=sensor_arg,
-                key_evidence=sensor_evidence,
-            ),
         ]
+
+        if getattr(request, "include_sensor", False):
+            initial_tribunal.append(
+                TribunalAgentVerdict(
+                    agent_role=role_sensor,
+                    agent_name=name_sensor,
+                    avatar="📡",
+                    stance=sensor_stance,
+                    argument_darija=sensor_arg,
+                    argument_localized=sensor_arg,
+                    key_evidence=sensor_evidence,
+                )
+            )
 
         overall_synthesis = self._build_localized_synthesis(
             language=detected_language,
@@ -2302,16 +2306,20 @@ class AgriSimulationService:
                 argument_localized=guard_arg,
                 key_evidence=guard_evidence,
             ),
-            TribunalAgentVerdict(
-                agent_role=role_sensor,
-                agent_name=name_sensor,
-                avatar="📡",
-                stance=sensor_stance,
-                argument_darija=sensor_arg,
-                argument_localized=sensor_arg,
-                key_evidence=sensor_evidence,
-            ),
         ]
+
+        if getattr(request, "include_sensor", False):
+            final_tribunal.append(
+                TribunalAgentVerdict(
+                    agent_role=role_sensor,
+                    agent_name=name_sensor,
+                    avatar="📡",
+                    stance=sensor_stance,
+                    argument_darija=sensor_arg,
+                    argument_localized=sensor_arg,
+                    key_evidence=sensor_evidence,
+                )
+            )
 
         lang_meta_res = {
             "language": detected_language,

@@ -136,10 +136,17 @@ def test_simulation_endpoint_baseline(client: TestClient) -> None:
     data = res.json()
     assert len(data["plans"]) == 3
     assert data["winner_plan_id"] in ["plan_rotation_triennale", "plan_agroecologie", "plan_monoculture"]
-    assert len(data["tribunal_verdicts"]) == 5
-    assert any("ESP32" in v["agent_name"] or "حساس" in v["agent_role"] for v in data["tribunal_verdicts"])
+    assert len(data["tribunal_verdicts"]) == 4  # By default, in-situ sensor is completely optional
     assert "الخطة" in data["overall_synthesis_darija"]
     assert len(data["radar_dimensions"]) == 5
+
+    # Verify optional inclusion of in-situ sensor sub-agent
+    req_with_sensor = {**req_payload, "include_sensor": True}
+    res_sensor = client.post("/api/ai/simulate", json=req_with_sensor)
+    assert res_sensor.status_code == 200
+    data_sensor = res_sensor.json()
+    assert len(data_sensor["tribunal_verdicts"]) == 5
+    assert any("ESP32" in v["agent_name"] or "حساس" in v["agent_role"] for v in data_sensor["tribunal_verdicts"])
 
     # Rigorous scientific data consistency checks (Explicit Contiguous Harvest Year 2025)
     metrics = data["baseline_metrics"]

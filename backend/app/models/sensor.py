@@ -40,18 +40,21 @@ class SensorTelemetryData(BaseModel):
     device_id: str
     gpio_pin: int = 34
     sensor_model: str = "Capacitive Soil Moisture Sensor v1.2"
-    status: Literal["connected", "standby", "stale", "malfunction"] = "connected"
+    status: Literal["connected", "standby", "stale", "malfunction"] = "standby"
+    is_connected: bool = False
+    is_optional: bool = True
+    is_simulated: bool = False
     timestamp: str
     last_seen_seconds_ago: int = 0
 
     # Physical measurements
-    adc_raw: int
-    adc_normalized_pct: float  # 0 to 100% moisture index
-    vwc_m3_m3: float  # Volumetric Water Content (0.00 to 0.50 m3/m3)
-    soil_temp_c: float
-    battery_mv: int
-    battery_pct: int
-    rssi_dbm: int
+    adc_raw: int = 0
+    adc_normalized_pct: float = 0.0  # 0 to 100% moisture index
+    vwc_m3_m3: float = 0.0  # Volumetric Water Content (0.00 to 0.50 m3/m3)
+    soil_temp_c: float = 18.0
+    battery_mv: int = 3300
+    battery_pct: int = 100
+    rssi_dbm: int = -65
 
     # Satellite-Ground Truth Fusion (vs NASA SMAP L4)
     smap_rootzone_m3_m3: float | None = None
@@ -74,6 +77,6 @@ class SensorTelemetryData(BaseModel):
 class SensorSimulationTrigger(BaseModel):
     """Payload to simulate physical field events in software (irrigation pulse, dry spell, etc.)."""
 
-    action: Literal["irrigate", "dry_spell", "reset_optimal"] = "irrigate"
+    action: Literal["connect", "disconnect", "irrigate", "dry_spell", "reset_optimal"] = "connect"
     irrigation_duration_min: int = Field(default=45, ge=5, le=180)
     device_id: str = "esp32-field-node-01"

@@ -38,8 +38,42 @@ class SensorService:
         self._calibration = SensorCalibrationConfig()
 
         # In-memory virtual simulation state for live software testing
+        self._is_active: bool = False
+        self._is_simulated: bool = False
         self._sim_adc_override: int | None = None
         self._sim_last_irrigation_ts: float | None = None
+
+    def is_sensor_active(self) -> bool:
+        """Indicates whether a physical or virtual sensor is actively providing telemetry."""
+        return self._is_active
+
+    def get_standby_telemetry(self) -> SensorTelemetryData:
+        """Returns standard standby state when no probe is currently transmitting."""
+        now = datetime.now(timezone.utc)
+        return SensorTelemetryData(
+            device_id="esp32-field-node-01",
+            gpio_pin=34,
+            sensor_model="Capacitive Soil Moisture Sensor v1.2",
+            status="standby",
+            is_connected=False,
+            is_optional=True,
+            is_simulated=False,
+            timestamp=now.isoformat(),
+            last_seen_seconds_ago=999999,
+            adc_raw=0,
+            adc_normalized_pct=0.0,
+            vwc_m3_m3=0.0,
+            soil_temp_c=18.0,
+            battery_mv=0,
+            battery_pct=0,
+            rssi_dbm=0,
+            hydration_verdict_ar="المستشعر الميداني اختياري وغير متصل حالياً",
+            hydration_verdict_fr="Capteur in-situ optionnel et non connecté actuellement",
+            hydration_verdict_en="In-situ sensor is optional and currently not connected",
+            action_advice_ar="النظام يعمل بكفاءة عبر رادار ناسا الفضائي (SMAP L4 & POWER). يمكنك تفعيل المحاكي برمجياً للاختبار.",
+            action_advice_fr="Le système fonctionne avec les observations satellite NASA. Vous pouvez activer le simulateur pour tester.",
+            action_advice_en="System operates via NASA satellite observations. You may activate the simulation to test in-situ features.",
+        )
 
     def calibrate_adc(self, adc_raw: int) -> tuple[float, float]:
         """Converts 12-bit ADC raw integer on GPIO34 to normalized % and Volumetric Water Content (m3/m3).
@@ -78,11 +112,17 @@ class SensorService:
         batt_mv = payload.battery_mv or 3300
         batt_pct = max(0, min(100, int(((batt_mv - 3000) / 1200.0) * 100)))
 
+        self._is_active = True
+        self._is_simulated = False
+
         telemetry = SensorTelemetryData(
             device_id=payload.device_id,
             gpio_pin=payload.gpio_pin,
             sensor_model="Capacitive Soil Moisture Sensor v1.2",
             status="connected",
+            is_connected=True,
+            is_optional=True,
+            is_simulated=False,
             timestamp=ts_iso,
             last_seen_seconds_ago=0,
             adc_raw=payload.adc_raw,
@@ -104,8 +144,12 @@ class SensorService:
         return telemetry
 
     def get_latest_telemetry(self, smap_rootzone_m3_m3: float | None = None) -> SensorTelemetryData:
-        """Retrieves the latest sensor reading, dynamically falling back to the virtual ESP32 simulation."""
-        # 1. Check if real or simulated file exists
+        """Retrieves the latest sensor reading. Returns standby when probe is not connected."""
+        # 1. If not actively transmitting or simulated, return standby
+        if not self._is_active:
+            return self.get_standby_telemetry()
+
+        # 2. Check if real or simulated file exists
         if self._latest_file.exists():
             try:
                 data = json.loads(self._latest_file.read_text(encoding="utf-8"))
@@ -135,11 +179,25 @@ class SensorService:
             except Exception as exc:
                 logger.warning("Failed to parse latest sensor file: %s", exc)
 
-        # 2. Virtual Simulation Fallback (Pure Software Demo)
+        # 3. Virtual Simulation Fallback (Pure Software Demo)
         return self._generate_virtual_reading(smap_rootzone_m3_m3)
 
     def trigger_simulation(self, trigger: SensorSimulationTrigger) -> SensorTelemetryData:
-        """Simulates physical events in software (irrigation pulse or dry spell)."""
+        """Simulates physical events in software (connect, disconnect, irrigation pulse, dry spell)."""
+        if trigger.action == "disconnect":
+            self._is_active = False
+            self._is_simulated = False
+            self._sim_adc_override = None
+            if self._latest_file.exists():
+                try:
+                    self._latest_file.unlink()
+                except Exception:
+                    pass
+            return self.get_standby_telemetry()
+
+        self._is_active = True
+        self._is_simulated = True
+
         if trigger.action == "irrigate":
             # Irrigation wets soil -> raw ADC drops toward wet baseline (~1550)
             self._sim_adc_override = 1580
@@ -147,8 +205,10 @@ class SensorService:
         elif trigger.action == "dry_spell":
             # Dry spell -> raw ADC rises toward dry baseline (~2950)
             self._sim_adc_override = 2920
-        else:
+        elif trigger.action == "reset_optimal":
             # Reset to optimal healthy rootzone (~2250)
+            self._sim_adc_override = 2240
+        else:  # "connect"
             self._sim_adc_override = 2240
 
         reading = self._generate_virtual_reading()
@@ -158,6 +218,44 @@ class SensorService:
 
     def _generate_virtual_reading(self, smap_rz: float | None = None) -> SensorTelemetryData:
         """Generates realistic in-situ measurements modeled on Moroccan cereal soil dynamics."""
+        now = datetime.now(timezone.utc)
+        
+        # Diurnal fluctuation simulation: soil temperature peaks at 15:00 UTC
+        hour = now.hour + (now.minute / 60.0)
+        temp_diurnal = 18.0 + 4.5 * math.sin((hour - 9) * (math.pi / 12.0))
+
+        # Default healthy root-zone ADC ~ 2240 (corresponds to ~26.7% VWC, ~0.268 m3/m3)
+        adc_val = self._sim_adc_override if self._sim_adc_override is not None else 2240
+
+        norm_pct, vwc = self.calibrate_adc(adc_val)
+        smap_baseline = smap_rz if smap_rz is not None else 0.225
+
+        reading = SensorTelemetryData(
+            device_id="esp32-field-node-01",
+            gpio_pin=34,
+            sensor_model="Capacitive Soil Moisture Sensor v1.2",
+            status="connected",
+            is_connected=True,
+            is_optional=True,
+            is_simulated=True,
+            timestamp=now.isoformat(),
+            last_seen_seconds_ago=5,
+            adc_raw=adc_val,
+            adc_normalized_pct=norm_pct,
+            vwc_m3_m3=vwc,
+            soil_temp_c=round(temp_diurnal, 1),
+            battery_mv=3310,
+            battery_pct=92,
+            rssi_dbm=-62,
+            smap_rootzone_m3_m3=smap_baseline,
+            field_capacity_fc=0.32,
+            wilting_point_wp=0.16,
+            rootzone_depletion_dr_mm=max(0.0, round(1000.0 * (0.32 - vwc) * 0.4, 1)),
+        )
+
+        self._fuse_with_smap(reading, smap_baseline)
+        self._evaluate_hydration_verdicts(reading)
+        return reading
         now = datetime.now(timezone.utc)
         
         # Diurnal fluctuation simulation: soil temperature peaks at 15:00 UTC

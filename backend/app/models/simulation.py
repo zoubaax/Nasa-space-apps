@@ -63,6 +63,7 @@ class SimulationRequest(BaseModel):
     historical_compare_year: int | None = None
     target_crops: list[str] = Field(default_factory=list)
     primary_cereal: str = Field(default="ble_dur")
+    include_sensor: bool = Field(default=False, description="Whether to include in-situ ground sensor specialist in tribunal")
     language_override: str | None = None
 
 
