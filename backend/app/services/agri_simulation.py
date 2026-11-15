@@ -631,7 +631,8 @@ class AgriSimulationService:
         cereal_len = max(1, len(wheat_days))
         cereal_cycle_days = len(wheat_days)
         cereal_end_date = f"{y_curr}-{cereal_end_md[:2]}-{cereal_end_md[2:]}"
-        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} mai {y_curr})"
+        cereal_month_fr = "avr." if cereal_end_md[:2] == "04" else "mai"
+        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} {cereal_month_fr} {y_curr})"
         wheat_kc = [
             0.35 if i < 36
             else (0.35 + (cereal_kc_mid - 0.35) * ((i - 36) / max(1, cereal_len * 0.35))) if i < int(cereal_len * 0.55)
@@ -879,6 +880,7 @@ class AgriSimulationService:
                 latitude=request.location.latitude,
                 longitude=request.location.longitude,
                 year=request.historical_compare_year,
+                cereal_key=cereal_key,
             )
             baseline_metrics["historical_compare_year"] = request.historical_compare_year
             baseline_metrics["historical_metrics"] = hist_metrics
@@ -994,7 +996,8 @@ class AgriSimulationService:
 
         cereal_cycle_days = len(wheat_days) if wheat_days is not None else len(sim_wheat.get("daily_records", []))
         cereal_end_date = f"{y_curr}-{cereal_end_md[:2]}-{cereal_end_md[2:]}"
-        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} mai {y_curr})"
+        cereal_month_fr = "avr." if cereal_end_md[:2] == "04" else "mai"
+        cereal_basis = f"Saison observée Récolte {harvest_year} (du 15 nov. {y_prev} au {cereal_end_md[2:]} {cereal_month_fr} {y_curr})"
 
         rotation_years_p1 = [
             {
@@ -1556,7 +1559,14 @@ class AgriSimulationService:
         tribunal, _ = await self._evaluate_ai_deliberation(**kwargs)
         return tribunal
 
-    async def _load_historical_observations(self, *, latitude: float, longitude: float, year: int) -> dict[str, Any]:
+    async def _load_historical_observations(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        year: int,
+        cereal_key: str = "ble_dur",
+    ) -> dict[str, Any]:
         """Loads real historical NASA observations from verified cached datasets and runs retrospective simulation."""
         from app.services.climate_analyzer import normalize_power_payload, summarize, CLIMATE_PARAMETERS
 
@@ -1597,14 +1607,22 @@ class AgriSimulationService:
                 hist_et0 = self.compute_daily_fao56_et0(merged_params, latitude, elev_m)
                 precip_daily = merged_params.get("PRECTOTCORR", {})
 
+                cereal_cfg = PRIMARY_CEREAL_CONFIGS.get(cereal_key, PRIMARY_CEREAL_CONFIGS["ble_dur"])
+                cereal_end_md = cereal_cfg["end_month_day"]
+                cereal_kc_mid = cereal_cfg["kc_mid"]
+                cereal_kc_end = cereal_cfg["kc_end"]
+                cereal_name_fr = cereal_cfg["name_fr"]
+                cereal_name_ar = cereal_cfg["name_ar"]
+
                 wheat_days = [d for d in sorted(precip_daily.keys()) if f"{y_prev}1115" <= d <= f"{y_prev}1231"] + [
-                    d for d in sorted(precip_daily.keys()) if f"{y_curr}0101" <= d <= f"{y_curr}0520"
+                    d for d in sorted(precip_daily.keys()) if f"{y_curr}0101" <= d <= f"{y_curr}{cereal_end_md}"
                 ]
+                cereal_len = max(1, len(wheat_days))
                 wheat_kc = [
                     0.35 if i < 36
-                    else (0.35 + (1.15 - 0.35) * ((i - 36) / 62.0) if i < 98
-                    else (1.15 if i < 157 else 1.15 + (0.45 - 1.15) * ((i - 157) / 30.0)))
-                    for i in range(len(wheat_days))
+                    else (0.35 + (cereal_kc_mid - 0.35) * ((i - 36) / max(1, cereal_len * 0.35))) if i < int(cereal_len * 0.55)
+                    else (cereal_kc_mid if i < int(cereal_len * 0.85) else cereal_kc_mid + (cereal_kc_end - cereal_kc_mid) * ((i - int(cereal_len * 0.85)) / max(1, cereal_len * 0.15)))
+                    for i in range(cereal_len)
                 ]
 
                 sim_hist_wheat = self.simulate_fao56_daily_water_balance(
@@ -1616,12 +1634,17 @@ class AgriSimulationService:
                     irrigation_budget_mm=0.0,  # Bour rainfed
                 )
 
+                cereal_end_date = f"{y_curr}-{cereal_end_md[:2]}-{cereal_end_md[2:]}"
+
                 return {
                     "year": year,
                     "harvest_year": year,
                     "season_start_date": f"{y_prev}-11-15",
-                    "season_end_date": f"{y_curr}-05-20",
+                    "season_end_date": cereal_end_date,
                     "season_total_days": len(wheat_days),
+                    "primary_cereal": cereal_key,
+                    "primary_cereal_fr": cereal_name_fr,
+                    "primary_cereal_ar": cereal_name_ar,
                     "source": "NASA POWER Daily Observations (Contiguous Multi-Year Ground Truth)",
                     "annual_precipitation_mm": round(ind.total_precipitation, 1),
                     "mean_temperature_c": round(ind.average_temperature, 2),
@@ -1641,8 +1664,17 @@ class AgriSimulationService:
                 logger.warning("Failed to parse historical NASA file for %s: %s", year, e)
 
         # Fallback to documented historical benchmark if specific file is not yet cached
+        cereal_cfg = PRIMARY_CEREAL_CONFIGS.get(cereal_key, PRIMARY_CEREAL_CONFIGS["ble_dur"])
+        cereal_end_md = cereal_cfg["end_month_day"]
         return {
             "year": year,
+            "harvest_year": year,
+            "season_start_date": f"{year - 1}-11-15",
+            "season_end_date": f"{year}-{cereal_end_md[:2]}-{cereal_end_md[2:]}",
+            "season_total_days": cereal_cfg["cycle_days"],
+            "primary_cereal": cereal_key,
+            "primary_cereal_fr": cereal_cfg["name_fr"],
+            "primary_cereal_ar": cereal_cfg["name_ar"],
             "source": "Morocco Agricultural Climatology Benchmark (Saïss Basin)",
             "annual_precipitation_mm": 273.4 if year == 2023 else 450.0,
             "recorded_hot_days": 159 if year == 2023 else 120,
