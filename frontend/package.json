@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.4.0",
     "@tailwindcss/vite": "^4.3.5",
     "lucide-react": "^1.73.0",
     "maplibre-gl": "^6.16.0",

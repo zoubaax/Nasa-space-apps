@@ -29,6 +29,12 @@
     "clickToExplore": "Click anywhere to explore ➔",
     "clickToEnter": "Click to enter experience"
   },
+  "mascot": {
+    "greeting": "Welcome to Farmer Eye! 👋",
+    "role": "Your 3D AI Agronomist",
+    "message": "I'm here to help you navigate NASA Earth observations, soil moisture, and climate-resilient crop rotations. Click anywhere to start our journey!",
+    "actionHint": "Click anywhere to launch ➔"
+  },
   "hud": {
     "missionTitle": "Farmer Eye · Earth Orbit",
     "nasaBadge": "NASA EO",

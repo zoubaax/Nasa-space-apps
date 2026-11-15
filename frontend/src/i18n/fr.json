@@ -29,6 +29,12 @@
     "clickToExplore": "Cliquez n'importe où pour explorer ➔",
     "clickToEnter": "Cliquez pour entrer"
   },
+  "mascot": {
+    "greeting": "Bienvenue sur Farmer Eye ! 👋",
+    "role": "Votre Guide Agronomique 3D",
+    "message": "Je suis là pour vous accompagner dans l'exploration des données spatiales NASA et des rotations culturales résilientes. Cliquez n'importe où pour décoller !",
+    "actionHint": "Cliquez n'importe où pour lancer ➔"
+  },
   "hud": {
     "missionTitle": "Farmer Eye · Orbite Terrestre",
     "nasaBadge": "NASA OT",

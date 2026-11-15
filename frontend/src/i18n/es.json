@@ -29,6 +29,12 @@
     "clickToExplore": "Haga clic en cualquier lugar para explorar ➔",
     "clickToEnter": "Haga clic para entrar"
   },
+  "mascot": {
+    "greeting": "¡Bienvenido a Farmer Eye! 👋",
+    "role": "Tu Guía Agronómico 3D",
+    "message": "Estoy aquí para ayudarte a explorar las observaciones de la NASA y las rotaciones climato-resilientes. ¡Haz clic en cualquier lugar para despegar!",
+    "actionHint": "Haz clic en cualquier lugar para iniciar ➔"
+  },
   "hud": {
     "missionTitle": "Farmer Eye · Órbita Terrestre",
     "nasaBadge": "NASA OT",
