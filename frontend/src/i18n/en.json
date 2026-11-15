@@ -142,42 +142,52 @@
     "feve": "Faba Bean",
     "pois_chiche": "Chickpea",
     "lentilles": "Lentils",
+    "pois_chiche_lentilles": "Legumes (Lentils / Chickpeas)",
     "tournesol": "Sunflower",
     "colza": "Canola",
     "luzerne": "Alfalfa",
     "avoine": "Oats",
-    "jachere": "Fallow",
-    "engrais_vert": "Green Manure"
+    "jachere": "Active Cover Fallow",
+    "engrais_vert": "Forage & Green Manure",
+    "forage": "Forage & Green Manure",
+    "fallow": "Active Cover Fallow",
+    "legumes": "Legumes (Lentils / Chickpeas)",
+    "cover_crop": "Active Cover Fallow"
   },
   "options": {
     "soil": {
-      "limoneux_profond": "Deep Fertile Loam (Meknès / Saïss)",
-      "argilo_limoneux": "Clay Loam (Moderate Texture)",
-      "sablonneux": "Sandy Loam (Fast Draining)",
-      "argileux_lourd": "Heavy Clay (Tirs Soil)",
-      "sableux": "Sandy Loam (Fast Draining)",
+      "limoneux_profond": "Deep Fertile Loam",
+      "argilo_limoneux": "Clay Loam",
+      "sablonneux": "Sandy Loam",
+      "argileux_lourd": "Heavy Clay",
+      "sableux": "Sandy Soil",
       "calcaire": "Calcareous Soil"
     },
     "water": {
-      "bour_strict": "Strict Rainfed (Bour)",
-      "bour": "Strict Rainfed (Bour)",
-      "appoint": "Supplementary Irrigation (Appoint)",
+      "bour_strict": "Rainfed (No Irrigation)",
+      "bour": "Rainfed (No Irrigation)",
+      "appoint": "Supplementary Irrigation",
       "irrigue_total": "Full Irrigation",
       "irrigue": "Full Irrigation"
     },
     "shocks": {
-      "none": "Nominal (No Shock)",
+      "none": "Baseline (No Shock)",
       "drought_30pct": "Severe Drought (-30% Rain)",
       "drought": "Severe Drought (-35% Rain)",
-      "heatwave_early_spring": "Early Spring Heatwave (Chergui)",
+      "heatwave_early_spring": "Early Spring Heatwave (+3.5°C)",
       "heatwave": "Early Spring Heatwave (+3.5°C)",
-      "delayed_rains_winter": "Delayed Autumn/Winter Rains",
-      "delayed_rain": "Delayed Autumn/Winter Rains"
+      "delayed_rains_winter": "Delayed Seasonal Rains",
+      "delayed_rain": "Delayed Seasonal Rains"
     },
     "cereals": {
-      "ble_dur": "🌾 Durum Wheat (Blé Dur)",
-      "ble_tendre": "🍞 Bread Wheat (Blé Tendre)",
-      "orge": "🌾 Barley (Orge)"
+      "ble_dur": "Durum Wheat",
+      "ble_tendre": "Bread Wheat",
+      "orge": "Barley",
+      "mais": "Corn / Maize",
+      "tournesol": "Sunflower",
+      "soja": "Soybean",
+      "colza": "Canola / Rapeseed",
+      "avoine": "Oats"
     }
   },
   "controls": {

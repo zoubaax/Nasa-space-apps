@@ -290,12 +290,10 @@ class SmapGeeService:
         if meta is None:
             raise InvalidRequestError(f"Unknown SMAP variable '{var_id}'.")
 
-        # Resolve target language
+        # Resolve target language dynamically
         target_lang = "darija"
-        if language in ("darija", "ar"):
-            target_lang = "darija"
-        elif language in ("fr", "es", "en"):
-            target_lang = language
+        if language and language != "auto":
+            target_lang = "darija" if language == "ar" else language.lower()
         elif location_name and location_name not in ("Zone sélectionnée", "مكناس، المغرب"):
             loc_l = location_name.lower()
             if "france" in loc_l or "paris" in loc_l or "toulouse" in loc_l:
@@ -406,8 +404,15 @@ class SmapGeeService:
             "es": "Spanish (preciso, agronómico, claro)",
             "en": "English (scientific, actionable, evidence-based)",
             "darija": "Moroccan Darija (الدارجة المغربية الفلاحية الطبيعية بالأحرف العربية)",
+            "ar": "Modern Standard Arabic (العربية الفصحى)",
+            "de": "German (Deutsch, präzise und agronomisch)",
+            "ja": "Japanese (日本語, 農業科学的)",
+            "tr": "Turkish (Türkçe, tarımsal)",
+            "pt": "Portuguese (Português, agronômico)",
+            "it": "Italian (Italiano, agronomico)",
+            "zh": "Simplified Chinese (中文)",
         }
-        chosen_lang_name = lang_instructions.get(base.language, "Moroccan Darija")
+        chosen_lang_name = lang_instructions.get(base.language, f"{base.language.upper()} (native language of this territory)")
 
         gemini_prompt = (
             f"You are an expert agricultural advisor explaining NASA Earth observation satellite metrics.\n"
@@ -424,8 +429,12 @@ class SmapGeeService:
             "Ground your analysis strictly in this real NASA observation value.\n"
             "Return ONLY a JSON object with this exact structure:\n"
             "{\n"
+            '  "name_localized": "Indicator title translated in target language",\n'
+            '  "what": "1 sentence defining what this satellite metric measures in target language",\n'
+            '  "why_agri": "1 sentence explaining why it is critical for crops in target language",\n'
             '  "interpretation": "2-3 insightful sentences explaining what this exact NASA value means for crops, soil, and farming decisions at this location and season",\n'
-            '  "temporal_change": "1-2 sentences explaining the change compared to previous period and what the farmer should monitor"\n'
+            '  "temporal_change": "1-2 sentences explaining the change compared to previous period and what the farmer should monitor",\n'
+            '  "caveat_note": "1 sentence scientific caveat in target language reminding that this is a 9-11km satellite observation"\n'
             "}"
         )
 
@@ -469,6 +478,15 @@ class SmapGeeService:
                                             pass
 
                             if parsed and isinstance(parsed, dict):
+                                if parsed.get("name_localized") and isinstance(parsed["name_localized"], str):
+                                    base.name_localized = parsed["name_localized"]
+                                if parsed.get("what") and isinstance(parsed["what"], str):
+                                    base.what = parsed["what"]
+                                if parsed.get("why_agri") and isinstance(parsed["why_agri"], str):
+                                    base.why_agri = parsed["why_agri"]
+                                if parsed.get("caveat_note") and isinstance(parsed["caveat_note"], str):
+                                    base.caveat_note = parsed["caveat_note"]
+
                                 interp = parsed.get("interpretation")
                                 temp_c = parsed.get("temporal_change")
                                 if interp and isinstance(interp, str):

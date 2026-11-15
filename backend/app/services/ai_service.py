@@ -49,7 +49,9 @@ STRICT FACTUAL RULES (ZERO HALLUCINATION & SCIENTIFIC HUMILITY):
 LANGUAGE MATCHING:
 - If the user writes in Arabic / Moroccan Darija, RESPOND IN AUTHENTIC MOROCCAN DARIJA using Arabic script.
 - If the user asks in French, respond in French.
-- If the user asks in English, respond in English.
+- If the user asks in Spanish, respond in Spanish.
+- If the user asks in any other language (e.g. German, Japanese, Turkish, Portuguese, etc.), respond naturally and fluently in that exact language.
+- Otherwise, respond in English.
 """
 
 
@@ -73,8 +75,8 @@ class AiService:
         return bool(self._settings.gemini_api_key)
 
     def detect_language(self, text: str, requested: str = "auto", location: AiLocationContext | None = None) -> str:
-        if requested in ("darija", "fr", "en", "es", "ar"):
-            return requested
+        if requested and requested != "auto":
+            return requested.lower()
         # Check Arabic script presence or common Darija keywords
         arabic_chars = len(re.findall(r"[\u0600-\u06FF]", text))
         if arabic_chars > 2:
@@ -104,6 +106,14 @@ class AiService:
                 return "fr"
             if "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name:
                 return "es"
+            if "germany" in loc_country or "deutschland" in loc_country:
+                return "de"
+            if "japan" in loc_country or "nippon" in loc_country:
+                return "ja"
+            if "turkey" in loc_country or "türkiye" in loc_country:
+                return "tr"
+            if "brazil" in loc_country or "portugal" in loc_country:
+                return "pt"
 
         return "en"
 

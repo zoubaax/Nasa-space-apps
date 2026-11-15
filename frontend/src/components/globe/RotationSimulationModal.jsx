@@ -17,6 +17,35 @@ import {
 } from 'react-icons/tb';
 import { useTranslation } from '../../context/LanguageContext';
 
+function resolveCropName(crop, t) {
+  if (!crop) return '';
+  const raw = String(crop).trim();
+
+  // Strip year references like "(سنة 1)", "(Year 1)", "(an 1)" so pills display cleanly with sequence numbers
+  const clean = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
+
+  // Direct slug lookup if already clean latin slug (e.g. ble_dur, orge, jachere)
+  const slug = clean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  if (slug && t(`crops.${slug}`) && t(`crops.${slug}`) !== `crops.${slug}`) {
+    return t(`crops.${slug}`);
+  }
+
+  // Robust multilingual matching for Arabic, French, and English crop names
+  if (/قمح.*صلب|blé.*dur|durum/i.test(clean)) return t('crops.ble_dur', {}, 'Durum Wheat');
+  if (/قمح.*لين|blé.*tendre|bread.*wheat|soft.*wheat/i.test(clean)) return t('crops.ble_tendre', {}, 'Bread Wheat');
+  if (/شعير|barley|orge/i.test(clean)) return t('crops.orge', {}, 'Barley');
+  if (/قطاني|عدس|حمص|lentille|chiche|légumineuse|legume/i.test(clean)) return t('crops.pois_chiche_lentilles', {}, 'Legumes (Lentils / Chickpeas)');
+  if (/علف|بقوليات خضراء|engrais_vert|fourrage|forage|green manure/i.test(clean)) return t('crops.engrais_vert', {}, 'Forage & Green Manure');
+  if (/راحة|مغطاة|jachere|fallow|cover/i.test(clean)) return t('crops.jachere', {}, 'Active Cover Fallow');
+  if (/فول|feve|faba/i.test(clean)) return t('crops.feve', {}, 'Faba Bean');
+  if (/لوزيرن|luzerne|alfalfa/i.test(clean)) return t('crops.luzerne', {}, 'Alfalfa');
+  if (/شوفان|خرطال|avoine|oat/i.test(clean)) return t('crops.avoine', {}, 'Oats');
+  if (/عباد|نوار.*شمس|tournesol|sunflower/i.test(clean)) return t('crops.tournesol', {}, 'Sunflower');
+  if (/كولزا|colza|canola/i.test(clean)) return t('crops.colza', {}, 'Canola');
+
+  return slug ? t(`crops.${slug}`, {}, clean) : clean;
+}
+
 export default function RotationSimulationModal({
   isOpen,
   onClose,
@@ -41,6 +70,20 @@ export default function RotationSimulationModal({
       setActiveYear(selectedYear);
     }
   }, [selectedYear]);
+
+  // Dynamically adapt default crop to the clicked geographic terroir
+  useEffect(() => {
+    if (locationData?.country_code) {
+      const code = locationData.country_code.toLowerCase();
+      if (code === 'us' || code === 'ca' || code === 'br' || code === 'ar') {
+        setActivePrimaryCereal('mais');
+      } else if (code === 'fr' || code === 'de' || code === 'gb' || code === 'pl' || code === 'ua') {
+        setActivePrimaryCereal('ble_tendre');
+      } else if (code === 'es' || code === 'ma' || code === 'dz' || code === 'tn' || code === 'it' || code === 'eg') {
+        setActivePrimaryCereal('ble_dur');
+      }
+    }
+  }, [locationData]);
 
   if (!isOpen) return null;
 
@@ -191,9 +234,14 @@ export default function RotationSimulationModal({
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
               >
-                <option value="ble_dur">{t('options.cereals.ble_dur', {}, 'Durum Wheat (Blé Dur)')}</option>
-                <option value="ble_tendre">{t('options.cereals.ble_tendre', {}, 'Bread Wheat (Blé Tendre)')}</option>
-                <option value="orge">{t('options.cereals.orge', {}, 'Barley (Orge)')}</option>
+                <option value="ble_dur">{t('options.cereals.ble_dur', {}, 'Durum Wheat')}</option>
+                <option value="ble_tendre">{t('options.cereals.ble_tendre', {}, 'Bread Wheat')}</option>
+                <option value="orge">{t('options.cereals.orge', {}, 'Barley')}</option>
+                <option value="mais">{t('options.cereals.mais', {}, 'Corn / Maize')}</option>
+                <option value="tournesol">{t('options.cereals.tournesol', {}, 'Sunflower')}</option>
+                <option value="soja">{t('options.cereals.soja', {}, 'Soybean')}</option>
+                <option value="colza">{t('options.cereals.colza', {}, 'Canola / Rapeseed')}</option>
+                <option value="avoine">{t('options.cereals.avoine', {}, 'Oats')}</option>
               </select>
             </div>
 
@@ -208,11 +256,11 @@ export default function RotationSimulationModal({
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
               >
-                <option value="limoneux_profond">{t('options.soil.limoneux_profond', {}, 'Deep Loam')}</option>
+                <option value="limoneux_profond">{t('options.soil.limoneux_profond', {}, 'Deep Fertile Loam')}</option>
                 <option value="argilo_limoneux">{t('options.soil.argilo_limoneux', {}, 'Clay Loam')}</option>
                 <option value="sablonneux">{t('options.soil.sablonneux', {}, 'Sandy Loam')}</option>
                 <option value="argileux_lourd">{t('options.soil.argileux_lourd', {}, 'Heavy Clay')}</option>
-                <option value="sableux">{t('options.soil.sableux', {}, 'Sandy Loam')}</option>
+                <option value="sableux">{t('options.soil.sableux', {}, 'Sandy Soil')}</option>
                 <option value="calcaire">{t('options.soil.calcaire', {}, 'Calcareous Soil')}</option>
               </select>
             </div>
@@ -228,9 +276,9 @@ export default function RotationSimulationModal({
                 disabled={isLoading}
                 className="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-200 font-mono focus:border-cyan-400 outline-none"
               >
-                <option value="appoint">{t('options.water.appoint', {}, 'Supplementary (Appoint)')}</option>
-                <option value="bour_strict">{t('options.water.bour_strict', {}, 'Rainfed (Bour)')}</option>
-                <option value="bour">{t('options.water.bour', {}, 'Rainfed (Bour)')}</option>
+                <option value="appoint">{t('options.water.appoint', {}, 'Supplementary Irrigation')}</option>
+                <option value="bour_strict">{t('options.water.bour_strict', {}, 'Rainfed')}</option>
+                <option value="bour">{t('options.water.bour', {}, 'Rainfed')}</option>
                 <option value="irrigue_total">{t('options.water.irrigue_total', {}, 'Full Irrigation')}</option>
                 <option value="irrigue">{t('options.water.irrigue', {}, 'Full Irrigation')}</option>
               </select>
@@ -260,7 +308,7 @@ export default function RotationSimulationModal({
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <TbCloudOff className="w-3 h-3" /> {t('options.shocks.drought_30pct', {}, 'Drought -30%')}
+                  <TbCloudOff className="w-3 h-3" /> {t('options.shocks.drought_30pct', {}, 'Severe Drought (-30%)')}
                 </button>
                 <button
                   type="button"
@@ -271,7 +319,7 @@ export default function RotationSimulationModal({
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <TbFlame className="w-3 h-3" /> {t('options.shocks.heatwave_early_spring', {}, 'Heatwave')}
+                  <TbFlame className="w-3 h-3" /> {t('options.shocks.heatwave_early_spring', {}, 'Heatwave (+3.5°C)')}
                 </button>
                 <button
                   type="button"
@@ -426,18 +474,14 @@ export default function RotationSimulationModal({
                     const isSelected = plan.id === currentSelectedPlan?.id;
 
                     const primaryTitle =
-                      language === 'ar'
+                      plan.name_localized ||
+                      (language === 'ar'
                         ? (plan.name_ar || plan.name_fr || plan.name)
                         : language === 'fr'
                         ? (plan.name_fr || plan.name)
                         : language === 'es'
                         ? (plan.name_es || plan.name_fr || plan.name)
-                        : (plan.name_en || plan.name_fr || plan.name);
-
-                    const secondaryTitle =
-                      language === 'ar'
-                        ? plan.name_fr
-                        : (plan.name_ar || plan.name_fr);
+                        : (plan.name_en || plan.name_fr || plan.name));
 
                     const localizedSummary =
                       plan.summary_localized ||
@@ -471,18 +515,12 @@ export default function RotationSimulationModal({
                           {/* Plan Titles */}
                           <div className="mb-3">
                             <h3 className="font-bold text-sm text-zinc-100">{primaryTitle}</h3>
-                            {secondaryTitle && secondaryTitle !== primaryTitle && (
-                              <h4 className="text-xs font-medium text-emerald-400/90 font-mono mt-0.5">
-                                {secondaryTitle}
-                              </h4>
-                            )}
                           </div>
 
                           {/* Crop Sequence Pills */}
                           <div className="flex flex-wrap gap-1.5 mb-4">
                             {plan.rotation_sequence?.map((crop, idx) => {
-                              const cropSlug = crop.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-                              const translatedCrop = t(`crops.${cropSlug}`, {}, crop);
+                              const translatedCrop = resolveCropName(crop, t);
                               return (
                                 <span
                                   key={idx}

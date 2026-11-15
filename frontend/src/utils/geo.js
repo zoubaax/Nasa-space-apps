@@ -358,7 +358,7 @@ export async function simulateCropRotation(location, options = {}) {
  * Fetch dynamic AI Darija explanation for an individual NASA satellite variable
  * via GET /api/smap-gee/explain
  */
-export async function fetchVariableExplanation(variable, value, lat, lng, year = 2025) {
+export async function fetchVariableExplanation(variable, value, lat, lng, year = 2025, language = 'auto') {
   try {
     const params = new URLSearchParams({
       variable: String(variable),
@@ -367,6 +367,7 @@ export async function fetchVariableExplanation(variable, value, lat, lng, year =
     if (lat !== undefined && lat !== null) params.set('latitude', Number(lat).toFixed(4));
     if (lng !== undefined && lng !== null) params.set('longitude', Number(lng).toFixed(4));
     if (year) params.set('year', String(Number(year)));
+    if (language) params.set('language', language);
 
     const res = await fetch(`/api/smap-gee/explain?${params.toString()}`);
     if (!res.ok) {

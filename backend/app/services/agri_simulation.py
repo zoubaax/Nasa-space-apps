@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Hydrological soil physical properties (FAO-56 standard values)
 SOIL_PROFILES: dict[str, dict[str, Any]] = {
     "limoneux_profond": {
-        "label": "حمري (Limoneux profond fertile)",
+        "label": "طمي خصب عميق (Limon profond fertile)",
         "texture_fr": "Limon fin / Silt-loam",
         "theta_fc": 0.32,  # Field Capacity (m3/m3)
         "theta_wp": 0.17,  # Permanent Wilting Point (m3/m3)
@@ -45,7 +45,7 @@ SOIL_PROFILES: dict[str, dict[str, Any]] = {
         "fertility_bonus": 5.0,
     },
     "argileux_lourd": {
-        "label": "تيرس (Argileux lourd / Vertisol)",
+        "label": "طين ثقيل (Argileux lourd)",
         "texture_fr": "Argile lourde / Vertisol",
         "theta_fc": 0.38,
         "theta_wp": 0.20,
@@ -56,7 +56,7 @@ SOIL_PROFILES: dict[str, dict[str, Any]] = {
         "fertility_bonus": 10.0,
     },
     "sableux": {
-        "label": "رملية (Sableux filtrant)",
+        "label": "تربة رملية (Sableux filtrant)",
         "texture_fr": "Sable filtrant / Sandy loam",
         "theta_fc": 0.15,
         "theta_wp": 0.08,
@@ -67,7 +67,7 @@ SOIL_PROFILES: dict[str, dict[str, Any]] = {
         "fertility_bonus": -10.0,
     },
     "calcaire": {
-        "label": "كلسية بيضاء (Calcaire / Rendzine)",
+        "label": "تربة كلسية (Calcaire)",
         "texture_fr": "Calcaire / Rendzine",
         "theta_fc": 0.28,
         "theta_wp": 0.17,
@@ -82,17 +82,17 @@ SOIL_PROFILES: dict[str, dict[str, Any]] = {
 # Farmer water access infrastructure allowances
 WATER_ACCESS_FACTORS: dict[str, dict[str, Any]] = {
     "bour": {
-        "label": "بور كامل (Agriculture pluviale)",
+        "label": "زراعة مطرية (Agriculture pluviale)",
         "irrigation_allowance_mm": 0.0,
         "resilience_penalty": 10.0,
     },
     "appoint": {
-        "label": "ري تكميلي محدود (Irrigation d'appoint 60-90 mm)",
+        "label": "ري تكميلي (Irrigation d'appoint 60-90 mm)",
         "irrigation_allowance_mm": 75.0,
         "resilience_penalty": 0.0,
     },
     "irrigue": {
-        "label": "سقي متوفر / بئر (Irrigation pérenne)",
+        "label": "ري دائم (Irrigation pérenne)",
         "irrigation_allowance_mm": 220.0,
         "resilience_penalty": -10.0,
     },
@@ -101,28 +101,28 @@ WATER_ACCESS_FACTORS: dict[str, dict[str, Any]] = {
 # Physical climate shock configurations
 CLIMATE_SHOCK_CONFIG: dict[str, dict[str, Any]] = {
     "none": {
-        "label": "الطقس الطبيعي المسجل",
+        "label": "الطقس المرجعي المسجل",
         "precip_mult": 1.0,
         "sm_mult": 1.0,
         "et_mult": 1.0,
         "heat_shock_stress": 0.0,
     },
     "drought": {
-        "label": "هجوم الجفاف الحاد (-40% تساقطات)",
+        "label": "جفاف حاد (-40% تساقطات)",
         "precip_mult": 0.60,
         "sm_mult": 0.70,
         "et_mult": 1.10,
         "heat_shock_stress": 0.0,
     },
     "heatwave": {
-        "label": "هجوم موجة الحر والشرقي (+4°C في فترة التزهير)",
+        "label": "موجة حرارة مبكرة (+4°C في فترة التزهير)",
         "precip_mult": 0.90,
         "sm_mult": 0.80,
         "et_mult": 1.30,
         "heat_shock_stress": 12.0,
     },
     "delayed_rain": {
-        "label": "هجوم تأخر شتا الخريف (جفاف مهد البذر في أكتوبر-نوفمبر)",
+        "label": "تأخر أمطار بداية الموسم",
         "precip_mult": 0.75,
         "sm_mult": 0.65,
         "et_mult": 1.05,
@@ -136,6 +136,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "id": "ble_dur",
         "name_fr": "Blé Dur Marocain",
         "name_ar": "القمح الصلب",
+        "name_en": "Durum Wheat",
         "end_month_day": "0520",
         "cycle_days": 187,
         "kc_mid": 1.15,
@@ -145,6 +146,7 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "id": "ble_tendre",
         "name_fr": "Blé Tendre (Farine)",
         "name_ar": "القمح الطري (الفرينة)",
+        "name_en": "Bread Wheat",
         "end_month_day": "0515",
         "cycle_days": 182,
         "kc_mid": 1.15,
@@ -154,8 +156,59 @@ PRIMARY_CEREAL_CONFIGS: dict[str, dict[str, Any]] = {
         "id": "orge",
         "name_fr": "Orge Résistante",
         "name_ar": "الشعير المقاوم",
+        "name_en": "Resilient Barley",
         "end_month_day": "0425",
         "cycle_days": 162,
+        "kc_mid": 1.05,
+        "kc_end": 0.25,
+    },
+    "mais": {
+        "id": "mais",
+        "name_fr": "Maïs Grain",
+        "name_ar": "الذرة",
+        "name_en": "Corn / Maize",
+        "end_month_day": "0830",
+        "cycle_days": 130,
+        "kc_mid": 1.20,
+        "kc_end": 0.35,
+    },
+    "tournesol": {
+        "id": "tournesol",
+        "name_fr": "Tournesol",
+        "name_ar": "عباد الشمس",
+        "name_en": "Sunflower",
+        "end_month_day": "0725",
+        "cycle_days": 120,
+        "kc_mid": 1.10,
+        "kc_end": 0.35,
+    },
+    "soja": {
+        "id": "soja",
+        "name_fr": "Soja",
+        "name_ar": "فول الصويا",
+        "name_en": "Soybean",
+        "end_month_day": "0915",
+        "cycle_days": 125,
+        "kc_mid": 1.15,
+        "kc_end": 0.50,
+    },
+    "colza": {
+        "id": "colza",
+        "name_fr": "Colza",
+        "name_ar": "الكولزا",
+        "name_en": "Canola / Rapeseed",
+        "end_month_day": "0525",
+        "cycle_days": 175,
+        "kc_mid": 1.10,
+        "kc_end": 0.35,
+    },
+    "avoine": {
+        "id": "avoine",
+        "name_fr": "Avoine",
+        "name_ar": "الخرطال / الشوفان",
+        "name_en": "Oats",
+        "end_month_day": "0510",
+        "cycle_days": 150,
         "kc_mid": 1.05,
         "kc_end": 0.25,
     },
@@ -1049,6 +1102,7 @@ class AgriSimulationService:
         cereal_cfg = PRIMARY_CEREAL_CONFIGS.get(cereal_key, PRIMARY_CEREAL_CONFIGS["ble_dur"])
         cereal_name_ar = cereal_cfg["name_ar"]
         cereal_name_fr = cereal_cfg["name_fr"]
+        cereal_name_en = cereal_cfg.get("name_en", "Durum Wheat")
         cereal_end_md = cereal_cfg["end_month_day"]
 
         # PLAN 1: Monoculture Céréalière de Blé
@@ -1121,6 +1175,8 @@ class AgriSimulationService:
             id="plan_monoculture",
             name_fr=f"Plan 1 : Monoculture de {cereal_name_fr} Annuel",
             name_ar=f"الخطة 1 : زراعة {cereal_name_ar} كل عام (Monoculture)",
+            name_en=f"Plan 1: Continuous {cereal_name_en} Monoculture",
+            name_localized=f"Plan 1: Continuous {cereal_name_en} Monoculture",
             rotation_sequence=[cereal_name_ar, cereal_name_ar, cereal_name_ar],
             water_need_mm=water_need_p1,
             water_deficit_mm=deficit_p1,
@@ -1216,6 +1272,8 @@ class AgriSimulationService:
             id="plan_rotation_triennale",
             name_fr=f"Plan 2 : Rotation Triennale Résiliente ({cereal_name_fr} - Légumineuses - Orge)",
             name_ar=f"الخطة 2 : دورة ثلاثية متوازنة ({cereal_name_ar} - قطاني/عدس - شعير)",
+            name_en=f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)",
+            name_localized=f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)",
             rotation_sequence=[f"{cereal_name_ar} (سنة 1)", "القطاني / العدس / الحمص (سنة 2)", "الشعير المقاوم (سنة 3)"],
             water_need_mm=water_need_p2,
             water_deficit_mm=deficit_p2,
@@ -1316,6 +1374,8 @@ class AgriSimulationService:
             id="plan_agroecologie",
             name_fr="Plan 3 : Système Économe en Eau & Couvert Végétal",
             name_ar="الخطة 3 : نظام بيئي مقتصد فالماء وغطاء نباتي",
+            name_en="Plan 3: Water-Efficient Agroecological & Cover-Crop System",
+            name_localized="Plan 3: Water-Efficient Agroecological & Cover-Crop System",
             rotation_sequence=[cereal_name_ar, "علف وبقوليات خضراء", "راحة نشطة ومغطاة"],
             water_need_mm=water_need_p3,
             water_deficit_mm=deficit_p3,
@@ -1445,8 +1505,11 @@ class AgriSimulationService:
         evap_saved_p3 = round(p1.water_need_mm - p3.water_need_mm, 1)
         deficit_saved_p3 = round(p1.water_deficit_mm - p3.water_deficit_mm, 1)
 
-        cereal_p1_name = p1.rotation_sequence[0] if p1.rotation_sequence else "الحبوب"
-        cereal_p1_fr = p1.name_fr or "Céréale"
+        cereal_key = getattr(request, "primary_cereal", "ble_dur")
+        cereal_cfg = PRIMARY_CEREAL_CONFIGS.get(cereal_key, PRIMARY_CEREAL_CONFIGS["ble_dur"])
+        cereal_name_en = cereal_cfg.get("name_en", "Durum Wheat")
+        cereal_p1_fr = cereal_cfg.get("name_fr", "Blé Dur")
+        cereal_p1_name = p1.rotation_sequence[0] if p1.rotation_sequence else cereal_cfg.get("name_ar", "الحبوب")
 
         # 2. Localized personas and deterministic evidence anchors
         if detected_language == "fr":
@@ -1620,6 +1683,9 @@ class AgriSimulationService:
                 f"is strictly validated with 0.0 mm mass balance error."
             )
 
+            p1.name_localized = f"Plan 1: Continuous {cereal_name_en} Monoculture"
+            p1.name_en = p1.name_localized
+            p1.rotation_sequence = [cereal_name_en, cereal_name_en, cereal_name_en]
             p1.summary_localized = (
                 f"Demands {p1.water_need_mm} mm in evaporative demand (ETc). In dry years, water stress risk rises to {p1.water_stress_risk_pct}% "
                 f"with gradual soil degradation due to continuous monoculture."
@@ -1628,6 +1694,9 @@ class AgriSimulationService:
             p1.pros = ["Familiar crop with direct market access", "Direct revenue in high rainfall seasons"]
             p1.cons = ["Soil nutrient depletion and reduced organic matter", "High vulnerability to heatwaves and severe drought", "Elevated fungicide and fertilizer input expenses"]
 
+            p2.name_localized = f"Plan 2: Resilient Triennial Rotation ({cereal_name_en} - Legumes - Barley)"
+            p2.name_en = p2.name_localized
+            p2.rotation_sequence = [cereal_name_en, "Legumes (Lentils / Chickpeas)", "Resilient Barley"]
             p2.summary_localized = (
                 f"Balanced triennial rotation reducing mean crop water demand to {p2.water_need_mm} mm/year. "
                 f"Supplies symbiotic nitrogen and provides high resilience to drought spells."
@@ -1641,6 +1710,9 @@ class AgriSimulationService:
             ]
             p2.cons = ["Legume market price subject to seasonal market fluctuations"]
 
+            p3.name_localized = "Plan 3: Water-Efficient Agroecological & Cover-Crop System"
+            p3.name_en = p3.name_localized
+            p3.rotation_sequence = [cereal_name_en, "Forage & Green Manure", "Active Cover Fallow"]
             p3.summary_localized = (
                 f"Protective agroecological strategy curbing water demand to {p3.water_need_mm} mm with maximum resilience ({p3.resilience_score}/100) "
                 f"for downside risk protection."
@@ -1765,21 +1837,21 @@ class AgriSimulationService:
                     "- If in a Francophone country/region: use agronomic French.\n"
                     "- If in a Spanish-speaking country: use agricultural Spanish.\n"
                     "- If in an Arab country outside Morocco: use Modern Standard Arabic.\n"
-                    "- For all other international locations: use professional agricultural English.\n"
+                    "- For all other international locations: use the primary local native language of that country (e.g. Japanese in Japan, German in Germany, Turkish in Turkey, Portuguese in Brazil, etc., or English if English-speaking or requested).\n"
                     f"Target Language: {detected_language.upper()}\n\n"
                     "Return ONLY a JSON object with this exact structure:\n"
                     "{\n"
                     f'  "detected_language": "{detected_language}",\n'
                     '  "tribunal_agents": {\n'
-                    '    "climate_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing the heat & rain numbers"},\n'
-                    '    "hydrology_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing SMAP rootzone moisture vs wilting point and water budget"},\n'
-                    '    "agronomist_agent": {"stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing crop rotation, root disease break, and nitrogen fixation"},\n'
-                    '    "guardrail_agent": {"stance": "favorable"|"reserve", "argument": "2 sentences auditing mass balance and confirming zero mathematical error"}\n'
+                    '    "climate_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing the heat & rain numbers"},\n'
+                    '    "hydrology_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing SMAP rootzone moisture vs wilting point and water budget"},\n'
+                    '    "agronomist_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing crop rotation, root disease break, and nitrogen fixation"},\n'
+                    '    "guardrail_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve", "argument": "2 sentences auditing mass balance and confirming zero mathematical error"}\n'
                     '  },\n'
                     '  "plan_summaries": {\n'
-                    '    "plan_1": {"summary": "2-3 sentences explaining monoculture risks given the NASA rainfall and heat", "pros": ["pro 1", "pro 2"], "cons": ["con 1", "con 2"]},\n'
-                    '    "plan_2": {"summary": "2-3 sentences explaining triennial legume benefits citing water savings and nitrogen", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]},\n'
-                    '    "plan_3": {"summary": "2-3 sentences explaining agroecology/cover benefits for drought safety", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]}\n'
+                    '    "plan_1": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining monoculture risks given the NASA rainfall and heat", "pros": ["pro 1", "pro 2"], "cons": ["con 1", "con 2"]},\n'
+                    '    "plan_2": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining triennial legume benefits citing water savings and nitrogen", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]},\n'
+                    '    "plan_3": {"name": "Localized Strategy Title", "summary": "2-3 sentences explaining agroecology/cover benefits for drought safety", "pros": ["pro 1", "pro 2"], "cons": ["con 1"]}\n'
                     '  },\n'
                     '  "overall_synthesis": "A rich structured decision synthesis comparing the winning plan against monoculture citing exact NASA mm and m3/ha savings and practical guidance for the farmer."\n'
                     "}"
@@ -1839,15 +1911,31 @@ class AgriSimulationService:
                                     aa = ta.get("agronomist_agent", {})
                                     ga = ta.get("guardrail_agent", {})
 
+                                    if ca.get("role"):
+                                        role_clim = str(ca["role"])
+                                    if ca.get("name"):
+                                        name_clim = str(ca["name"])
                                     clim_stance = ca.get("stance", clim_stance)
                                     clim_arg = ca.get("argument") or ca.get("argument_darija", clim_arg)
 
+                                    if ha.get("role"):
+                                        role_hydro = str(ha["role"])
+                                    if ha.get("name"):
+                                        name_hydro = str(ha["name"])
                                     hydro_stance = ha.get("stance", hydro_stance)
                                     hydro_arg = ha.get("argument") or ha.get("argument_darija", hydro_arg)
 
+                                    if aa.get("role"):
+                                        role_agro = str(aa["role"])
+                                    if aa.get("name"):
+                                        name_agro = str(aa["name"])
                                     agro_stance = aa.get("stance", agro_stance)
                                     agro_arg = aa.get("argument") or aa.get("argument_darija", agro_arg)
 
+                                    if ga.get("role"):
+                                        role_guard = str(ga["role"])
+                                    if ga.get("name"):
+                                        name_guard = str(ga["name"])
                                     guard_stance = ga.get("stance", guard_stance)
                                     guard_arg = ga.get("argument") or ga.get("argument_darija", guard_arg)
 
@@ -1858,6 +1946,8 @@ class AgriSimulationService:
                                     p2_data = ps.get("plan_2", {})
                                     p3_data = ps.get("plan_3", {})
 
+                                    if p1_data.get("name"):
+                                        p1.name_localized = str(p1_data["name"])
                                     p1_sum = p1_data.get("summary") or p1_data.get("summary_darija")
                                     if p1_sum:
                                         p1.summary_localized = p1_sum
@@ -1867,6 +1957,8 @@ class AgriSimulationService:
                                     if isinstance(p1_data.get("cons"), list) and p1_data["cons"]:
                                         p1.cons = [str(x) for x in p1_data["cons"][:4]]
 
+                                    if p2_data.get("name"):
+                                        p2.name_localized = str(p2_data["name"])
                                     p2_sum = p2_data.get("summary") or p2_data.get("summary_darija")
                                     if p2_sum:
                                         p2.summary_localized = p2_sum
@@ -1876,6 +1968,8 @@ class AgriSimulationService:
                                     if isinstance(p2_data.get("cons"), list) and p2_data["cons"]:
                                         p2.cons = [str(x) for x in p2_data["cons"][:3]]
 
+                                    if p3_data.get("name"):
+                                        p3.name_localized = str(p3_data["name"])
                                     p3_sum = p3_data.get("summary") or p3_data.get("summary_darija")
                                     if p3_sum:
                                         p3.summary_localized = p3_sum
