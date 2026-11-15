@@ -561,7 +561,7 @@ export default function RotationSimulationModal({
                               return (
                                 <span
                                   key={idx}
-                                  className="px-2 py-0.5 rounded-md bg-zinc-800/90 border border-zinc-700 text-[11px] font-mono text-zinc-300"
+                                  className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700/80 text-[11px] font-sans font-medium text-zinc-200 tracking-normal shadow-sm"
                                 >
                                   {idx + 1}. {translatedCrop}
                                 </span>
@@ -765,8 +765,11 @@ export default function RotationSimulationModal({
                   ))}
                 </div>
                 <div className="flex items-center gap-1.5 text-emerald-400/90 font-semibold" dir="ltr">
-                  <TbCpu className="w-3.5 h-3.5" />
-                  <span>{t('simulation.massBalanceResidual', {}, 'Physical Mass Balance Residual:')} {formattedResidual}</span>
+                  <TbCpu className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('simulation.massBalanceResidual', {}, 'Physical Mass Balance Residual:')}</span>
+                  <bdi className="font-mono text-emerald-300 ml-1 px-1.5 py-0.5 rounded bg-zinc-800/80 border border-emerald-500/20" dir="ltr">
+                    {formattedResidual}
+                  </bdi>
                 </div>
               </div>
             </>

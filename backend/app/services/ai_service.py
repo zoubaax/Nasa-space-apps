@@ -15,6 +15,7 @@ import httpx
 
 from app.core.config import Settings
 from app.models.ai import AiChatMessage, AiChatRequest, AiChatResponse, AiLocationContext
+from app.services.agents.orchestrator import OrchestratorService
 from app.services.ai_context import AiContextBuilder
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ class AiService:
     def __init__(self, settings: Settings, context_builder: AiContextBuilder) -> None:
         self._settings = settings
         self._context_builder = context_builder
+        self._orchestrator = OrchestratorService(settings)
         self._model = (
             f"fieldshift-ai-engine ({settings.gemini_model})"
             if settings.gemini_api_key
@@ -197,76 +199,35 @@ TARGET LANGUAGE: {detected_lang.upper()}
         }
 
     async def chat(self, request: AiChatRequest) -> AiChatResponse:
-        """Generate response grounded in real NASA observations."""
+        """Generate response grounded in real NASA observations via Multi-Agent Orchestrator."""
         dossier = await self._context_builder.build_ground_truth_dossier(request)
         lang = self.detect_language(request.message, request.language, request.location)
 
-        loc_country = getattr(request.location, "country", None)
-        if not loc_country and request.location.name and "," in request.location.name:
-            loc_country = request.location.name.split(",")[-1].strip()
-        if not loc_country:
-            lat = getattr(request.location, "latitude", 0.0)
-            lon = getattr(request.location, "longitude", 0.0)
-            if 21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0:
-                loc_country = "Morocco"
-
         if self.is_configured():
-            prompt = self._build_context_prompt(dossier, request.message, lang)
-            payload = self._build_gemini_payload(request, prompt)
-            
-            candidate_models = [self._settings.gemini_model]
-            for fallback_m in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-lite-latest"):
-                if fallback_m not in candidate_models:
-                    candidate_models.append(fallback_m)
-
-            for model_name in candidate_models:
-                url = (
-                    f"{self._settings.gemini_base_url}/models/"
-                    f"{model_name}:generateContent?key={self._settings.gemini_api_key}"
-                )
-                try:
-                    async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
-                        res = await client.post(url, json=payload)
-                        if res.status_code == 200:
-                            data = res.json()
-                            candidates = data.get("candidates", [])
-                            if candidates:
-                                parts = candidates[0].get("content", {}).get("parts", [])
-                                text = "".join(p.get("text", "") for p in parts)
-                                if text.strip():
-                                    return AiChatResponse(
-                                        reply=text.strip(),
-                                        sources_used=dossier.get("sources_used", []),
-                                        specialists_consulted=[
-                                            "NASA POWER Climate Specialist",
-                                            "NASA SMAP L4 Soil Moisture Specialist",
-                                            "Moroccan Agronomist (INRA/IAV)",
-                                            "Physical Guardrail Sentinel",
-                                        ],
-                                        data_evidence=self._extract_key_evidence(dossier),
-                                        validation_status="validated",
-                                        language_detected=lang,
-                                        farm_country=loc_country,
-                                        farm_language=lang,
-                                        confidence_score=0.98,
-                                        missing_data_warnings=[],
-                                        model=f"fieldshift-ai-engine ({model_name})",
-                                    )
-                        logger.warning("Gemini model %s returned status %s", model_name, res.status_code)
-                except Exception as exc:
-                    logger.warning("Gemini model %s call failed (%s)", model_name, exc)
+            try:
+                return await self._orchestrator.execute(request, dossier, lang)
+            except Exception as exc:
+                logger.warning("Multi-agent orchestrator execution error (%s), falling back", exc)
 
         return self._build_offline_fallback(request, dossier, lang)
 
     async def stream_chat(self, request: AiChatRequest) -> AsyncIterator[str]:
-        """Stream response chunks in real-time using Server-Sent Events (SSE)."""
+        """Stream response chunks in real-time using Multi-Agent SSE."""
         dossier = await self._context_builder.build_ground_truth_dossier(request)
         lang = self.detect_language(request.message, request.language, request.location)
 
-        # Emit initial metadata event
+        if self.is_configured():
+            try:
+                async for chunk in self._orchestrator.stream_execute(request, dossier, lang):
+                    yield chunk
+                return
+            except Exception as exc:
+                logger.warning("Multi-agent orchestrator streaming error (%s), falling back", exc)
+
+        # Fallback offline stream
         meta_event = {
             "event": "meta",
-            "sources_used": dossier.get("sources_used", []),
+            "sources_used": dossier.get("sources_used", ["NASA SMAP Level-4 SPL4SMGP V008 (~9-11 km)"]),
             "specialists": [
                 "NASA POWER Climate Specialist",
                 "NASA SMAP L4 Soil Moisture Specialist",
@@ -278,57 +239,8 @@ TARGET LANGUAGE: {detected_lang.upper()}
             "model": self._model,
         }
         yield f"data: {json.dumps(meta_event, ensure_ascii=False)}\n\n"
-
-        if not self.is_configured():
-            fallback = self._build_offline_fallback(request, dossier, lang)
-            yield f"data: {json.dumps({'event': 'delta', 'content': fallback.reply}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'event': 'done'}, ensure_ascii=False)}\n\n"
-            return
-
-        prompt = self._build_context_prompt(dossier, request.message, lang)
-        payload = self._build_gemini_payload(request, prompt)
-
-        streamed_any = False
-        candidate_models = [self._settings.gemini_model]
-        for fallback_m in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-flash-lite-latest"):
-            if fallback_m not in candidate_models:
-                candidate_models.append(fallback_m)
-
-        for model_name in candidate_models:
-            url = (
-                f"{self._settings.gemini_base_url}/models/"
-                f"{model_name}:streamGenerateContent?alt=sse&key={self._settings.gemini_api_key}"
-            )
-            try:
-                async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
-                    async with client.stream("POST", url, json=payload) as response:
-                        if response.status_code == 200:
-                            async for line in response.aiter_lines():
-                                if line.startswith("data:"):
-                                    line_str = line[5:].strip()
-                                    if not line_str:
-                                        continue
-                                    chunk_data = json.loads(line_str)
-                                    candidates = chunk_data.get("candidates", [])
-                                    if candidates:
-                                        parts = candidates[0].get("content", {}).get("parts", [])
-                                        chunk_text = "".join(p.get("text", "") for p in parts)
-                                        if chunk_text:
-                                            streamed_any = True
-                                            yield f"data: {json.dumps({'event': 'delta', 'content': chunk_text}, ensure_ascii=False)}\n\n"
-                            if streamed_any:
-                                break
-                        else:
-                            logger.warning("Gemini stream %s non-200 (%s)", model_name, response.status_code)
-            except Exception as exc:
-                logger.warning("Gemini streaming %s failed (%s)", model_name, exc)
-            if streamed_any:
-                break
-
-        if not streamed_any:
-            fallback = self._build_offline_fallback(request, dossier, lang)
-            yield f"data: {json.dumps({'event': 'delta', 'content': fallback.reply}, ensure_ascii=False)}\n\n"
-
+        fallback = self._build_offline_fallback(request, dossier, lang)
+        yield f"data: {json.dumps({'event': 'delta', 'content': fallback.reply}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'event': 'done'}, ensure_ascii=False)}\n\n"
 
     def _extract_key_evidence(self, dossier: dict[str, Any]) -> dict[str, Any]:

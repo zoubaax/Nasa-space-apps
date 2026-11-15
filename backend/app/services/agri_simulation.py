@@ -1884,7 +1884,7 @@ class AgriSimulationService:
                     '  "tribunal_agents": {\n'
                     '    "climate_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences strictly citing the real NASA heat & rain numbers"},\n'
                     '    "hydrology_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences strictly citing SMAP rootzone moisture vs wilting point and water budget"},\n'
-                    '    "agronomist_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing crop rotation, root disease break, and nitrogen fixation"},\n'
+                    '    "agronomist_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve"|"defavorable", "argument": "2-3 dynamic sentences analyzing crop rotation, root disease break, and nitrogen fixation. NOTE: stance MUST evaluate whether the recommended winning plan is favorable, reserved, or defavorable, and MUST logically match your argument"},\n'
                     '    "guardrail_agent": {"role": "Localized Role Title", "name": "Localized Agent Name", "stance": "favorable"|"reserve", "argument": "2 sentences auditing mass balance and confirming zero mathematical error"}\n'
                     '  },\n'
                     '  "plan_summaries": {\n'
@@ -1988,6 +1988,9 @@ class AgriSimulationService:
                                         name_agro = str(aa["name"])
                                     agro_stance = aa.get("stance", agro_stance)
                                     agro_arg = aa.get("argument") or aa.get("argument_darija", agro_arg)
+                                    # Ensure logical consistency: if the argument endorses the winning rotation, stance cannot be defavorable
+                                    if agro_stance == "defavorable" and any(w in (agro_arg or "") for w in ("ممتاز", "تستجيب", "يكسر دورة", "يثبت", "مستدام", "أفضل", "favorable", "excellent")):
+                                        agro_stance = "favorable"
 
                                     if ga.get("role"):
                                         role_guard = str(ga["role"])
