@@ -16,7 +16,7 @@ class SoilSpecialistAgent(BaseAgent):
     """Specialist sub-agent dedicated to NASA SMAP Level-4 satellite radar assimilation."""
 
     agent_id = "soil_specialist"
-    agent_name = "أخصائي التربة والمياه (NASA SMAP L4)"
+    agent_name = "Soil Specialist (NASA SMAP L4)"
     avatar = "💧"
     role = AgentRole.SOIL_SPECIALIST
 

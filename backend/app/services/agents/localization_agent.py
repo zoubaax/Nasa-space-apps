@@ -17,7 +17,7 @@ class LocalizationSpecialistAgent(BaseAgent):
     """Specialist sub-agent ensuring natural, culturally authentic agricultural phrasing."""
 
     agent_id = "localizer"
-    agent_name = "خبير الصياغة والدارجة الفلاحية (Localization)"
+    agent_name = "Localization Specialist"
     avatar = "🗣️"
     role = AgentRole.LOCALIZER
 

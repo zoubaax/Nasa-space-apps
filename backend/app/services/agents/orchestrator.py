@@ -139,7 +139,7 @@ class OrchestratorService:
         ])
         in_situ = dossier.get("in_situ_sensor", {})
         if in_situ.get("is_connected"):
-            specialists_consulted.append("مجس التربة الميداني ESP32 (GPIO34)")
+            specialists_consulted.append("In-Situ ESP32 Probe (GPIO34)")
 
         # Step 1: Parallel Fan-Out (Climate + Soil)
         clim_rep, soil_rep = await asyncio.gather(
@@ -270,7 +270,7 @@ class OrchestratorService:
             ])
             in_situ = dossier.get("in_situ_sensor", {})
             if in_situ.get("is_connected"):
-                specialists_consulted.append("مجس التربة الميداني ESP32 (GPIO34)")
+                specialists_consulted.append("In-Situ ESP32 Probe (GPIO34)")
                 sensor_msg = "فحص قراءات مجس التربة الميداني ESP32 (GPIO34)..." if is_ar else "Querying in-situ ESP32 soil probe (GPIO34)..."
                 yield f"data: {json.dumps({'event': 'agent_start', 'agent_id': 'sensor_specialist', 'message': sensor_msg})}\n\n"
 

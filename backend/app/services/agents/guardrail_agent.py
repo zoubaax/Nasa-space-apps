@@ -17,7 +17,7 @@ class GuardrailSentinelAgent(BaseAgent):
     """Deterministic scientific verification engine checking all claims against raw NASA observations."""
 
     agent_id = "guardrail_sentinel"
-    agent_name = "المحقق العلمي ومطابقة الأرقام (Evidence Guardrail)"
+    agent_name = "Evidence Guardrail Sentinel"
     avatar = "🛡️"
     role = AgentRole.GUARDRAIL_SENTINEL
 

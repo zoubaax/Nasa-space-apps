@@ -16,7 +16,7 @@ class AgronomySpecialistAgent(BaseAgent):
     """Specialist sub-agent translating NASA climate & soil physics into actionable agronomic practice."""
 
     agent_id = "agronomist"
-    agent_name = "الخبير الزراعي الميداني (FieldShift Agro)"
+    agent_name = "Agronomy Specialist (FieldShift Agro)"
     avatar = "👨‍🌾"
     role = AgentRole.AGRONOMIST
 

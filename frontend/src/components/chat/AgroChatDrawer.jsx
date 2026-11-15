@@ -694,18 +694,34 @@ I automatically adapt my answers to **${locationName}**'s terroir and language u
 
               {/* Specialists Consulted Badges for Assistant */}
               {msg.role === 'assistant' && msg.specialists_consulted && msg.specialists_consulted.length > 0 && (
-                <div className="pt-2 border-t border-zinc-800/60 flex flex-wrap items-center gap-1.5">
+                <div className="pt-2 border-t border-zinc-800/60 flex flex-wrap items-center gap-1.5" dir="ltr">
                   <span className="text-[10px] text-zinc-500 font-mono">
                     {t('chat.evidenceBy', {}, 'Grounded by:')}
                   </span>
-                  {msg.specialists_consulted.map((s, idx) => (
-                    <span
-                      key={idx}
-                      className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700/60"
-                    >
-                      {s}
-                    </span>
-                  ))}
+                  {msg.specialists_consulted.map((s, idx) => {
+                    const labelMap = {
+                      orchestrator: 'SI Orchestrator',
+                      climate_specialist: 'Climate Specialist (NASA POWER)',
+                      soil_specialist: 'Soil Specialist (NASA SMAP L4)',
+                      agronomist: 'Agronomy Specialist (FieldShift Agro)',
+                      guardrail_sentinel: 'Evidence Guardrail Sentinel',
+                      localizer: 'Localization Specialist',
+                      sensor_specialist: 'In-Situ ESP32 Probe (GPIO34)',
+                      'خبير المناخ والأرصاد (NASA POWER)': 'Climate Specialist (NASA POWER)',
+                      'أخصائي التربة والمياه (NASA SMAP L4)': 'Soil Specialist (NASA SMAP L4)',
+                      'الخبير الزراعي الميداني (FieldShift Agro)': 'Agronomy Specialist (FieldShift Agro)',
+                      'المحقق العلمي ومطابقة الأرقام (Evidence Guardrail)': 'Evidence Guardrail Sentinel',
+                      'مجس التربة الميداني ESP32 (GPIO34)': 'In-Situ ESP32 Probe (GPIO34)',
+                    };
+                    return (
+                      <span
+                        key={idx}
+                        className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700/60"
+                      >
+                        {labelMap[s] || s}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
 

@@ -16,7 +16,7 @@ class ClimateSpecialistAgent(BaseAgent):
     """Specialist sub-agent dedicated to NASA POWER atmospheric agroclimatology."""
 
     agent_id = "climate_specialist"
-    agent_name = "خبير المناخ والأرصاد (NASA POWER)"
+    agent_name = "Climate Specialist (NASA POWER)"
     avatar = "🌦️"
     role = AgentRole.CLIMATE_SPECIALIST
 
