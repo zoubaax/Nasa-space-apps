@@ -44,8 +44,8 @@ export default function MissionHUD({
         className="pointer-events-auto flex items-center justify-between gap-3 px-3.5 sm:px-4 py-2 sm:py-3 rounded-2xl bg-[#0b0e14]/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl text-zinc-100 cursor-pointer sm:cursor-default"
       >
         <div className="flex items-center gap-2.5 sm:gap-3.5">
-          <div className="flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-zinc-900 border border-zinc-700/60 text-zinc-200 shrink-0 shadow-inner">
-            <Globe className={`w-4 h-4 sm:w-5 sm:h-5 ${isFlying ? 'animate-spin' : ''}`} />
+          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-zinc-950/80 border border-zinc-700/60 p-1 shrink-0 shadow-inner">
+            <img src="/logo.png" alt="Farmer Eye" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2">

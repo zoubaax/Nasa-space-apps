@@ -134,10 +134,17 @@ export default function CinematicHeroOverlay({ onFlyToLocation, onEnterExperienc
           </span>
         </div>
 
-        {/* Hero Headline */}
-        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-normal tracking-tight text-white leading-none drop-shadow-[0_4px_30px_rgba(0,0,0,0.85)]">
-          {t('hero.title', {}, 'Farmer Eye')}
-        </h1>
+        {/* Hero Headline with Official Logo */}
+        <div className="flex items-center gap-3.5 sm:gap-5">
+          <img
+            src="/logo.png"
+            alt="Farmer Eye Logo"
+            className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain filter drop-shadow-[0_8px_25px_rgba(16,185,129,0.35)] shrink-0 select-none pointer-events-none"
+          />
+          <h1 className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-normal tracking-tight text-white leading-none drop-shadow-[0_4px_30px_rgba(0,0,0,0.85)]">
+            {t('hero.title', {}, 'Farmer Eye')}
+          </h1>
+        </div>
 
         {/* Subtitle */}
         <p className="font-display italic text-xl sm:text-2xl md:text-3xl text-zinc-300 font-light mt-2 sm:mt-3 tracking-wide drop-shadow-[0_2px_15px_rgba(0,0,0,0.85)]">
