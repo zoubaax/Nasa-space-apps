@@ -314,7 +314,7 @@ export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate,
 }
 
 /**
- * Execute a multi-plan digital twin simulation via POST /api/ai/simulate
+ * Execute a multi-plan digital twin simulation via POST /api/si/simulate
  */
 export async function simulateCropRotation(location, options = {}) {
   const payload = {
@@ -333,7 +333,7 @@ export async function simulateCropRotation(location, options = {}) {
     language_override: options.language_override || options.language || 'auto',
   };
 
-  const res = await fetch('/api/ai/simulate', {
+  const res = await fetch('/api/si/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

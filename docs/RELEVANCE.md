@@ -1,6 +1,7 @@
 # Farmer's Eye — Evaluation Criterion 4: RELEVANCE
+
 > **Competition:** 2026 NASA Space Apps Challenge  
-> **Challenge Track:** *Field Shift: Adapting Farms with NASA Data*  
+> **Challenge Track:** _Field Shift: Adapting Farms with NASA Data_  
 > **Judging Dimension:** **RELEVANCE & NASA DATA UTILIZATION** (20% of Global Score)  
 > **Live Documentation Portal:** [https://nasa-docs.vercel.app/](https://nasa-docs.vercel.app/)  
 > **Status:** ✅ **End-to-End Ingestion, Assimilation & Actionable Grounding of NASA Earth Observations**
@@ -10,7 +11,8 @@
 ## 1. Challenge Alignment: Direct Answer to "Field Shift"
 
 The 2026 NASA Space Apps Challenge prompt, **"Field Shift: Adapting Farms with NASA Data,"** challenges solvers to:
-> *"Develop a tool that uses NASA Earth observation data to help farmers understand how climate shifts impact their land, and empower them to adapt cropping choices, management strategies, and field operations."*
+
+> _"Develop a tool that uses NASA Earth observation data to help farmers understand how climate shifts impact their land, and empower them to adapt cropping choices, management strategies, and field operations."_
 
 **Farmer's Eye** was conceived and engineered specifically for this mandate. Rather than treating NASA data as a decorative background map or generic dashboard widget, Farmer's Eye feeds raw NASA observations directly into its daily agro-hydrological physics engine to drive decisive cropping shifts:
 
@@ -75,30 +77,45 @@ Farmer's Eye assimilates three primary NASA Earth Science data products, plus NA
 ---
 
 ### 2.1 NASA SMAP Level-4 (SPL4SMGP V008)
-* **What it is:** The SMAP Level-4 Global 3-hourly $9\text{ km}$ EASE-Grid Surface and Root-Zone Soil Moisture Geophysical Data product merges L-band microwave observations with the NASA Catchment land surface model using an Ensemble Kalman Filter (EnKF).
-* **Role in Farmer's Eye:** 
+
+- **What it is:** The SMAP Level-4 Global 3-hourly $9\text{ km}$ EASE-Grid Surface and Root-Zone Soil Moisture Geophysical Data product merges L-band microwave observations with the NASA Catchment land surface model using an Ensemble Kalman Filter (EnKF).
+- **Role in Farmer's Eye:**
   1. Supplies $0\text{--}100\text{ cm}$ root-zone volumetric soil moisture ($\text{m}^3/\text{m}^3$), which governs the initial moisture state ($D_{r,0}$) for all rotation simulations.
   2. Provides root-zone soil wetness degree ($0.0\text{--}1.0$), establishing the regional background drought baseline.
   3. Ingests biosphere variables including vegetation greenness fraction and Leaf Area Index ($LAI$) to validate crop growth progression.
 
 ### 2.2 NASA POWER Agroclimatology (Prediction of Worldwide Energy Resources)
-* **What it is:** A global synthesis combining NASA MERRA-2 atmospheric reanalysis with CERES satellite solar irradiance observations.
-* **Role in Farmer's Eye:**
+
+- **What it is:** A global synthesis combining NASA MERRA-2 atmospheric reanalysis with CERES satellite solar irradiance observations.
+- **Role in Farmer's Eye:**
   1. Supplies the exact daily meteorological inputs required by the FAO-56 Penman-Monteith equation ($T_{\min}, T_{\max}, R_n, RH, u_2$).
   2. Computes Growing Degree Days ($GDD$) with a $0^\circ\text{C}$ base temperature for cereal phenological tracking.
   3. Tracks extreme agro-climatic hazard indicators: heat stress days ($T_{\max} \ge 30^\circ\text{C}$), frost risk nights ($T_{\min} \le 2^\circ\text{C}$), and consecutive dry spells ($P < 1\text{ mm}$).
 
 ### 2.3 NASA GPM IMERG V07 (Global Precipitation Measurement)
-* **What it is:** Calibrated multi-satellite precipitation estimates from the GPM constellation.
-* **Role in Farmer's Eye:**
+
+- **What it is:** Calibrated multi-satellite precipitation estimates from the GPM constellation.
+- **Role in Farmer's Eye:**
   1. Provides independent rainfall accumulation checks against MERRA-2 bias-corrected precipitation.
   2. Ensures that intense convective Mediterranean storms are accurately captured rather than smoothed away.
+
+### 2.4 Official Endpoints & Verification URLs
+
+All datasets ingested by Farmer's Eye are 100% authentic, open NASA Earth Science assets queried via production endpoints:
+
+- **NASA POWER API:** `https://power.larc.nasa.gov/api/temporal/daily/point`
+- **NASA SMAP GEE Asset:** `NASA/SMAP/SPL4SMGP/008` ([Catalog Entry](https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008))
+- **NASA SMAP NSIDC DAAC:** [`https://doi.org/10.5067/129990F62DEE`](https://doi.org/10.5067/129990F62DEE)
+- **NASA CMR Granule Discovery:** `https://cmr.earthdata.nasa.gov/search/granules.json`
+- **NASA GPM IMERG GES DISC:** [`https://doi.org/10.5067/GPM/IMERGDF/DAY/07`](https://doi.org/10.5067/GPM/IMERGDF/DAY/07)
+- **Basemap Satellite Tiles:** `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`
+- **Live Documentation Portal:** [`https://nasa-docs.vercel.app/`](https://nasa-docs.vercel.app/)
 
 ---
 
 ## 3. The Two-Tier Spatial Integrity Rule: Honest Data Fusion
 
-Many hackathon entries make an irresponsible scientific claim: they claim to "measure" or "predict" moisture inside an individual farmer's furrow using a $9\text{ km}$ satellite pixel. 
+Many hackathon entries make an irresponsible scientific claim: they claim to "measure" or "predict" moisture inside an individual farmer's furrow using a $9\text{ km}$ satellite pixel.
 
 **Farmer's Eye rejects this false claim and implements a strict Two-Tier Spatial Provenance Architecture:**
 
@@ -127,21 +144,25 @@ flowchart TD
     style Tier2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
-* **Tier 1 (NASA Macro-Scale Context, 9 km):** Informs strategic long-term decisions—such as choosing whether next season's 3-year rotation should be a high-water monoculture or a drought-adapted triennale.
-* **Tier 2 (In-Situ Micro-Scale Truth, 15 cm):** Informs tactical near-term decisions—such as whether the topsoil is moist enough today for seedbed drilling.
-* The Farmer's Eye UI displays both tiers side-by-side with full transparency, explicitly teaching farmers the distinction between orbital macro-trends and field-level physics.
+- **Tier 1 (NASA Macro-Scale Context, 9 km):** Informs strategic long-term decisions—such as choosing whether next season's 3-year rotation should be a high-water monoculture or a drought-adapted triennale.
+- **Tier 2 (In-Situ Micro-Scale Truth, 15 cm):** Informs tactical near-term decisions—such as whether the topsoil is moist enough today for seedbed drilling.
+- The Farmer's Eye UI displays both tiers side-by-side with full transparency, explicitly teaching farmers the distinction between orbital macro-trends and field-level physics.
 
 ---
 
 ## 4. NASA Data Hygiene & Production-Grade Pipeline
 
 ### 4.1 Strict Missing Data Sentinel (-999 Fill Values)
+
 Raw NASA POWER records use `-999.0` or `-99.0` to denote sensor outages or missing records. Naive applications averaging these numbers produce disastrous erroneous calculations.
-* **The Rule in Farmer's Eye:** The ingestion pipeline in `NasaPowerService` strictly scans every variable; any `-999.0` value is quarantined, logged, and converted to `None / null`.
-* The downstream Penman-Monteith calculator handles missing values using adjacent day interpolation or standardized climatological averages, never passing uncleaned raw sentinels.
+
+- **The Rule in Farmer's Eye:** The ingestion pipeline in `NasaPowerService` strictly scans every variable; any `-999.0` value is quarantined, logged, and converted to `None / null`.
+- The downstream Penman-Monteith calculator handles missing values using adjacent day interpolation or standardized climatological averages, never passing uncleaned raw sentinels.
 
 ### 4.2 Two-Tier Data Architecture: Live REST API + Pre-Cached Fallback
+
 To ensure rural smallholders in areas with weak cellular coverage can use the platform smoothly, Farmer's Eye employs a resilient two-tier data architecture:
+
 1. **Live Direct Ingestion:** When connected, the backend queries the live NASA POWER REST API (`power.larc.nasa.gov`) in real time for any arbitrary coordinate on Earth.
 2. **Pre-Cached Spatial Polygons:** High-risk pilot farming regions (Saïss Plain / Meknès, Chaouia / Casablanca, Gharb / Tangier) have fully pre-cached, verified historical time series stored locally. If the external NASA API experiences latency, the UI instantly falls back to authenticated NASA historical archives without interrupting the farmer.
 

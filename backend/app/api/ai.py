@@ -16,6 +16,7 @@ from app.services.ai_service import AiService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+si_router = APIRouter(prefix="/api/si", tags=["si"])
 
 _ERROR_RESPONSES = {
     400: {"model": ErrorResponse},
@@ -109,5 +110,12 @@ async def simulate_endpoint(
     sim_service: AgriSimulationService = Depends(get_simulation_service),
 ) -> SimulationResponse:
     return await sim_service.run_simulation(request)
+
+
+# Register identical endpoints under /api/si (Super Intelligence)
+si_router.add_api_route("/chat", chat_endpoint, methods=["POST"], response_model=AiChatResponse, responses=_ERROR_RESPONSES)
+si_router.add_api_route("/chat/stream", chat_stream_endpoint, methods=["POST"], responses=_ERROR_RESPONSES)
+si_router.add_api_route("/health", ai_health, methods=["GET"], response_model=AiHealthStatus, responses=_ERROR_RESPONSES)
+si_router.add_api_route("/simulate", simulate_endpoint, methods=["POST"], response_model=SimulationResponse, responses=_ERROR_RESPONSES)
 
 

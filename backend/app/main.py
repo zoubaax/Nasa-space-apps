@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 
 from app import __version__
 from app.api.agro import router as agro_router
-from app.api.ai import router as ai_router
+from app.api.ai import router as ai_router, si_router
 from app.api.catalogue import router as catalogue_router
 from app.api.climate import router as climate_router
 from app.api.i18n import router as i18n_router
@@ -178,6 +178,7 @@ app.include_router(catalogue_router)
 app.include_router(agro_router)
 app.include_router(smap_gee_router)
 app.include_router(ai_router)
+app.include_router(si_router)
 app.include_router(i18n_router)
 app.include_router(sensors_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -327,7 +327,7 @@ I automatically adapt my answers to **${locationName}**'s terroir and language u
 
     try {
       // 1. Attempt Streaming SSE Endpoint (uses proxy)
-      const response = await fetch('/api/ai/chat/stream', {
+      const response = await fetch('/api/si/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -424,7 +424,7 @@ I automatically adapt my answers to **${locationName}**'s terroir and language u
 
       // Fallback: Synchronous POST
       try {
-        const fallbackRes = await fetch('/api/ai/chat', {
+        const fallbackRes = await fetch('/api/si/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

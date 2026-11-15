@@ -99,22 +99,85 @@ export default function EarthOrbitGlobe({
   const coordsRef = useRef(null);
   const altitudeRef = useRef(null);
 
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '/';
   const [isRotating, setIsRotating] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [environmentalData, setEnvironmentalData] = useState(null);
-  const [showTelemetryCard, setShowTelemetryCard] = useState(false);
+  const [showTelemetryCard, setShowTelemetryCard] = useState(
+    initialPath === '/analytics' || initialPath === '/telemetry'
+  );
   const [currentPitch, setCurrentPitch] = useState(0);
   const [selectedYear, setSelectedYear] = useState(2025);
-  const [isExperienceMode, setIsExperienceMode] = useState(false);
+  const [isExperienceMode, setIsExperienceMode] = useState(
+    ['/globe', '/explore', '/analytics', '/telemetry', '/simulation', '/lab', '/si', '/chat', '/ai'].includes(
+      initialPath
+    )
+  );
 
   // Digital twin simulation state
-  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [isSimulationOpen, setIsSimulationOpen] = useState(
+    initialPath === '/simulation' || initialPath === '/lab'
+  );
   const [simulationData, setSimulationData] = useState(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(false);
   const [simulationError, setSimulationError] = useState(null);
 
   // Multi-Agent Chatbot Drawer state
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(
+    initialPath === '/si' || initialPath === '/chat' || initialPath === '/ai'
+  );
+
+  // ─── Sync Browser URL Path with Active View (/home, /globe, /analytics, /simulation, /si) ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let targetPath = '/home';
+    if (isChatOpen) {
+      targetPath = '/si';
+    } else if (isSimulationOpen) {
+      targetPath = '/simulation';
+    } else if (showTelemetryCard && selectedLocation) {
+      targetPath = '/analytics';
+    } else if (isExperienceMode) {
+      targetPath = '/globe';
+    }
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ path: targetPath }, '', targetPath);
+    }
+  }, [isExperienceMode, showTelemetryCard, selectedLocation, isSimulationOpen, isChatOpen]);
+
+  // Listen to browser Back / Forward navigation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const p = window.location.pathname.toLowerCase();
+      if (p === '/si' || p === '/chat' || p === '/ai') {
+        setIsExperienceMode(true);
+        setIsChatOpen(true);
+      } else if (p === '/simulation' || p === '/lab') {
+        setIsExperienceMode(true);
+        setIsChatOpen(false);
+        setIsSimulationOpen(true);
+      } else if (p === '/analytics' || p === '/telemetry') {
+        setIsExperienceMode(true);
+        setIsChatOpen(false);
+        setIsSimulationOpen(false);
+        setShowTelemetryCard(true);
+      } else if (p === '/globe' || p === '/explore') {
+        setIsExperienceMode(true);
+        setIsChatOpen(false);
+        setIsSimulationOpen(false);
+        setShowTelemetryCard(false);
+      } else {
+        setIsChatOpen(false);
+        setIsSimulationOpen(false);
+        setShowTelemetryCard(false);
+        setIsExperienceMode(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // ─── Modern Location Pin Marker ───────────────────────────────────────────
   const createLocationPinMarker = (label) => {
