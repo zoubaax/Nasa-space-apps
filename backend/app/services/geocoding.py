@@ -169,6 +169,9 @@ class GeocodingService:
                         or "Position GPS"
                     )
                     country_part = address.get("country", "")
+                    country_code = address.get("country_code", "").lower()
+                    state_part = address.get("state") or address.get("region") or address.get("state_district") or ""
+                    county_part = address.get("county") or ""
                     city_name = f"{city_part}, {country_part}".strip(", ") if country_part else city_part
                     display_name = payload.get("display_name", city_name)
 
@@ -177,6 +180,10 @@ class GeocodingService:
                         "longitude": longitude,
                         "city": city_name,
                         "display_name": display_name,
+                        "country": country_part,
+                        "country_code": country_code,
+                        "region": state_part,
+                        "county": county_part,
                         "cached": False,
                     }
                     self._write_reverse_cache(latitude, longitude, result)
@@ -190,6 +197,10 @@ class GeocodingService:
             "longitude": longitude,
             "city": f"Coordonnées ({latitude:.4f}, {longitude:.4f})",
             "display_name": f"Position GPS ({latitude:.4f}, {longitude:.4f})",
+            "country": "",
+            "country_code": "",
+            "region": "",
+            "county": "",
             "cached": False,
         }
 
@@ -246,6 +257,10 @@ class GeocodingService:
                 "longitude": float(payload["longitude"]),
                 "city": str(payload["city"]),
                 "display_name": str(payload.get("display_name", payload["city"])),
+                "country": str(payload.get("country", "")),
+                "country_code": str(payload.get("country_code", "")).lower(),
+                "region": str(payload.get("region", "")),
+                "county": str(payload.get("county", "")),
                 "cached": True,
             }
         except (KeyError, TypeError, ValueError):
@@ -260,6 +275,10 @@ class GeocodingService:
                     "longitude": longitude,
                     "city": result["city"],
                     "display_name": result.get("display_name", result["city"]),
+                    "country": result.get("country", ""),
+                    "country_code": result.get("country_code", ""),
+                    "region": result.get("region", ""),
+                    "county": result.get("county", ""),
                     "retrieved_at": datetime.now(timezone.utc).isoformat(),
                 },
             )

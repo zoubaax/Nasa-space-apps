@@ -18,6 +18,7 @@ class AgroRecommendation(BaseModel):
     observed: str
     message: str
     message_darija: str | None = None
+    message_localized: str | None = None
 
 
 class RotationStep(BaseModel):
@@ -26,6 +27,7 @@ class RotationStep(BaseModel):
     order: int
     action: str
     action_darija: str | None = None
+    action_localized: str | None = None
 
 
 class AgroResponse(BaseModel):
@@ -45,4 +47,7 @@ class AgroResponse(BaseModel):
     recommendations: list[AgroRecommendation]
     rotation: list[RotationStep]
     synthesis_darija: str | None = None
+    synthesis_localized: str | None = None
+    output_language: str | None = None
+    detected_country: str | None = None
     notes: list[str] = Field(default_factory=list)

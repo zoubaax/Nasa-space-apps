@@ -1,14 +1,20 @@
 import React from 'react';
 import { TbSatellite } from 'react-icons/tb';
 import { SATELLITE_CONSTELLATIONS } from '../../constants/satellites';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function SatelliteConstellations() {
+  const { t, isRtl } = useTranslation();
+
   return (
-    <div className="flex flex-col gap-1.5 select-none pointer-events-none">
+    <div
+      className="flex flex-col gap-1.5 select-none pointer-events-none"
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center gap-2 ml-1">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
         <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-          Active Earth Observation Constellations
+          {t('satellites.activeConstellations', {}, 'Active Earth Observation Constellations')}
         </span>
       </div>
 
@@ -30,7 +36,9 @@ export default function SatelliteConstellations() {
                   {name}
                   <span className="text-zinc-500 font-normal text-[9px] ml-1.5">({agency})</span>
                 </span>
-                <span className="text-zinc-400 text-[9px]">{variable}</span>
+                <span className="text-zinc-400 text-[9px]">
+                  {t(`satellites.variables.${id}`, {}, variable)}
+                </span>
               </div>
             </div>
 

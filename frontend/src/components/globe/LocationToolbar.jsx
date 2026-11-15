@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TbCurrentLocation, TbLoader2, TbSearch, TbMapPin, TbX } from 'react-icons/tb';
 import { searchLocation } from '../../utils/geo';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
+  const { t, langInfo, isManualEnglish, toggleLanguageMode, isRtl, isTranslating } = useTranslation();
   const [isLocating, setIsLocating] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -30,8 +32,8 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
         setSearchResults([
           {
             id: 'coords',
-            name: `Coordinates: [${lat.toFixed(4)}°, ${lng.toFixed(4)}°]`,
-            shortName: `Custom Coordinates`,
+            name: `${t('common.coordinates', {}, 'Coordinates')}: [${lat.toFixed(4)}°, ${lng.toFixed(4)}°]`,
+            shortName: t('toolbar.customCoords', {}, 'Custom Coordinates'),
             lat,
             lng,
           },
@@ -50,7 +52,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, t]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -130,7 +132,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          triggerFlight(longitude, latitude, 'My Farm (Detected GPS)');
+          triggerFlight(longitude, latitude, t('toolbar.detectedFarm', {}, 'My Farm (Detected GPS)'));
         },
         async (error) => {
           console.warn('Browser GPS unavailable, using network location fallback:', error);
@@ -139,7 +141,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
             triggerFlight(ipData.longitude, ipData.latitude, ipData.name);
           } else {
             setIsLocating(false);
-            setErrorMsg('Location blocked. Please allow location access or search above.');
+            setErrorMsg(t('toolbar.locationBlocked', {}, 'Location blocked. Please allow location access or search above.'));
             setTimeout(() => setErrorMsg(null), 4000);
           }
         },
@@ -155,7 +157,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
           triggerFlight(ipData.longitude, ipData.latitude, ipData.name);
         } else {
           setIsLocating(false);
-          setErrorMsg('Location unavailable');
+          setErrorMsg(t('toolbar.locationUnavailable', {}, 'Location unavailable'));
           setTimeout(() => setErrorMsg(null), 4000);
         }
       });
@@ -163,18 +165,62 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
   };
 
   return (
-    <div className="flex flex-col items-end gap-2 select-none" ref={dropdownRef}>
-      <div className="flex items-center gap-2 p-1 rounded-2xl bg-zinc-950/85 border border-zinc-800/80 backdrop-blur-xl shadow-2xl">
+    <div
+      className="flex flex-col items-end gap-2 select-none"
+      ref={dropdownRef}
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-zinc-950/85 border border-zinc-800/80 backdrop-blur-xl shadow-2xl">
+        
+        {/* Universal Dynamic Language Switcher */}
+        <div className="flex items-center p-0.5 rounded-xl bg-zinc-900/90 border border-zinc-700/60 shadow-inner">
+          {/* Dynamic Native Terroir Button */}
+          <button
+            type="button"
+            onClick={() => toggleLanguageMode('native')}
+            className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              !isManualEnglish
+                ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.6)] font-extrabold'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/80'
+            }`}
+            title={`Local Native Language: ${langInfo?.name || 'Local'} (${langInfo?.country || 'Detected Region'})`}
+          >
+            <span className="text-xs">{langInfo?.flag || '🌐'}</span>
+            <span className="tracking-wide max-w-[85px] truncate">{langInfo?.native || langInfo?.name || 'Native'}</span>
+          </button>
+
+          {/* Global English Toggle Button */}
+          <button
+            type="button"
+            onClick={() => toggleLanguageMode('en')}
+            className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              isManualEnglish
+                ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.6)] font-extrabold'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/80'
+            }`}
+            title="Switch to Global English"
+          >
+            <span className="text-xs">🇺🇸</span>
+            <span className="tracking-wider">EN</span>
+          </button>
+
+          {isTranslating && (
+            <span className="px-1.5 py-0.5 text-[9px] font-mono text-cyan-400 animate-pulse flex items-center gap-1" title="Translating UI dynamically with Gemini AI...">
+              <TbLoader2 className="w-3 h-3 animate-spin" />
+            </span>
+          )}
+        </div>
+
         {/* Live Search Input */}
         <div className="relative flex items-center">
-          <TbSearch className="absolute left-3 w-4 h-4 text-cyan-400 pointer-events-none" />
+          <TbSearch className={`absolute ${isRtl ? 'right-3' : 'left-3'} w-4 h-4 text-cyan-400 pointer-events-none`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => searchResults.length > 0 && setIsOpenDropdown(true)}
-            placeholder="Search farm, city or lat,lng…"
-            className="w-56 sm:w-64 pl-9 pr-7 py-2 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-xs font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-400 transition"
+            placeholder={t('toolbar.searchPlaceholder', {}, 'Search farm, city or lat,lng…')}
+            className={`w-52 sm:w-64 ${isRtl ? 'pr-9 pl-7' : 'pl-9 pr-7'} py-2 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-xs font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-400 transition`}
           />
           {searchQuery && (
             <button
@@ -183,13 +229,13 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
                 setSearchResults([]);
               }}
               type="button"
-              className="absolute right-2 p-1 text-zinc-400 hover:text-white"
+              className={`absolute ${isRtl ? 'left-2' : 'right-2'} p-1 text-zinc-400 hover:text-white cursor-pointer`}
             >
               <TbX className="w-3.5 h-3.5" />
             </button>
           )}
           {isSearching && (
-            <TbLoader2 className="absolute right-7 w-3.5 h-3.5 animate-spin text-cyan-400" />
+            <TbLoader2 className={`absolute ${isRtl ? 'left-7' : 'right-7'} w-3.5 h-3.5 animate-spin text-cyan-400`} />
           )}
         </div>
 
@@ -210,7 +256,7 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
           ) : (
             <TbCurrentLocation className="w-4 h-4 text-black animate-pulse" />
           )}
-          <span className="hidden sm:inline">{isLocating ? 'Locating…' : 'My GPS'}</span>
+          <span className="hidden sm:inline">{isLocating ? t('toolbar.locating', {}, 'Locating…') : t('toolbar.myGps', {}, 'My GPS')}</span>
         </button>
       </div>
 
@@ -218,8 +264,8 @@ export default function LocationToolbar({ onFlyToLocation, isFlying = false }) {
       {isOpenDropdown && searchResults.length > 0 && (
         <div className="w-72 sm:w-80 max-h-60 overflow-y-auto rounded-2xl bg-zinc-950/95 border border-cyan-500/30 backdrop-blur-2xl shadow-2xl p-1.5 space-y-1 z-50">
           <div className="px-2.5 py-1 text-[10px] font-mono text-cyan-400 uppercase tracking-wider flex items-center justify-between border-b border-zinc-800/80">
-            <span>Global Geocoding Matches</span>
-            <span className="text-zinc-500">{searchResults.length} found</span>
+            <span>{t('toolbar.matchesFound', {}, 'Global Geocoding Matches')}</span>
+            <span className="text-zinc-500">{searchResults.length} {t('toolbar.itemsFound', {}, 'found')}</span>
           </div>
           {searchResults.map((item) => (
             <button

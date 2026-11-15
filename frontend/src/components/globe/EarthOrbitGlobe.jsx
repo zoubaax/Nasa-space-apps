@@ -14,6 +14,7 @@ import GlobeControls from './GlobeControls';
 import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
 import RotationSimulationModal from './RotationSimulationModal';
+import { useTranslation } from '../../context/LanguageContext';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
 if (typeof maplibregl.setWorkerUrl === 'function') {
@@ -25,6 +26,7 @@ export default function EarthOrbitGlobe({
   initialZoom = 1.6,
   onLocationSelect = null,
 }) {
+  const { t, language, syncWithLocation } = useTranslation();
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -61,14 +63,15 @@ export default function EarthOrbitGlobe({
   const [simulationError, setSimulationError] = useState(null);
 
   // ─── Modern Location Pin Marker ───────────────────────────────────────────
-  const createLocationPinMarker = (label = 'My Farm') => {
+  const createLocationPinMarker = (label) => {
+    const displayLabel = label || t('toolbar.detectedFarm', {}, 'My Farm');
     const el = document.createElement('div');
     el.className = 'relative flex flex-col items-center cursor-pointer select-none';
     el.innerHTML = `
       <!-- Location Label Badge -->
       <div class="mb-1 px-3 py-1 rounded-full bg-zinc-950/95 border border-cyan-400/60 text-cyan-300 font-mono text-[11px] font-semibold whitespace-nowrap shadow-[0_0_20px_rgba(6,182,212,0.5)] backdrop-blur-md flex items-center gap-1.5 animate-fade-in">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>${label}</span>
+        <span>${displayLabel}</span>
       </div>
 
       <!-- High-Definition Map Pin Icon -->
@@ -119,7 +122,8 @@ export default function EarthOrbitGlobe({
       const targetBearing = loc.bearing || 0;
 
       // 2. Drop pin immediately
-      setMarkerAt(targetCoords, loc.name || 'My Farm');
+      const defaultFarmName = t('toolbar.detectedFarm', {}, 'My Farm');
+      setMarkerAt(targetCoords, loc.name || defaultFarmName);
 
       // 3. Cinematic 3D Fly-To Animation (Parabolic Space-to-Ground Descent)
       map.flyTo({
@@ -154,10 +158,13 @@ export default function EarthOrbitGlobe({
           lat: targetCoords[1],
           lng: targetCoords[0],
           coordinates: targetCoords,
+          country: geo.country,
+          country_code: geo.country_code,
         };
         setSelectedLocation(resolved);
+        syncWithLocation(resolved);
         // Update pin badge with detected geographic title
-        if (!loc.name || loc.name === 'My Farm') {
+        if (!loc.name || loc.name === 'My Farm' || loc.name === defaultFarmName) {
           setMarkerAt(targetCoords, resolved.name);
         }
         if (onLocationSelectRef.current) {
@@ -256,7 +263,7 @@ export default function EarthOrbitGlobe({
               `${lat >= 0 ? lat.toFixed(3) + '°N' : Math.abs(lat).toFixed(3) + '°S'}, ` +
               `${lng >= 0 ? lng.toFixed(3) + '°E' : Math.abs(lng).toFixed(3) + '°W'}`;
           } else {
-            coordsRef.current.textContent = 'Orbiting Deep Space';
+            coordsRef.current.textContent = t('hud.orbitingDeepSpace', {}, 'Orbiting Deep Space');
           }
         }
       });
@@ -411,6 +418,7 @@ export default function EarthOrbitGlobe({
 
     const mergedOptions = {
       year: selectedYear,
+      language: language,
       ...customOptions,
     };
 
@@ -420,7 +428,7 @@ export default function EarthOrbitGlobe({
     } catch (err) {
       console.warn('Simulation request failed:', err);
       setSimulationError(
-        'Backend simulation service notice: ' +
+        t('simulation.serviceNotice', {}, 'Backend simulation service notice: ') +
           (err.message || 'Unable to connect to simulation engine.')
       );
     } finally {

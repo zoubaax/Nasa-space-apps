@@ -5,6 +5,7 @@ import {
   TbRefresh,
   TbEye,
 } from 'react-icons/tb';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function GlobeControls({
   isRotating,
@@ -15,8 +16,13 @@ export default function GlobeControls({
   onTogglePitch,
   currentPitch = 0,
 }) {
+  const { t, isRtl } = useTranslation();
+
   return (
-    <div className="flex items-center gap-2 select-none">
+    <div
+      className="flex items-center gap-2 select-none"
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
       {/* Auto Spin Toggle */}
       <button
         onClick={onToggleRotate}
@@ -26,14 +32,14 @@ export default function GlobeControls({
             ? 'bg-cyan-950/80 border-cyan-500/50 text-cyan-300 shadow-cyan-900/30'
             : 'bg-zinc-950/80 border-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
         }`}
-        title="Toggle Planetary Orbit Rotation"
+        title={t('controls.orbitSpinOn', {}, 'Toggle Planetary Orbit Rotation')}
       >
         <span
           className={`w-2 h-2 rounded-full ${
             isRotating ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'
           }`}
         />
-        <span>{isRotating ? 'Orbit Spin ON' : 'Spin Paused'}</span>
+        <span>{isRotating ? t('controls.orbitSpinOn', {}, 'Orbit Spin ON') : t('controls.orbitSpinPaused', {}, 'Spin Paused')}</span>
       </button>
 
       {/* 3D Pitch Tilt Toggle */}
@@ -45,7 +51,7 @@ export default function GlobeControls({
             ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
             : 'bg-zinc-950/80 hover:bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-zinc-200'
         }`}
-        title="Toggle 3D Horizon Pitch"
+        title={t('controls.togglePitch', {}, 'Toggle 3D Horizon Pitch')}
       >
         <TbEye className="w-4 h-4" />
       </button>
@@ -55,7 +61,7 @@ export default function GlobeControls({
         onClick={onZoomIn}
         type="button"
         className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
-        title="Zoom In"
+        title={t('controls.zoomIn', {}, 'Zoom In')}
       >
         <TbZoomIn className="w-4 h-4" />
       </button>
@@ -65,7 +71,7 @@ export default function GlobeControls({
         onClick={onZoomOut}
         type="button"
         className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
-        title="Zoom Out"
+        title={t('controls.zoomOut', {}, 'Zoom Out')}
       >
         <TbZoomOut className="w-4 h-4" />
       </button>
@@ -75,7 +81,7 @@ export default function GlobeControls({
         onClick={onResetOrbit}
         type="button"
         className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
-        title="Reset Global Earth Orbit"
+        title={t('controls.resetOrbit', {}, 'Reset Global Earth Orbit')}
       >
         <TbRefresh className="w-4 h-4" />
       </button>

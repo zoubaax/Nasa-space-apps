@@ -65,18 +65,21 @@ export async function reverseGeocode(lng, lat) {
       address.region ||
       'Field Sector';
     const country = address.country || '';
+    const countryCode = (address.country_code || '').toLowerCase();
     const displayName = locality && country ? `${locality}, ${country}` : data.display_name || `Plot [${lat.toFixed(3)}°, ${lng.toFixed(3)}°]`;
 
     return {
       displayName,
       locality,
       country,
+      country_code: countryCode,
     };
   } catch {
     return {
       displayName: `Plot [${lat >= 0 ? lat.toFixed(3) + '°N' : Math.abs(lat).toFixed(3) + '°S'}, ${lng >= 0 ? lng.toFixed(3) + '°E' : Math.abs(lng).toFixed(3) + '°W'}]`,
       locality: 'Field Area',
       country: lat >= 0 ? 'Northern Hemisphere' : 'Southern Hemisphere',
+      country_code: '',
     };
   }
 }
@@ -327,6 +330,7 @@ export async function simulateCropRotation(location, options = {}) {
     climate_shock: options.climateShock || 'none',
     primary_cereal: options.primaryCereal || 'ble_dur',
     historical_compare_year: options.historicalCompareYear !== undefined ? options.historicalCompareYear : 2023,
+    language_override: options.language_override || options.language || 'auto',
   };
 
   const res = await fetch('/api/ai/simulate', {

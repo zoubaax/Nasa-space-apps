@@ -59,15 +59,13 @@ def advise(summary: SummaryResponse) -> AgroResponse:
 
 
 async def advise_async(summary: SummaryResponse) -> AgroResponse:
-    """Asynchronous evaluation: enriches baseline rules with live Google Gemini AI agronomist deliberation in Darija."""
+    """Asynchronous evaluation: enriches baseline rules with location-aware agricultural AI recommendations."""
     base_response = advise(summary)
 
     settings = get_settings()
-    is_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
-    if not settings.gemini_api_key or is_pytest:
-        return base_response
-
     loc_name = summary.location.name or f"[{summary.location.requested_latitude:.3f}°, {summary.location.requested_longitude:.3f}°]"
+    lat = summary.location.requested_latitude
+    lon = summary.location.requested_longitude
     start_d = summary.period.start_date.isoformat()
     end_d = summary.period.end_date.isoformat()
     indicators = summary.indicators
@@ -76,23 +74,112 @@ async def advise_async(summary: SummaryResponse) -> AgroResponse:
     rec_heat = base_response.recommendations[1]
     rec_cold = base_response.recommendations[2]
 
+    # Dynamically resolve country and language from location
+    loc_country = ""
+    c_code = ""
+    try:
+        from app.services.cache import FileCache
+        cache = FileCache(settings.cache_dir)
+        c_path = cache.reverse_geocode_path(lat, lon)
+        if c_path.is_file():
+            cached_geo = cache.read_json(c_path)
+            if cached_geo:
+                loc_country = cached_geo.get("country", "")
+                c_code = cached_geo.get("country_code", "").lower()
+    except Exception:
+        pass
+
+    if not loc_country and loc_name and "," in loc_name:
+        loc_country = loc_name.split(",")[-1].strip()
+
+    if not c_code and loc_country:
+        cl = loc_country.lower()
+        if "morocco" in cl or "maroc" in cl or "المغرب" in cl:
+            c_code = "ma"
+        elif "france" in cl:
+            c_code = "fr"
+        elif "spain" in cl or "españa" in cl:
+            c_code = "es"
+
+    if (
+        c_code == "ma"
+        or "morocco" in loc_country.lower()
+        or (21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0)
+    ):
+        target_lang = "darija"
+        loc_country = loc_country or "Morocco"
+    elif c_code == "fr" or "france" in loc_country.lower():
+        target_lang = "fr"
+        loc_country = loc_country or "France"
+    elif c_code == "es" or "spain" in loc_country.lower() or "españa" in loc_country.lower():
+        target_lang = "es"
+        loc_country = loc_country or "Spain"
+    else:
+        target_lang = "en"
+        loc_country = loc_country or "International"
+
+    base_response.output_language = target_lang
+    base_response.detected_country = loc_country
+
+    # Populate baseline localized fields
+    if target_lang == "darija":
+        base_response.synthesis_localized = base_response.synthesis_darija
+        for rec in base_response.recommendations:
+            rec.message_localized = rec.message_darija
+        for step in base_response.rotation:
+            step.action_localized = step.action_darija
+    elif target_lang == "fr":
+        base_response.synthesis_localized = (
+            f"Synthèse agronomique pour {loc_name}: cumul pluviométrique de {indicators.total_precipitation} mm "
+            f"sur la période observée ({start_d} au {end_d}) avec {indicators.dry_days} jours secs et {indicators.hot_days} jours chauds."
+        )
+        base_response.synthesis_darija = base_response.synthesis_localized
+        for rec in base_response.recommendations:
+            rec.message_localized = rec.message
+            rec.message_darija = rec.message
+        for step in base_response.rotation:
+            step.action_localized = step.action
+            step.action_darija = step.action
+    else:
+        base_response.synthesis_localized = (
+            f"Agronomic synthesis for {loc_name}: cumulative precipitation of {indicators.total_precipitation} mm "
+            f"over the observed timeframe ({start_d} to {end_d}) with {indicators.dry_days} dry days and {indicators.hot_days} heat days."
+        )
+        base_response.synthesis_darija = base_response.synthesis_localized
+        for rec in base_response.recommendations:
+            rec.message_localized = rec.message
+            rec.message_darija = rec.message
+        for step in base_response.rotation:
+            step.action_localized = step.action
+            step.action_darija = step.action
+
+    is_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    if not settings.gemini_api_key or is_pytest:
+        return base_response
+
     gemini_prompt = (
-        "You are an expert Moroccan agronomist from INRA / Direction Provinciale d'Agriculture.\n"
-        "Analyze these authentic NASA POWER observations for a farmer in Morocco:\n"
-        f"- Location: {loc_name}\n"
+        "You are an expert agronomic advisor analyzing authentic NASA POWER observations for a farm:\n"
+        f"- Location: {loc_name} (Coordinates: {lat:.4f}, {lon:.4f})\n"
+        f"- Country / Terroir: {loc_country} (Target Language: {target_lang.upper()})\n"
         f"- Period: {start_d} to {end_d}\n"
         f"- Total Rainfall: {indicators.total_precipitation} mm (Dry Days: {indicators.dry_days})\n"
         f"- Temperatures: Mean {indicators.average_temperature}°C, Max {indicators.maximum_temperature}°C (Hot Days: {indicators.hot_days}), Min {indicators.minimum_temperature}°C (Cold Days: {indicators.cold_days})\n"
         f"- Status: Water={rec_water.status}, Heat={rec_heat.status}, Cold={rec_cold.status}\n\n"
-        "Produce an authentic agricultural recommendation in Moroccan Darija (الدارجة المغربية الفلاحية).\n"
+        "TERROIR & LANGUAGE DIRECTIVE:\n"
+        f"Produce an authentic agricultural recommendation in the local language of this farm ({loc_name}, {loc_country}):\n"
+        "- If in Morocco: authentic Moroccan Darija (الدارجة المغربية الفلاحية).\n"
+        "- If in France / Francophone region: agronomic French.\n"
+        "- If in Spain / Hispanic region: agricultural Spanish.\n"
+        "- For all other international locations: agronomic English.\n"
         "Strictly cite the observed rainfall millimeters and heat/cold counts. Never invent synthetic yields.\n"
         "Return ONLY a JSON object with this exact schema:\n"
         "{\n"
-        '  "synthesis_darija": "2-3 dynamic sentences in Moroccan Darija giving an overarching farm strategy for this period citing the exact rainfall mm and weather",\n'
-        '  "water_message_darija": "1-2 sentences in Darija for irrigation / drainage decisions given the observed precipitation and dry days",\n'
-        '  "heat_message_darija": "1 sentence in Darija regarding heat impact on crops and flowering",\n'
-        '  "cold_message_darija": "1 sentence in Darija regarding cold/frost protection for seedlings",\n'
-        '  "rotation_actions_darija": ["Step 1 action in Darija", "Step 2 action in Darija", "Step 3 action in Darija"]\n'
+        f'  "output_language": "{target_lang}",\n'
+        '  "synthesis": "2-3 dynamic sentences in the farm\'s language giving an overarching farm strategy for this period citing the exact rainfall mm and weather",\n'
+        '  "water_message": "1-2 sentences for irrigation / drainage decisions given the observed precipitation and dry days",\n'
+        '  "heat_message": "1 sentence regarding heat impact on crops and flowering",\n'
+        '  "cold_message": "1 sentence regarding cold/frost protection for seedlings",\n'
+        '  "rotation_actions": ["Step 1 action", "Step 2 action", "Step 3 action"]\n'
         "}"
     )
 
@@ -127,23 +214,38 @@ async def advise_async(summary: SummaryResponse) -> AgroResponse:
                             raw_text = raw_text[start_idx : end_idx + 1]
                         parsed = json.loads(raw_text, strict=False)
 
+                        if parsed.get("output_language"):
+                            base_response.output_language = str(parsed["output_language"])
+
                         # Enrich recommendations
-                        if parsed.get("synthesis_darija"):
-                            base_response.synthesis_darija = str(parsed["synthesis_darija"])
-                        if parsed.get("water_message_darija"):
-                            rec_water.message_darija = str(parsed["water_message_darija"])
-                        if parsed.get("heat_message_darija"):
-                            rec_heat.message_darija = str(parsed["heat_message_darija"])
-                        if parsed.get("cold_message_darija"):
-                            rec_cold.message_darija = str(parsed["cold_message_darija"])
+                        synth_txt = parsed.get("synthesis") or parsed.get("synthesis_darija")
+                        if synth_txt:
+                            base_response.synthesis_localized = str(synth_txt)
+                            base_response.synthesis_darija = str(synth_txt)
+
+                        w_msg = parsed.get("water_message") or parsed.get("water_message_darija")
+                        if w_msg:
+                            rec_water.message_localized = str(w_msg)
+                            rec_water.message_darija = str(w_msg)
+
+                        h_msg = parsed.get("heat_message") or parsed.get("heat_message_darija")
+                        if h_msg:
+                            rec_heat.message_localized = str(h_msg)
+                            rec_heat.message_darija = str(h_msg)
+
+                        c_msg = parsed.get("cold_message") or parsed.get("cold_message_darija")
+                        if c_msg:
+                            rec_cold.message_localized = str(c_msg)
+                            rec_cold.message_darija = str(c_msg)
 
                         # Enrich rotation steps
-                        rot_darija = parsed.get("rotation_actions_darija", [])
-                        if isinstance(rot_darija, list) and len(rot_darija) == len(base_response.rotation):
-                            for idx, step_text in enumerate(rot_darija):
+                        rot_actions = parsed.get("rotation_actions") or parsed.get("rotation_actions_darija", [])
+                        if isinstance(rot_actions, list) and len(rot_actions) == len(base_response.rotation):
+                            for idx, step_text in enumerate(rot_actions):
+                                base_response.rotation[idx].action_localized = str(step_text)
                                 base_response.rotation[idx].action_darija = str(step_text)
 
-                        logger.info("Successfully enhanced /api/agro with Google Gemini Darija analysis via %s", model_name)
+                        logger.info("Successfully enhanced /api/agro with Google Gemini analysis via %s", model_name)
                         return base_response
         except Exception as e:
             logger.warning("Gemini /api/agro deliberation failed with model %s: %s", model_name, e)

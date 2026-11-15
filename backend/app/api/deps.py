@@ -12,6 +12,7 @@ from app.services.ai_service import AiService
 from app.services.cache import FileCache
 from app.services.climate_service import ClimateDataService
 from app.services.geocoding import GeocodingService
+from app.services.i18n_service import I18nTranslationService
 from app.services.nasa_power import NasaPowerClient
 from app.services.smap import SmapService
 from app.services.smap_gee import SmapGeeService
@@ -44,7 +45,7 @@ def build_simulation_service(
     smap_gee_service: SmapGeeService,
 ) -> AgriSimulationService:
     context_builder = AiContextBuilder(climate_service, smap_gee_service)
-    return AgriSimulationService(context_builder)
+    return AgriSimulationService(context_builder, geocoder=getattr(climate_service, "_geocoder", None))
 
 
 def get_simulation_service(request: Request) -> AgriSimulationService:
@@ -56,6 +57,19 @@ def get_simulation_service(request: Request) -> AgriSimulationService:
         smap_gee = getattr(request.app.state, "smap_gee_service", None) or build_smap_gee_service(settings, http_client)
         service = build_simulation_service(settings, climate, smap_gee)
         request.app.state.simulation_service = service
+    return service
+
+
+def build_i18n_service(settings: Settings) -> I18nTranslationService:
+    return I18nTranslationService(settings)
+
+
+def get_i18n_service(request: Request) -> I18nTranslationService:
+    service = getattr(request.app.state, "i18n_service", None)
+    if service is None:
+        settings = get_app_settings(request)
+        service = build_i18n_service(settings)
+        request.app.state.i18n_service = service
     return service
 
 

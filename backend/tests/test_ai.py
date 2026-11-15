@@ -13,8 +13,9 @@ from app.services.ai_service import AiService
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
 def test_ai_health_endpoint(client: TestClient) -> None:

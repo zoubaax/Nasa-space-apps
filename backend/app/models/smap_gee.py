@@ -102,11 +102,13 @@ class SmapGeeResponse(BaseModel):
 
 
 class DarijaExplanationResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     variable_id: str
     name_en: str
     name_fr: str
+    name_localized: str | None = None
+    language: str = "darija"
     selected_value: float | None = None
     display_value: str
     display_unit: str

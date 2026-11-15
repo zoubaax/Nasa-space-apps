@@ -14,7 +14,7 @@ from typing import Any, AsyncIterator
 import httpx
 
 from app.core.config import Settings
-from app.models.ai import AiChatMessage, AiChatRequest, AiChatResponse
+from app.models.ai import AiChatMessage, AiChatRequest, AiChatResponse, AiLocationContext
 from app.services.ai_context import AiContextBuilder
 
 logger = logging.getLogger(__name__)
@@ -72,8 +72,8 @@ class AiService:
             return False
         return bool(self._settings.gemini_api_key)
 
-    def detect_language(self, text: str, requested: str = "auto") -> str:
-        if requested in ("darija", "fr", "en"):
+    def detect_language(self, text: str, requested: str = "auto", location: AiLocationContext | None = None) -> str:
+        if requested in ("darija", "fr", "en", "es", "ar"):
             return requested
         # Check Arabic script presence or common Darija keywords
         arabic_chars = len(re.findall(r"[\u0600-\u06FF]", text))
@@ -87,6 +87,24 @@ class AiService:
         french_words = {"est", "le", "la", "les", "du", "des", "pour", "dans", "humidité", "sol", "chaleur", "pluie", "irrigation", "agricole", "qu'est", "comment"}
         if words.intersection(french_words):
             return "fr"
+        # Check Spanish common words
+        spanish_words = {"es", "el", "la", "los", "las", "del", "para", "en", "humedad", "suelo", "calor", "lluvia", "riego", "agricola", "como", "que"}
+        if words.intersection(spanish_words):
+            return "es"
+
+        # If text is neutral/unclear, resolve from location context
+        if location:
+            loc_country = (getattr(location, "country", None) or "").lower()
+            loc_name = (getattr(location, "name", None) or "").lower()
+            lat = getattr(location, "latitude", 0.0)
+            lon = getattr(location, "longitude", 0.0)
+            if "morocco" in loc_country or "maroc" in loc_country or "morocco" in loc_name or "المغرب" in loc_name or (21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0):
+                return "darija"
+            if "france" in loc_country or "france" in loc_name or "toulouse" in loc_name or "paris" in loc_name:
+                return "fr"
+            if "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name:
+                return "es"
+
         return "en"
 
     def _build_context_prompt(self, dossier: dict[str, Any], user_message: str, detected_lang: str) -> str:
@@ -171,7 +189,16 @@ TARGET LANGUAGE: {detected_lang.upper()}
     async def chat(self, request: AiChatRequest) -> AiChatResponse:
         """Generate response grounded in real NASA observations."""
         dossier = await self._context_builder.build_ground_truth_dossier(request)
-        lang = self.detect_language(request.message, request.language)
+        lang = self.detect_language(request.message, request.language, request.location)
+
+        loc_country = getattr(request.location, "country", None)
+        if not loc_country and request.location.name and "," in request.location.name:
+            loc_country = request.location.name.split(",")[-1].strip()
+        if not loc_country:
+            lat = getattr(request.location, "latitude", 0.0)
+            lon = getattr(request.location, "longitude", 0.0)
+            if 21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0:
+                loc_country = "Morocco"
 
         if self.is_configured():
             prompt = self._build_context_prompt(dossier, request.message, lang)
@@ -209,6 +236,8 @@ TARGET LANGUAGE: {detected_lang.upper()}
                                         data_evidence=self._extract_key_evidence(dossier),
                                         validation_status="validated",
                                         language_detected=lang,
+                                        farm_country=loc_country,
+                                        farm_language=lang,
                                         confidence_score=0.98,
                                         missing_data_warnings=[],
                                         model=f"fieldshift-ai-engine ({model_name})",
@@ -222,7 +251,7 @@ TARGET LANGUAGE: {detected_lang.upper()}
     async def stream_chat(self, request: AiChatRequest) -> AsyncIterator[str]:
         """Stream response chunks in real-time using Server-Sent Events (SSE)."""
         dossier = await self._context_builder.build_ground_truth_dossier(request)
-        lang = self.detect_language(request.message, request.language)
+        lang = self.detect_language(request.message, request.language, request.location)
 
         # Emit initial metadata event
         meta_event = {
@@ -388,6 +417,15 @@ TARGET LANGUAGE: {detected_lang.upper()}
 
 ⚠️ **Scientific Notice:** Space-borne SMAP observations on a ~9-11 km grid."""
 
+        loc_country = getattr(request.location, "country", None)
+        if not loc_country and request.location.name and "," in request.location.name:
+            loc_country = request.location.name.split(",")[-1].strip()
+        if not loc_country:
+            lat = getattr(request.location, "latitude", 0.0)
+            lon = getattr(request.location, "longitude", 0.0)
+            if 21.0 <= lat <= 36.0 and -17.0 <= lon <= -1.0:
+                loc_country = "Morocco"
+
         return AiChatResponse(
             reply=reply,
             sources_used=dossier.get("sources_used", []),
@@ -395,6 +433,8 @@ TARGET LANGUAGE: {detected_lang.upper()}
             data_evidence=self._extract_key_evidence(dossier),
             validation_status="partial" if error_msg else "validated",
             language_detected=lang,
+            farm_country=loc_country,
+            farm_language=lang,
             confidence_score=0.95,
             missing_data_warnings=dossier.get("missing_data", []) + ([f"Mode hors-ligne: {error_msg}"] if error_msg else []),
             model=self._model,

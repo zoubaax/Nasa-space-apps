@@ -16,6 +16,9 @@ class SimulationPlan(BaseModel):
     id: str
     name_fr: str
     name_ar: str
+    name_es: str | None = None
+    name_en: str | None = None
+    name_localized: str | None = None
     rotation_sequence: list[str]
     water_need_mm: float
     water_deficit_mm: float
@@ -26,6 +29,7 @@ class SimulationPlan(BaseModel):
     yield_stability_score: float
     status_tag: str
     summary_darija: str
+    summary_localized: str | None = None
     pros: list[str]
     cons: list[str]
     rotation_years: list[dict[str, Any]] = Field(default_factory=list)
@@ -41,6 +45,7 @@ class TribunalAgentVerdict(BaseModel):
     avatar: str
     stance: str  # "favorable" | "reserve" | "defavorable"
     argument_darija: str
+    argument_localized: str | None = None
     key_evidence: str
 
 
@@ -58,6 +63,7 @@ class SimulationRequest(BaseModel):
     historical_compare_year: int | None = None
     target_crops: list[str] = Field(default_factory=list)
     primary_cereal: str = Field(default="ble_dur")
+    language_override: str | None = None
 
 
 class SimulationResponse(BaseModel):
@@ -79,6 +85,10 @@ class SimulationResponse(BaseModel):
     winner_plan_id: str
     tribunal_verdicts: list[TribunalAgentVerdict]
     overall_synthesis_darija: str
+    overall_synthesis_localized: str | None = None
+    output_language: str = "auto"
+    detected_country: str | None = None
+    detected_region: str | None = None
     radar_dimensions: list[str]
     sources_used: list[str]
     validation_metadata: dict[str, Any] = Field(default_factory=dict)

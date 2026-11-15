@@ -149,6 +149,7 @@ async def explain_smap_variable(
     period: Annotated[str, Query(description="Selected period label")] = "الفترة المحددة",
     location: Annotated[str, Query(description="Selected location name")] = "مكناس، المغرب",
     previous_value: Annotated[float | None, Query(description="Previous period value for trend comparison")] = None,
+    language: Annotated[str, Query(description="Target explanation language (auto, darija, ar, fr, es, en)")] = "auto",
 ) -> DarijaExplanationResponse:
     return await service.explain_variable_async(
         var_id=variable,
@@ -156,6 +157,7 @@ async def explain_smap_variable(
         period=period,
         location_name=location,
         previous_value=previous_value,
+        language=language,
     )
 
 

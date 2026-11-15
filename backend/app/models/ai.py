@@ -16,6 +16,9 @@ class AiLocationContext(BaseModel):
     name: str = "Meknes, Morocco"
     latitude: float = 33.8900
     longitude: float = -5.5500
+    country: str | None = None
+    country_code: str | None = None
+    region: str | None = None
 
 
 class AiChatRequest(BaseModel):
@@ -38,6 +41,8 @@ class AiChatResponse(BaseModel):
     data_evidence: dict[str, Any] = Field(default_factory=dict)
     validation_status: Literal["validated", "partial", "unavailable"] = "validated"
     language_detected: str = "darija"
+    farm_country: str | None = None
+    farm_language: str | None = None
     confidence_score: float = 0.95
     missing_data_warnings: list[str] = Field(default_factory=list)
     model: str = "fieldshift-ai-engine"
