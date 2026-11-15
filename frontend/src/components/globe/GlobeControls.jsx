@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  TbZoomIn,
-  TbZoomOut,
-  TbRefresh,
-  TbEye,
-} from 'react-icons/tb';
+import { RotateCcw, Eye, ZoomIn, ZoomOut } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function GlobeControls({
@@ -20,70 +15,70 @@ export default function GlobeControls({
 
   return (
     <div
-      className="flex items-center gap-2 select-none"
+      className="flex items-center gap-1.5 p-1 rounded-xl bg-white/95 border border-slate-200/90 backdrop-blur-2xl shadow-[0_10px_35px_-5px_rgba(15,23,42,0.15)] select-none font-body text-slate-700"
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* Auto Spin Toggle */}
+      {/* Auto Orbit Rotation Toggle */}
       <button
         onClick={onToggleRotate}
         type="button"
-        className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-mono font-medium backdrop-blur-md border transition-all duration-300 cursor-pointer shadow-lg ${
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 cursor-pointer ${
           isRotating
-            ? 'bg-cyan-950/80 border-cyan-500/50 text-cyan-300 shadow-cyan-900/30'
-            : 'bg-zinc-950/80 border-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+            ? 'bg-cyan-50 border border-cyan-300 text-cyan-800 shadow-xs'
+            : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
         }`}
         title={t('controls.orbitSpinOn', {}, 'Toggle Planetary Orbit Rotation')}
       >
         <span
           className={`w-2 h-2 rounded-full ${
-            isRotating ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'
+            isRotating ? 'bg-cyan-600 animate-pulse' : 'bg-slate-400'
           }`}
         />
         <span>{isRotating ? t('controls.orbitSpinOn', {}, 'Orbit Spin ON') : t('controls.orbitSpinPaused', {}, 'Spin Paused')}</span>
       </button>
 
-      {/* 3D Pitch Tilt Toggle */}
+      {/* 3D Horizon Pitch Tilt Toggle */}
       <button
         onClick={onTogglePitch}
         type="button"
-        className={`p-2.5 rounded-xl border backdrop-blur-md transition-all cursor-pointer shadow-lg ${
+        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
           currentPitch > 20
-            ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
-            : 'bg-zinc-950/80 hover:bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-zinc-200'
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-xs'
+            : 'bg-slate-50 hover:bg-white border-slate-200 text-slate-600 hover:text-slate-900'
         }`}
         title={t('controls.togglePitch', {}, 'Toggle 3D Horizon Pitch')}
       >
-        <TbEye className="w-4 h-4" />
+        <Eye className="w-4 h-4" />
       </button>
 
       {/* Zoom In */}
       <button
         onClick={onZoomIn}
         type="button"
-        className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
+        className="p-1.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-xs"
         title={t('controls.zoomIn', {}, 'Zoom In')}
       >
-        <TbZoomIn className="w-4 h-4" />
+        <ZoomIn className="w-4 h-4" />
       </button>
 
       {/* Zoom Out */}
       <button
         onClick={onZoomOut}
         type="button"
-        className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
+        className="p-1.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-xs"
         title={t('controls.zoomOut', {}, 'Zoom Out')}
       >
-        <TbZoomOut className="w-4 h-4" />
+        <ZoomOut className="w-4 h-4" />
       </button>
 
-      {/* Reset Orbit */}
+      {/* Reset Global Orbit */}
       <button
         onClick={onResetOrbit}
         type="button"
-        className="p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
-        title={t('controls.resetOrbit', {}, 'Reset Global Earth Orbit')}
+        className="p-1.5 rounded-lg bg-slate-50 hover:bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-all cursor-pointer shadow-xs"
+        title={t('controls.resetGlobalOrbit', {}, 'Reset Global Orbit')}
       >
-        <TbRefresh className="w-4 h-4" />
+        <RotateCcw className="w-4 h-4" />
       </button>
     </div>
   );

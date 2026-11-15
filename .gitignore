@@ -51,6 +51,7 @@ frontend/dist/
 backend/data/
 
 # IDE & OS
+.gemini/
 .vscode/
 .idea/
 *.swp

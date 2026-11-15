@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+@theme {
+  --color-light-surface: rgba(255, 255, 255, 0.94);
+  --color-light-border: rgba(228, 228, 231, 0.9);
+  --color-light-surface-subtle: rgba(248, 250, 252, 0.88);
+
+  --font-display: 'Outfit', 'Cairo', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Cairo', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Outfit', 'Cairo', sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Plus Jakarta Sans', 'Cairo', system-ui, sans-serif;
+  }
+
+  .light-glass {
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(228, 228, 231, 0.95);
+    box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+
+  .light-glass-elevated {
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── STRICT ARABIC TYPOGRAPHY SAFEGUARDS ── */
+/* Never allow letter-spacing (tracking) or monospace fallbacks to break Arabic ligature connections */
+[dir="rtl"], [dir="rtl"] * {
+  letter-spacing: normal !important;
+}
+
+:lang(ar), [dir="rtl"] {
+  font-family: 'Cairo', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+/* Isolate numbers so they use tabular monospace without affecting Arabic text */
+bdi.number-badge, span.number-badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom crisp light scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}

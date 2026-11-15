@@ -14,6 +14,8 @@ import GlobeControls from './GlobeControls';
 import LocationToolbar from './LocationToolbar';
 import FieldTelemetryCard from './FieldTelemetryCard';
 import RotationSimulationModal from './RotationSimulationModal';
+import CinematicHeroOverlay from './CinematicHeroOverlay';
+import { Globe2 } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 // ─── Direct Static Worker from public/ directory ─────────────────────────────
@@ -55,6 +57,7 @@ export default function EarthOrbitGlobe({
   const [showTelemetryCard, setShowTelemetryCard] = useState(false);
   const [currentPitch, setCurrentPitch] = useState(0);
   const [selectedYear, setSelectedYear] = useState(2025);
+  const [isExperienceMode, setIsExperienceMode] = useState(false);
 
   // Digital twin simulation state
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
@@ -115,6 +118,7 @@ export default function EarthOrbitGlobe({
       }
       setIsRotating(false);
       setShowTelemetryCard(false);
+      setIsExperienceMode(true);
 
       const targetCoords = loc.coordinates; // [lng, lat]
       const targetZoom = loc.zoom || 14.5;
@@ -362,6 +366,7 @@ export default function EarthOrbitGlobe({
 
   // ─── Orbit Controls ────────────────────────────────────────────────────────
   const handleResetOrbit = () => {
+    setIsExperienceMode(false);
     if (markerRef.current) markerRef.current.remove();
     setSelectedLocation(null);
     setShowTelemetryCard(false);
@@ -478,39 +483,102 @@ export default function EarthOrbitGlobe({
 
   return (
     <div className="relative w-full h-full min-h-screen bg-black overflow-hidden select-none font-sans">
-      {/* 3D Globe Canvas */}
+      {/* 3D Globe Canvas (100% FROZEN & UNTOUCHED) */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full bg-[#000005]" />
 
       {/* Atmospheric glow vignette */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,5,0.4)_100%)]" />
 
-      {/* Top-Left: Mission HUD */}
-      <div className="absolute top-5 left-5 z-20">
-        <MissionHUD
-          selectedLocation={selectedLocation}
-          isFlying={!isRotating && !showTelemetryCard}
-          coordsRef={coordsRef}
-          altitudeRef={altitudeRef}
+      {/* ── MODE 1: CINEMATIC HERO OVERLAY (From Reference Design) ── */}
+      {!isExperienceMode && (
+        <CinematicHeroOverlay
+          onEnterExperience={() =>
+            flyToLocation({
+              name: 'Saïss / Meknes, Morocco',
+              coordinates: [-5.55, 33.89],
+              zoom: 14.5,
+              pitch: 45,
+              bearing: 0,
+            })
+          }
+          onSelectTerroir={(terroir) =>
+            flyToLocation({
+              name: terroir.name,
+              coordinates: [terroir.lng, terroir.lat],
+              zoom: 14.5,
+              pitch: 45,
+              bearing: 0,
+            })
+          }
         />
-      </div>
+      )}
 
-      {/* Top-Right: Single Hero Action "Get My Location" */}
-      <div className="absolute top-5 right-5 z-20">
-        <LocationToolbar onFlyToLocation={flyToLocation} isFlying={false} />
-      </div>
+      {/* ── MODE 2: ACTIVE MISSION OPERATIONS HUD ── */}
+      {isExperienceMode && (
+        <>
+          {/* Top Return-to-Orbit Pill */}
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30">
+            <button
+              type="button"
+              onClick={handleResetOrbit}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/95 hover:bg-white border border-slate-200/90 shadow-[0_10px_35px_-5px_rgba(15,23,42,0.15)] text-xs font-semibold text-slate-700 hover:text-cyan-800 backdrop-blur-2xl transition cursor-pointer"
+            >
+              <Globe2 className="w-3.5 h-3.5 text-cyan-600" />
+              <span>Orbit View</span>
+            </button>
+          </div>
 
-      {/* Field Telemetry Card (after camera arrives) */}
-      {showTelemetryCard && (
-        <FieldTelemetryCard
-          locationData={selectedLocation}
-          telemetry={environmentalData}
-          selectedYear={selectedYear}
-          onYearChange={handleYearChange}
-          onEvaluateRotation={(loc, tele) => {
-            handleEvaluateRotation(loc, {}, tele || environmentalData);
-          }}
-          onClose={() => setShowTelemetryCard(false)}
-        />
+          {/* Top-Left: Mission HUD */}
+          <div className="absolute top-5 left-5 z-20">
+            <MissionHUD
+              selectedLocation={selectedLocation}
+              isFlying={!isRotating && !showTelemetryCard}
+              coordsRef={coordsRef}
+              altitudeRef={altitudeRef}
+            />
+          </div>
+
+          {/* Top-Right: Location Toolbar */}
+          <div className="absolute top-5 right-5 z-20">
+            <LocationToolbar onFlyToLocation={flyToLocation} isFlying={false} />
+          </div>
+
+          {/* Field Telemetry Card (after camera arrives) */}
+          {showTelemetryCard && (
+            <FieldTelemetryCard
+              locationData={selectedLocation}
+              telemetry={environmentalData}
+              selectedYear={selectedYear}
+              onYearChange={handleYearChange}
+              onEvaluateRotation={(loc, tele) => {
+                handleEvaluateRotation(loc, {}, tele || environmentalData);
+              }}
+              onClose={() => setShowTelemetryCard(false)}
+            />
+          )}
+
+          {/* Bottom-Left: Satellite Constellations */}
+          <div className="absolute bottom-6 left-5 z-20 hidden md:flex">
+            <SatelliteConstellations />
+          </div>
+
+          {/* Bottom-Right: Orbit Controls */}
+          <div className="absolute bottom-6 right-5 z-20">
+            <GlobeControls
+              isRotating={isRotating}
+              onToggleRotate={() => {
+                const next = !isRotating;
+                isSpinningRef.current = next;
+                setIsRotating(next);
+              }}
+              onZoomIn={() => mapRef.current?.zoomIn()}
+              onZoomOut={() => mapRef.current?.zoomOut()}
+              onResetOrbit={handleResetOrbit}
+              onTogglePitch={handleTogglePitch}
+              currentPitch={currentPitch}
+            />
+          </div>
+        </>
       )}
 
       {/* Virtual Agricultural Laboratory Simulation Modal */}
@@ -524,28 +592,6 @@ export default function EarthOrbitGlobe({
         error={simulationError}
         onReSimulate={(options) => handleEvaluateRotation(selectedLocation, options)}
       />
-
-      {/* Bottom-Left: Satellite Constellations */}
-      <div className="absolute bottom-6 left-5 z-20 hidden md:flex">
-        <SatelliteConstellations />
-      </div>
-
-      {/* Bottom-Right: Orbit Controls */}
-      <div className="absolute bottom-6 right-5 z-20">
-        <GlobeControls
-          isRotating={isRotating}
-          onToggleRotate={() => {
-            const next = !isRotating;
-            isSpinningRef.current = next;
-            setIsRotating(next);
-          }}
-          onZoomIn={() => mapRef.current?.zoomIn()}
-          onZoomOut={() => mapRef.current?.zoomOut()}
-          onResetOrbit={handleResetOrbit}
-          onTogglePitch={handleTogglePitch}
-          currentPitch={currentPitch}
-        />
-      </div>
     </div>
   );
 }

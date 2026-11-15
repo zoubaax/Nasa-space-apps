@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GiEarthAmerica } from 'react-icons/gi';
-import { TbCompass, TbMapPin, TbWifi } from 'react-icons/tb';
+import { Globe, Compass, MapPin, Wifi } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function MissionHUD({
@@ -33,74 +32,74 @@ export default function MissionHUD({
 
   return (
     <div
-      className="flex flex-col gap-2.5 max-w-sm pointer-events-none select-none"
+      className="flex flex-col gap-2 max-w-sm pointer-events-none select-none font-body"
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      {/* Title & Mission Card */}
-      <div className="flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-zinc-950/80 border border-cyan-500/20 backdrop-blur-xl shadow-2xl shadow-cyan-950/30">
-        <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shrink-0">
-          <GiEarthAmerica className={`w-5 h-5 ${isFlying ? 'animate-spin' : 'animate-spin-slow'}`} />
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+      {/* ── Mission Title Card ── */}
+      <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/95 border border-slate-200/90 backdrop-blur-2xl shadow-[0_10px_35px_-5px_rgba(15,23,42,0.15)] text-slate-800">
+        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 border border-cyan-200 text-cyan-700 shrink-0">
+          <Globe className={`w-4 h-4 ${isFlying ? 'animate-spin' : ''}`} />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-600" />
           </span>
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xs font-mono font-bold tracking-widest uppercase text-cyan-300">
-              {t('hud.missionTitle', {}, 'FieldShift AI · Earth Orbit')}
+            <h1 className="font-display text-xs font-bold text-slate-900 leading-snug">
+              {t('hud.missionTitle', {}, 'Farmer Eye · Earth Orbit')}
             </h1>
-            <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-cyan-100 text-cyan-800 border border-cyan-200">
               {t('hud.nasaBadge', {}, 'NASA EO')}
             </span>
           </div>
-          <p className="text-[10px] font-mono text-zinc-400 mt-0.5">
+          <p className="text-[10px] text-slate-500 mt-0.5">
             {t('hud.missionSubtitle', {}, 'NASA SMAP L4 · POWER AG · FAO-56 Digital Twin')}
           </p>
         </div>
       </div>
 
-      {/* Telemetry & Target Status (Direct DOM references for zero re-render lag) */}
-      <div className="p-3.5 rounded-xl bg-zinc-950/75 border border-zinc-800/80 backdrop-blur-md font-mono text-xs text-zinc-300 space-y-2">
-        <div className="flex justify-between items-center text-[11px]">
-          <span className="text-zinc-500 uppercase flex items-center gap-1.5 text-[10px]">
-            <TbCompass className="w-3.5 h-3.5 text-cyan-400" /> {t('hud.altitudeLabel', {}, 'Orbit Altitude')}
+      {/* ── Real-Time Telemetry & Data Bridge Readout ── */}
+      <div className="p-3 rounded-xl bg-white/95 border border-slate-200/90 backdrop-blur-2xl text-xs text-slate-700 space-y-2 shadow-[0_10px_35px_-5px_rgba(15,23,42,0.15)]">
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-slate-500 flex items-center gap-1.5 font-medium">
+            <Compass className="w-3.5 h-3.5 text-cyan-600" /> {t('hud.altitudeLabel', {}, 'Orbit Altitude')}
           </span>
-          <span ref={altitudeRef} className="text-cyan-300 font-bold tabular-nums">
+          <bdi ref={altitudeRef} className="font-mono text-cyan-800 font-bold tabular-nums" dir="ltr">
             20,000 km
-          </span>
+          </bdi>
         </div>
 
-        <div className="flex justify-between items-center text-[11px]">
-          <span className="text-zinc-500 uppercase text-[10px]">{t('hud.coordsLabel', {}, 'Coordinates')}</span>
-          <span ref={coordsRef} className="text-zinc-200 font-medium tabular-nums">
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-slate-500 font-medium">{t('hud.coordsLabel', {}, 'Coordinates')}</span>
+          <bdi ref={coordsRef} className="font-mono text-slate-800 font-medium tabular-nums" dir="ltr">
             20.000°N, 0.000°E
-          </span>
+          </bdi>
         </div>
 
         {/* Selected Field Status */}
-        <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px]">
-          <span className="text-zinc-500 flex items-center gap-1">
-            <TbMapPin className="w-3 h-3 text-emerald-400" /> {t('hud.targetField', {}, 'Target Field:')}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span className="text-slate-500 flex items-center gap-1 font-medium">
+            <MapPin className="w-3.5 h-3.5 text-emerald-600" /> {t('hud.targetField', {}, 'Target Field:')}
           </span>
           {selectedLocation ? (
-            <span className="text-emerald-400 font-semibold truncate max-w-[170px]">
+            <span className="text-emerald-800 font-bold truncate max-w-[170px]">
               {selectedLocation.name || `${selectedLocation.lat.toFixed(2)}, ${selectedLocation.lng.toFixed(2)}`}
             </span>
           ) : (
-            <span className="text-zinc-500 italic">
+            <span className="text-slate-400 italic">
               {isFlying ? t('hud.cinematicFly', {}, 'Cinematic Fly-in...') : t('hud.globalObservation', {}, 'Global Observation')}
             </span>
           )}
         </div>
 
         {/* Live Service Bridge */}
-        <div className="pt-1.5 border-t border-zinc-800/60 flex items-center justify-between text-[9px]">
-          <span className="text-zinc-500 flex items-center gap-1">
-            <TbWifi className="w-3 h-3 text-cyan-400" /> {t('hud.dataBridge', {}, 'NASA Data Bridge:')}
+        <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+          <span className="text-slate-500 flex items-center gap-1 font-medium">
+            <Wifi className="w-3 h-3 text-cyan-600" /> {t('hud.dataBridge', {}, 'NASA Data Bridge:')}
           </span>
-          <span className={`font-mono flex items-center gap-1 ${backendOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${backendOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+          <span className={`flex items-center gap-1.5 font-semibold ${backendOnline ? 'text-emerald-700' : 'text-amber-700'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${backendOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
             {backendOnline ? t('hud.fastApiOnline', {}, 'FastAPI Online') : t('hud.connecting', {}, 'Connecting…')}
           </span>
         </div>
