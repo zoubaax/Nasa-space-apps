@@ -12,7 +12,7 @@
 
 **A scientifically defensible, explainable digital twin and decision-support platform that fuses regional NASA Earth observation satellites, localized farm IoT sensors, and deterministic FAO-56 crop models to compare 3-season crop rotation scenarios under drought stress — without hallucinated AI numbers.**
 
-[Live Architecture](#-system-architecture) • [Documentation Matrix](#-clickable-documentation-matrix) • [5 Judging Criteria](#-evaluation-against-the-5-nasa-judging-criteria) • [Quickstart Guide](#-quickstart-guide-in-60-seconds)
+[Documentation Matrix](#-clickable-documentation-matrix) • [Quickstart Guide](#-quickstart-guide-in-60-seconds) • [System Architecture](#-system-architecture) • [5 Judging Criteria](#-evaluation-against-the-5-nasa-judging-criteria)
 
 ---
 
@@ -35,6 +35,52 @@ To facilitate thorough evaluation by NASA Space Apps judges and peer reviewers, 
 | **Hardware & In-Situ IoT** | [`docs/ESP32_SOIL_SENSOR_INTEGRATION_PLAN.md`](docs/ESP32_SOIL_SENSOR_INTEGRATION_PLAN.md) | IoT / Hardware Judges | Capacitive v1.2 sensor, ADC transfer curves, GPIO34 telemetry ingestion, Wi-Fi token authentication, and BOM under \$8. |
 | **Master Blueprint** | [`docs/FARMER_EYE_MASTER_CONTEXT.md`](docs/FARMER_EYE_MASTER_CONTEXT.md) | General Reviewers | Comprehensive challenge contextualization, Saïss pilot farm baseline, botanical family succession rules, and data provenance. |
 | **Milestone Tracking** | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Hackathon Evaluators | Chronological milestone validation checklist tracking Phase 0 through Phase 6 deliverables (100% verified complete). |
+
+---
+
+## 🚀 Quickstart Guide (In 60 Seconds)
+
+### Option A: 1-Command Automated Demo (Recommended)
+Launch the entire stack (FastAPI backend on `:8000` + Vite React frontend on `:5173`) with a single command:
+
+```bash
+chmod +x run_demo.sh
+./run_demo.sh
+```
+*Pressing `Ctrl+C` cleanly shuts down all processes and frees ports automatically.*
+
+---
+
+### Option B: Step-by-Step Manual Launch
+
+#### Prerequisites
+* **Python 3.10+** (with `pip` or `poetry`)
+* **Node.js 18+** & `npm`
+
+#### 1. Clone the Repository
+```bash
+git clone https://github.com/zoubaax/Nasa-space-apps.git
+cd Nasa-space-apps
+```
+
+#### 2. Launch the Backend (FastAPI)
+```bash
+cd backend
+cp .env.example .env  # Optional: Add GEMINI_API_KEY for live AI tribunal deliberations
+python3 -m venv .venv && source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+*Swagger API interactive documentation available at:* `http://127.0.0.1:8000/docs`
+
+#### 3. Launch the Frontend (React 19 + Vite)
+In a second terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*Application available at:* `http://localhost:5173`
 
 ---
 
@@ -171,44 +217,6 @@ Farmer's Eye incorporates physical on-farm ground truth via the ESP32 Soil Probe
   "battery_voltage": 3.28
 }
 ```
-
----
-
-## 🚀 Quickstart Guide (In 60 Seconds)
-
-### Prerequisites
-* **Python 3.10+** (with `pip` or `poetry`)
-* **Node.js 18+** & `npm`
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/your-username/farmers-eye.git
-cd farmers-eye
-```
-
-### 2. Configure Environment
-```bash
-cp backend/.env.example backend/.env
-# Optional: Add your Google Gemini API Key for live AI tribunal deliberations
-```
-
-### 3. Launch the Backend (FastAPI)
-```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-*API docs available at:* `http://127.0.0.1:8000/docs`
-
-### 4. Launch the Frontend (React 19 + Vite)
-In a new terminal:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*Application available at:* `http://localhost:5173`
 
 ---
 
