@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   TbLeaf,
   TbDroplet,
@@ -13,7 +13,9 @@ import {
   TbAlertTriangle,
   TbPlant,
   TbTemperature,
+  TbSparkles,
 } from 'react-icons/tb';
+import { fetchVariableExplanation } from '../../utils/geo';
 
 export default function FieldTelemetryCard({
   locationData,
@@ -29,6 +31,42 @@ export default function FieldTelemetryCard({
   const lng = locationData.lng;
   const name = locationData.name || 'Selected Field Coordinate';
   const isLoading = telemetry?.isLoading;
+
+  const [activeExplanation, setActiveExplanation] = useState(null);
+  const [isExplaining, setIsExplaining] = useState(false);
+
+  const handleExplain = async (variableId, value, fallbackTitle) => {
+    if (value === null || value === undefined) return;
+    setIsExplaining(true);
+    setActiveExplanation({
+      isLoading: true,
+      name_fr: fallbackTitle,
+      selected_value: value,
+    });
+    try {
+      const data = await fetchVariableExplanation(variableId, value, lat, lng, selectedYear);
+      if (data) {
+        setActiveExplanation(data);
+      } else {
+        setActiveExplanation({
+          name_fr: fallbackTitle,
+          display_value: `${value}`,
+          what: 'مؤشر مراقبة بيئية وزراعية من أقمار ناسا الاصطناعية.',
+          why_agri: 'كيعاون الفلاح يعرف حالة الحقل والماء بدقة.',
+          interpretation: `القيمة المسجلة فالموسم ${selectedYear} هي ${value}. البيانات مسترجعة مباشرة من مراصد ناسا.`,
+        });
+      }
+    } catch (err) {
+      console.warn('Explain failed:', err);
+      setActiveExplanation({
+        name_fr: fallbackTitle,
+        display_value: `${value}`,
+        interpretation: 'تعذر الاتصال بمحرك التحليل الذكي مؤقتاً.',
+      });
+    } finally {
+      setIsExplaining(false);
+    }
+  };
 
   return (
     <div className="absolute top-20 right-5 z-30 w-96 max-w-[calc(100vw-2.5rem)] max-h-[calc(100vh-6.5rem)] flex flex-col rounded-3xl bg-zinc-950/90 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] text-white font-sans animate-fade-in-right overflow-hidden select-none">
@@ -163,10 +201,14 @@ export default function FieldTelemetryCard({
 
               {/* SMAP L4 Tile */}
               {telemetry.smapMoistureM3 !== null ? (
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-cyan-500/20 hover:border-cyan-500/40 transition">
+                <div
+                  onClick={() => handleExplain('sm_rootzone', telemetry.smapMoistureM3, 'Humidité du sol racinaire')}
+                  className="p-3 rounded-xl bg-zinc-900/50 border border-cyan-500/20 hover:border-cyan-500/50 hover:bg-zinc-900/80 transition cursor-pointer group"
+                  title="Cliquez pour afficher l'explication IA en Darija"
+                >
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400">
+                      <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20 transition">
                         <TbDroplet className="w-4 h-4" />
                       </div>
                       <div>
@@ -178,9 +220,11 @@ export default function FieldTelemetryCard({
                         </span>
                       </div>
                     </div>
-                    <span className="text-cyan-300 font-mono font-bold text-sm">
-                      {telemetry.smapMoistureM3} <span className="text-[10px] font-normal text-zinc-400">m³/m³</span>
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-cyan-300 font-mono font-bold text-sm">
+                        {telemetry.smapMoistureM3} <span className="text-[10px] font-normal text-zinc-400">m³/m³</span>
+                      </span>
+                    </div>
                   </div>
                   <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                     <div
@@ -202,6 +246,12 @@ export default function FieldTelemetryCard({
                       )}
                     </div>
                   )}
+                  <div className="flex items-center justify-end mt-1.5 pt-1 border-t border-zinc-800/50">
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 group-hover:text-cyan-300 font-semibold">
+                      <span>🔍 تحليل بالدارجة</span>
+                      <TbArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    </span>
+                  </div>
                 </div>
               ) : telemetry?.isSmapLoading ? (
                 <div className="p-3 rounded-xl bg-zinc-900/40 border border-cyan-500/20 flex items-center justify-between">
@@ -222,10 +272,14 @@ export default function FieldTelemetryCard({
 
               {/* NASA POWER / GPM Rainfall Tile */}
               {telemetry.annualRainfallMm !== null ? (
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-blue-500/20 hover:border-blue-500/40 transition">
+                <div
+                  onClick={() => handleExplain('precipitation_total_surface_flux', telemetry.annualRainfallMm, 'Précipitations annuelles')}
+                  className="p-3 rounded-xl bg-zinc-900/50 border border-blue-500/20 hover:border-blue-500/50 hover:bg-zinc-900/80 transition cursor-pointer group"
+                  title="Cliquez pour afficher l'explication IA en Darija"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-blue-500/10 text-blue-400">
+                      <div className="p-1 rounded-md bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition">
                         <TbCloudRain className="w-4 h-4" />
                       </div>
                       <div>
@@ -241,15 +295,25 @@ export default function FieldTelemetryCard({
                       {telemetry.annualRainfallMm} <span className="text-[10px] font-normal text-zinc-400">mm/yr</span>
                     </span>
                   </div>
+                  <div className="flex items-center justify-end mt-1.5 pt-1 border-t border-zinc-800/50">
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-blue-400 group-hover:text-blue-300 font-semibold">
+                      <span>🔍 تحليل بالدارجة</span>
+                      <TbArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    </span>
+                  </div>
                 </div>
               ) : null}
 
               {/* NASA POWER Temperature & Radiation Tile */}
               {telemetry.meanTempC !== null ? (
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-amber-500/20 hover:border-amber-500/40 transition">
+                <div
+                  onClick={() => handleExplain('surface_temp', telemetry.meanTempC, 'Température moyenne')}
+                  className="p-3 rounded-xl bg-zinc-900/50 border border-amber-500/20 hover:border-amber-500/50 hover:bg-zinc-900/80 transition cursor-pointer group"
+                  title="Cliquez pour afficher l'explication IA en Darija"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-amber-500/10 text-amber-400">
+                      <div className="p-1 rounded-md bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition">
                         <TbSun className="w-4 h-4" />
                       </div>
                       <div>
@@ -273,15 +337,25 @@ export default function FieldTelemetryCard({
                       )}
                     </div>
                   )}
+                  <div className="flex items-center justify-end mt-1.5 pt-1 border-t border-zinc-800/50">
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-amber-400 group-hover:text-amber-300 font-semibold">
+                      <span>🔍 تحليل بالدارجة</span>
+                      <TbArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    </span>
+                  </div>
                 </div>
               ) : null}
 
               {/* Satellite Vegetation / Canopy State */}
               {(telemetry.vegetationGreenness !== null || telemetry.leafAreaIndex !== null) && (
-                <div className="p-3 rounded-xl bg-zinc-900/50 border border-emerald-500/20">
+                <div
+                  onClick={() => handleExplain('vegetation_greenness_fraction', telemetry.vegetationGreenness || 30.0, 'Verdissement du couvert végétal')}
+                  className="p-3 rounded-xl bg-zinc-900/50 border border-emerald-500/20 hover:border-emerald-500/50 hover:bg-zinc-900/80 transition cursor-pointer group"
+                  title="Cliquez pour afficher l'explication IA en Darija"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400">
+                      <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition">
                         <TbPlant className="w-4 h-4" />
                       </div>
                       <div>
@@ -304,6 +378,12 @@ export default function FieldTelemetryCard({
                       )}
                     </div>
                   </div>
+                  <div className="flex items-center justify-end mt-1.5 pt-1 border-t border-zinc-800/50">
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 group-hover:text-emerald-300 font-semibold">
+                      <span>🔍 تحليل بالدارجة</span>
+                      <TbArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -325,6 +405,126 @@ export default function FieldTelemetryCard({
           <TbArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* ── Slide-Over AI Darija Explanation Drawer ── */}
+      {activeExplanation && (
+        <div className="absolute inset-0 z-50 bg-zinc-950/95 backdrop-blur-2xl flex flex-col p-5 overflow-y-auto custom-scrollbar animate-fade-in text-white select-text">
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                <TbSparkles className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div className="truncate pr-2">
+                <h3 className="text-xs font-bold text-zinc-100 truncate">
+                  {activeExplanation.name_fr || activeExplanation.name_en || 'Explication Satellite'}
+                </h3>
+                <span className="text-[10px] font-mono text-cyan-400 font-semibold">
+                  {activeExplanation.display_value || `${activeExplanation.selected_value ?? ''}`}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveExplanation(null)}
+              type="button"
+              className="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer shrink-0"
+              title="Fermer l'analyse"
+            >
+              <TbX className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Drawer Body */}
+          <div className="py-4 space-y-3.5 text-xs flex-1">
+            {activeExplanation.isLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
+                <TbLoader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                <span className="font-mono text-cyan-300 text-xs animate-pulse">
+                  جاري استشارة الذكاء الاصطناعي وتحليل معطيات ناسا بالدارجة...
+                </span>
+              </div>
+            ) : (
+              <>
+                {/* Main AI Darija Interpretation */}
+                {activeExplanation.interpretation && (
+                  <div
+                    className="p-3.5 rounded-2xl bg-gradient-to-b from-cyan-950/40 to-zinc-900/60 border border-cyan-500/30 text-zinc-200 text-xs leading-relaxed"
+                    dir="rtl"
+                  >
+                    <span className="text-[10px] font-mono text-cyan-300 font-bold block mb-1" dir="ltr">
+                      ★ التحليل الزراعي المباشر (Gemini AI):
+                    </span>
+                    {activeExplanation.interpretation}
+                  </div>
+                )}
+
+                {/* What is this variable */}
+                {activeExplanation.what && (
+                  <div
+                    className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/80 text-zinc-300 text-xs leading-relaxed"
+                    dir="rtl"
+                  >
+                    <span className="text-[10px] font-mono text-zinc-400 font-semibold block mb-0.5" dir="ltr">
+                      شنو كيعني هاد المؤشر؟
+                    </span>
+                    {activeExplanation.what}
+                  </div>
+                )}
+
+                {/* Why it matters to farmers */}
+                {activeExplanation.why_agri && (
+                  <div
+                    className="p-3 rounded-xl bg-zinc-900/50 border border-emerald-500/20 text-zinc-300 text-xs leading-relaxed"
+                    dir="rtl"
+                  >
+                    <span className="text-[10px] font-mono text-emerald-400 font-semibold block mb-0.5" dir="ltr">
+                      علاش مهم للأرض ديالك؟
+                    </span>
+                    {activeExplanation.why_agri}
+                  </div>
+                )}
+
+                {/* Temporal guidance / action */}
+                {activeExplanation.temporal_change && (
+                  <div
+                    className="p-3 rounded-xl bg-zinc-900/50 border border-amber-500/20 text-zinc-300 text-xs leading-relaxed"
+                    dir="rtl"
+                  >
+                    <span className="text-[10px] font-mono text-amber-300 font-semibold block mb-0.5" dir="ltr">
+                      نصيحة وتصرف فلاحي:
+                    </span>
+                    {activeExplanation.temporal_change}
+                  </div>
+                )}
+
+                {/* Scientific Caveat note */}
+                {(activeExplanation.caveat_note || activeExplanation.source) && (
+                  <div
+                    className="p-2.5 rounded-xl bg-zinc-900/30 border border-zinc-800 text-[10px] text-zinc-400 font-mono leading-normal"
+                    dir="rtl"
+                  >
+                    <span className="font-semibold text-zinc-500 block mb-0.5" dir="ltr">
+                      ملاحظة علمية دقيقة (NASA Evidence):
+                    </span>
+                    {activeExplanation.caveat_note || activeExplanation.source}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Drawer Footer */}
+          <div className="mt-auto pt-3 border-t border-zinc-800">
+            <button
+              onClick={() => setActiveExplanation(null)}
+              type="button"
+              className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition cursor-pointer"
+            >
+              رجوع للوحة المراقبة (Fermer)
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
