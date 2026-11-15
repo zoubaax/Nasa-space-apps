@@ -18,6 +18,40 @@ import {
 import { useTranslation } from '../../context/LanguageContext';
 import Mascot3DViewer from '../globe/Mascot3DViewer';
 
+// Arab League 22 nations mapping
+const ARABIC_COUNTRIES = {
+  ma: { name: 'Morocco', native: 'المغرب · الدارجة', flag: '🇲🇦' },
+  dz: { name: 'Algeria', native: 'الجزائر · العربية', flag: '🇩🇿' },
+  tn: { name: 'Tunisia', native: 'تونس · العربية', flag: '🇹🇳' },
+  eg: { name: 'Egypt', native: 'مصر · العربية', flag: '🇪🇬' },
+  sa: { name: 'Saudi Arabia', native: 'السعودية · العربية', flag: '🇸🇦' },
+  ae: { name: 'United Arab Emirates', native: 'الإمارات · العربية', flag: '🇦🇪' },
+  qa: { name: 'Qatar', native: 'قطر · العربية', flag: '🇶🇦' },
+  kw: { name: 'Kuwait', native: 'الكويت · العربية', flag: '🇰🇼' },
+  bh: { name: 'Bahrain', native: 'البحرين · العربية', flag: '🇧🇭' },
+  om: { name: 'Oman', native: 'عمان · العربية', flag: '🇴🇲' },
+  jo: { name: 'Jordan', native: 'الأردن · العربية', flag: '🇯🇴' },
+  lb: { name: 'Lebanon', native: 'لبنان · العربية', flag: '🇱🇧' },
+  iq: { name: 'Iraq', native: 'العراق · العربية', flag: '🇮🇶' },
+  sy: { name: 'Syria', native: 'سوريا · العربية', flag: '🇸🇾' },
+  ye: { name: 'Yemen', native: 'اليمن · العربية', flag: '🇾🇪' },
+  ly: { name: 'Libya', native: 'ليبيا · العربية', flag: '🇱🇾' },
+  sd: { name: 'Sudan', native: 'السودان · العربية', flag: '🇸🇩' },
+  mr: { name: 'Mauritania', native: 'موريتانيا · العربية', flag: '🇲🇷' },
+  ps: { name: 'Palestine', native: 'فلسطين · العربية', flag: '🇵🇸' },
+  so: { name: 'Somalia', native: 'الصومال · العربية', flag: '🇸🇴' },
+  dj: { name: 'Djibouti', native: 'جيبوتي · العربية', flag: '🇩🇯' },
+  km: { name: 'Comoros', native: 'جزر القمر · العربية', flag: '🇰🇲' },
+};
+
+const ARABIC_NAMES = [
+  'morocco', 'maroc', 'egypt', 'algeria', 'algerie', 'tunisia', 'tunisie',
+  'libya', 'sudan', 'saudi', 'emirates', 'qatar', 'kuwait', 'bahrain',
+  'oman', 'yemen', 'jordan', 'lebanon', 'syria', 'iraq', 'palestine', 'mauritania',
+  'مصر', 'الجزائر', 'تونس', 'ليبيا', 'السودان', 'السعودية', 'الإمارات',
+  'قطر', 'الكويت', 'البحرين', 'عمان', 'اليمن', 'الأردن', 'لبنان', 'سوريا', 'العراق', 'فلسطين'
+];
+
 // Resolve localized agricultural language based on the selected location on Earth
 const resolveLocationLanguage = (location, defaultLang = 'auto') => {
   if (!location) return defaultLang === 'ar' ? 'darija' : defaultLang;
@@ -27,7 +61,7 @@ const resolveLocationLanguage = (location, defaultLang = 'auto') => {
   const lng = coords[0];
   const lat = coords[1];
 
-  // Morocco check (bounding box + keywords)
+  // 1. Morocco check (bounding box + keywords) -> Moroccan Darija
   if (
     cCode === 'ma' ||
     cName.includes('morocco') ||
@@ -40,14 +74,51 @@ const resolveLocationLanguage = (location, defaultLang = 'auto') => {
   ) {
     return 'darija';
   }
-  // France
+
+  // 2. All other Arab countries -> Modern Standard Arabic (ar)
+  if (Boolean(ARABIC_COUNTRIES[cCode]) || ARABIC_NAMES.some((n) => cName.includes(n))) {
+    return 'ar';
+  }
+
+  // 3. France / Francophone Europe
   if (cCode === 'fr' || cName.includes('france') || cName.includes('toulouse') || cName.includes('paris')) {
     return 'fr';
   }
-  // Spain / Hispanic
+
+  // 4. Spain / Latin America
   if (cCode === 'es' || cName.includes('spain') || cName.includes('españa') || cName.includes('madrid')) {
     return 'es';
   }
+
+  // 5. Germany
+  if (cCode === 'de' || cName.includes('germany') || cName.includes('deutschland')) {
+    return 'de';
+  }
+
+  // 6. Japan
+  if (cCode === 'jp' || cName.includes('japan')) {
+    return 'ja';
+  }
+
+  // 7. Turkey
+  if (cCode === 'tr' || cName.includes('turkey') || cName.includes('türkiye')) {
+    return 'tr';
+  }
+
+  // 8. Brazil / Portugal
+  if (cCode === 'br' || cCode === 'pt' || cName.includes('brazil') || cName.includes('portugal')) {
+    return 'pt';
+  }
+
+  // 9. Italy
+  if (cCode === 'it' || cName.includes('italy') || cName.includes('italia')) {
+    return 'it';
+  }
+
+  if (cCode && cCode.length === 2 && !['us', 'gb', 'ca', 'au', 'nz'].includes(cCode)) {
+    return cCode;
+  }
+
   return defaultLang === 'ar' ? 'darija' : defaultLang || 'en';
 };
 
@@ -58,7 +129,7 @@ export default function AgroChatDrawer({
   telemetry,
   selectedYear = 2025,
 }) {
-  const { t, language, isRtl } = useTranslation();
+  const { t, language, isRtl, langInfo } = useTranslation();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -70,16 +141,23 @@ export default function AgroChatDrawer({
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  const activeLocationLang = resolveLocationLanguage(selectedLocation, language);
+  const activeLocationLang = resolveLocationLanguage(selectedLocation, langInfo?.code || language);
 
   // Suggested questions by language
   const suggestedQuestions = {
-    ar: [
+    darija: [
       '🌾 واش خاصني نسقي الأرض هاد الأيام؟',
       '💧 فسر ليا نسبة رطوبة التربة فهاد البقعة',
       '🔄 شنو أحسن دورة زراعية مناسبة لهاد الأرض؟',
       '📡 شنو كتقول قراءة مجس التربة ESP32 الميداني؟',
       '☀️ واش كاين خطر صقيع أو موجة حرارة قادمة؟',
+    ],
+    ar: [
+      '🌾 هل يحتاج المحصول إلى الري خلال هذا الأسبوع؟',
+      '💧 ما هو تقييم رطوبة التربة في منطقة الجذور (SMAP L4)؟',
+      '🔄 ما هي أفضل دورة زراعية ملائمة لهذه المنطقة؟',
+      '📡 ما هي قراءات مجس التربة الحقلي (ESP32)؟',
+      '☀️ هل هناك مخاطر موجات حر أو جفاف مرتقبة؟',
     ],
     fr: [
       "🌾 Dois-je irriguer ma parcelle aujourd'hui ?",
@@ -106,25 +184,38 @@ export default function AgroChatDrawer({
 
   const currentSuggestions =
     activeLocationLang === 'darija'
+      ? suggestedQuestions.darija
+      : activeLocationLang === 'ar'
       ? suggestedQuestions.ar
       : suggestedQuestions[activeLocationLang] || suggestedQuestions.en;
 
-  // Initial welcome message
+  // Initial welcome message (resets when location/terroir changes)
   useEffect(() => {
-    if (messages.length === 0) {
-      let welcomeText = '';
-      if (activeLocationLang === 'darija' || language === 'ar') {
-        welcomeText = `مرحباً بك! أنا **منسق الذكاء الفائق الفلاحي (FieldShift SI Orchestrator - Super Intelligence)**.
+    let welcomeText = '';
+    const locationName = selectedLocation?.name || selectedLocation?.country || 'Selected Farm';
+
+    if (activeLocationLang === 'darija') {
+      welcomeText = `مرحباً بك! أنا **منسق الذكاء الفائق الفلاحي (FieldShift SI Orchestrator - Super Intelligence)**.
 أقوم بالتنسيق المباشر بين 5 وكلاء متخصصين:
-* ☀️ **وكيل المناخ (NASA POWER)**
+* ☀️ **وكيل المناخ والأرصاد (NASA POWER)**
 * 💧 **وكيل هيدرولوجيا التربة (NASA SMAP L4)**
 * 🚜 **وكيل الهندسة الزراعية الميدانية**
-* 📡 **وكيل الحساسات الميدانية (ESP32)**
+* 📡 **وكيل الحساسات الميدانية (ESP32 GPIO34)**
 * 🛡️ **وكيل الحارس العلمي والتدقيق ضد الهلوسة**
 
-أجيبك تلقائياً بـ Super Intelligence (SI) حسب موقع الحقل المحدد. اسألني عن الري، الرطوبة، أو أفضل الدورات الزراعية!`;
-      } else if (activeLocationLang === 'fr' || language === 'fr') {
-        welcomeText = `Bonjour ! Je suis **l'Orchestrateur SI FieldShift (Super Intelligence)**.
+أجيبك تلقائياً بـ Super Intelligence (SI) بالدارجة المغربية حسب موقع أرضك في **${locationName}**. اسألني عن الري، الرطوبة، أو أفضل الدورات الزراعية!`;
+    } else if (activeLocationLang === 'ar' || language === 'ar') {
+      welcomeText = `أهلاً ومرحباً بك! أنا **منسق الذكاء الفائق الزراعي (FieldShift SI Orchestrator - Super Intelligence)**.
+أنسّق مباشرة بين 5 وكلاء متخصصين مدعومين برادار وأقمار ناسا:
+* ☀️ **وكيل المناخ والأرصاد (NASA POWER)**
+* 💧 **وكيل هيدرولوجيا ورطوبة التربة (NASA SMAP L4)**
+* 🚜 **وكيل الإرشاد الزراعي وإدارة المحاصيل**
+* 📡 **وكيل المجسات الحقلية (ESP32 In-Situ Probe)**
+* 🛡️ **وكيل التدقيق العلمي والرقابة الصارمة لمنع الهلوسة**
+
+أجيبك باللغة العربية المتوافقة مع طبيعة الأرض والواقع الزراعي لـ **${locationName}**. تفضل بسؤالك حول مواعيد الري، رطوبة التربة، أو الدورات الزراعية المناسبة!`;
+    } else if (activeLocationLang === 'fr' || language === 'fr') {
+      welcomeText = `Bonjour ! Je suis **l'Orchestrateur SI FieldShift (Super Intelligence)**.
 Je supervise et coordonne 5 sous-agents scientifiques spécialisés :
 * ☀️ **Agent Climat (NASA POWER)**
 * 💧 **Agent Hydrologie du Sol (NASA SMAP L4)**
@@ -132,9 +223,9 @@ Je supervise et coordonne 5 sous-agents scientifiques spécialisés :
 * 📡 **Agent Capteur In-Situ (ESP32 GPIO34)**
 * 🛡️ **Agent Garde-Fou Scientifique (Zéro-Hallucination)**
 
-Je vous réponds automatiquement via Super Intelligence (SI) selon la localisation de votre parcelle. Posez vos questions sur l'irrigation, l'humidité ou les rotations !`;
-      } else if (activeLocationLang === 'es' || language === 'es') {
-        welcomeText = `¡Hola! Soy el **Orquestador SI FieldShift (Super Intelligence)**.
+Je vous réponds automatiquement via Super Intelligence (SI) pour le terroir de **${locationName}**. Posez vos questions sur l'irrigation, l'humidité ou les rotations !`;
+    } else if (activeLocationLang === 'es' || language === 'es') {
+      welcomeText = `¡Hola! Soy el **Orquestador SI FieldShift (Super Intelligence)**.
 Superviso y coordino 5 subagentes científicos especializados:
 * ☀️ **Agente Clima (NASA POWER)**
 * 💧 **Agente Hidrología del Suelo (NASA SMAP L4)**
@@ -142,9 +233,9 @@ Superviso y coordino 5 subagentes científicos especializados:
 * 📡 **Agente Sensor In-Situ (ESP32 GPIO34)**
 * 🛡️ **Agente Guardián Científico (Cero Alucinaciones)**
 
-Respondo automáticamente mediante Super Intelligence (SI) en función de la ubicación de su parcela. ¡Pregúnteme sobre riego, humedad o rotaciones de cultivos!`;
-      } else {
-        welcomeText = `Hello! I am the **FieldShift SI Agronomist Orchestrator (Super Intelligence)**.
+Respondo automáticamente mediante Super Intelligence (SI) para la parcela de **${locationName}**. ¡Pregúnteme sobre riego, humedad o rotaciones de cultivos!`;
+    } else {
+      welcomeText = `Hello! I am the **FieldShift SI Agronomist Orchestrator (Super Intelligence)**.
 I supervise 5 specialized subagents grounded in NASA satellite observations:
 * ☀️ **Climate Specialist (NASA POWER)**
 * 💧 **Soil Hydrology Specialist (NASA SMAP L4)**
@@ -152,26 +243,25 @@ I supervise 5 specialized subagents grounded in NASA satellite observations:
 * 📡 **In-Situ Sensor Specialist (ESP32 GPIO34)**
 * 🛡️ **Scientific Guardrail Sentinel (Zero-Hallucination Audit)**
 
-I automatically adapt my answers to your selected farm's terroir and language using Super Intelligence (SI)!`;
-      }
-
-      setMessages([
-        {
-          id: 'welcome',
-          role: 'assistant',
-          content: welcomeText,
-          specialists_consulted: [
-            'NASA POWER Climate',
-            'NASA SMAP L4 Soil Moisture',
-            'FieldShift Agronomy',
-            'ESP32 IoT Probe',
-            'Guardrail Sentinel',
-          ],
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+I automatically adapt my answers to **${locationName}**'s terroir and language using Super Intelligence (SI)!`;
     }
-  }, [language, activeLocationLang]);
+
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: welcomeText,
+        specialists_consulted: [
+          'NASA POWER Climate',
+          'NASA SMAP L4 Soil Moisture',
+          'FieldShift Agronomy',
+          'ESP32 IoT Probe',
+          'Guardrail Sentinel',
+        ],
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+  }, [language, activeLocationLang, selectedLocation?.name, selectedLocation?.country]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -204,9 +294,10 @@ I automatically adapt my answers to your selected farm's terroir and language us
     setActiveAgentId('orchestrator');
 
     // Build payload
-    const lat = selectedLocation?.coordinates ? selectedLocation.coordinates[1] : 33.89;
-    const lng = selectedLocation?.coordinates ? selectedLocation.coordinates[0] : -5.55;
-    const locationName = selectedLocation?.name || 'Selected Farm Plot';
+    const lat = selectedLocation?.coordinates ? selectedLocation.coordinates[1] : (selectedLocation?.lat || 33.89);
+    const lng = selectedLocation?.coordinates ? selectedLocation.coordinates[0] : (selectedLocation?.lng || -5.55);
+    const locationName = selectedLocation?.name || selectedLocation?.country || 'Selected Farm Plot';
+    const cCode = (selectedLocation?.country_code || (activeLocationLang === 'darija' ? 'ma' : '')).toLowerCase();
 
     const payload = {
       message: query,
@@ -215,14 +306,18 @@ I automatically adapt my answers to your selected farm's terroir and language us
         name: locationName,
         latitude: lat,
         longitude: lng,
-        country: selectedLocation?.country || 'Morocco',
+        country: selectedLocation?.country || (activeLocationLang === 'darija' ? 'Morocco' : ''),
+        country_code: cCode,
       },
       year: selectedYear,
       mode: 'agricultural',
-      history: messages.slice(-4).map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      history: messages
+        .filter((m) => m.content)
+        .slice(-4)
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
     };
 
     const assistantMsgId = `assistant-${Date.now()}`;
@@ -231,8 +326,8 @@ I automatically adapt my answers to your selected farm's terroir and language us
     let evidence = null;
 
     try {
-      // 1. Attempt Streaming SSE Endpoint
-      const response = await fetch('http://127.0.0.1:8000/api/ai/chat/stream', {
+      // 1. Attempt Streaming SSE Endpoint (uses proxy)
+      const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -329,7 +424,7 @@ I automatically adapt my answers to your selected farm's terroir and language us
 
       // Fallback: Synchronous POST
       try {
-        const fallbackRes = await fetch('http://127.0.0.1:8000/api/ai/chat', {
+        const fallbackRes = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -358,7 +453,7 @@ I automatically adapt my answers to your selected farm's terroir and language us
             id: assistantMsgId,
             role: 'assistant',
             content:
-              language === 'ar'
+              language === 'ar' || activeLocationLang === 'ar' || activeLocationLang === 'darija'
                 ? 'تعذر الاتصال بالخادم حالياً. يرجى التأكد من تشغيل خادم FastAPI على المنفذ 8000.'
                 : 'Unable to reach the SI Orchestrator service. Please ensure the FastAPI backend is running.',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -468,10 +563,26 @@ I automatically adapt my answers to your selected farm's terroir and language us
               <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 {activeLocationLang === 'darija'
                   ? '🇲🇦 الدارجة المغربية'
+                  : ARABIC_COUNTRIES[selectedLocation?.country_code?.toLowerCase()]
+                  ? `${ARABIC_COUNTRIES[selectedLocation.country_code.toLowerCase()].flag} ${ARABIC_COUNTRIES[selectedLocation.country_code.toLowerCase()].native}`
+                  : activeLocationLang === 'ar'
+                  ? '🌐 العربية الفصحى'
                   : activeLocationLang === 'fr'
                   ? '🇫🇷 Français'
                   : activeLocationLang === 'es'
                   ? '🇪🇸 Español'
+                  : activeLocationLang === 'de'
+                  ? '🇩🇪 Deutsch'
+                  : activeLocationLang === 'it'
+                  ? '🇮🇹 Italiano'
+                  : activeLocationLang === 'pt'
+                  ? '🇵🇹 Português'
+                  : activeLocationLang === 'tr'
+                  ? '🇹🇷 Türkçe'
+                  : activeLocationLang === 'ja'
+                  ? '🇯🇵 日本語'
+                  : langInfo?.flag && langInfo?.native
+                  ? `${langInfo.flag} ${langInfo.native}`
                   : '🌐 Global EN'}
               </span>
             </div>
@@ -557,7 +668,9 @@ I automatically adapt my answers to your selected farm's terroir and language us
 
       {/* ── 3. Chat Messages Stream ── */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 font-sans text-sm">
-        {messages.map((msg) => (
+        {messages
+          .filter((msg) => msg.role === 'user' || msg.content)
+          .map((msg) => (
           <div
             key={msg.id}
             className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}

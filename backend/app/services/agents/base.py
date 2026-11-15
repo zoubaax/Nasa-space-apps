@@ -63,19 +63,19 @@ class BaseAgent(ABC):
         }
 
         candidate_models = [
+            "gemini-flash-lite-latest",
             self._settings.gemini_model,
             "gemini-2.5-flash",
             "gemini-flash-latest",
-            "gemini-2.5-flash-lite",
-            "gemini-flash-lite-latest",
         ]
         # Deduplicate while preserving order
         candidate_models = list(dict.fromkeys([m for m in candidate_models if m]))
 
+        timeout_sec = min(self._settings.gemini_timeout_seconds, 12.0)
         for model_name in candidate_models:
             url = f"{self._settings.gemini_base_url}/models/{model_name}:generateContent?key={self._settings.gemini_api_key}"
             try:
-                async with httpx.AsyncClient(timeout=self._settings.gemini_timeout_seconds) as client:
+                async with httpx.AsyncClient(timeout=timeout_sec) as client:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()

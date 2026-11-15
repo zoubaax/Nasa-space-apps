@@ -88,6 +88,18 @@ class SoilSpecialistAgent(BaseAgent):
                 key_evidence=evidence,
             )
 
+        sensor_block = ""
+        if in_situ and in_situ.get("is_connected"):
+            sensor_block = (
+                f"\nIN-SITU ESP32 FIELD PROBE (GPIO34, point measurement, LIVE):\n"
+                f"- Volumetric Water Content: {in_situ.get('vwc_m3_m3', 0.0):.3f} m³/m³ ({in_situ.get('vwc_m3_m3', 0.0) * 100:.1f}%)\n"
+                f"- Raw ADC: {in_situ.get('adc_raw', 0)}, Soil Temp: {in_situ.get('soil_temp_c', 'N/A')} °C\n"
+                f"- Delta vs SMAP: {in_situ.get('smap_fusion_delta', 0.0) or 0.0:+.3f} m³/m³\n"
+                f"You MUST cite the ESP32 probe reading and compare it to SMAP.\n"
+            )
+        else:
+            sensor_block = "\nNo in-situ ESP32 probe is connected. Do NOT invent any sensor reading.\n"
+
         prompt = f"""You are the Soil Hydrology Specialist evaluating satellite radar soil data for {loc.get('name', 'this farm')}.
 REAL NASA SMAP L4 OBSERVATIONS (SPL4SMGP V008, ~9-11 km, DO NOT INVENT NUMBERS):
 - Root-Zone Soil Moisture (0-100 cm): {sm_rz:.3f} m³/m³
@@ -96,7 +108,7 @@ REAL NASA SMAP L4 OBSERVATIONS (SPL4SMGP V008, ~9-11 km, DO NOT INVENT NUMBERS):
 - Available Stored Water: {stored_water_mm:.1f} mm (TAW={taw_mm:.1f} mm)
 - Seedbed Soil Temperature: {soil_temp:.1f} °C
 - Hydration Status: {hydration}
-- User Query: {context.user_query}
+{sensor_block}- User Query: {context.user_query}
 
 Respond in 2-3 concise sentences in Arabic/Darija (or requested language {context.detected_language}). Cite the exact numbers.
 Return JSON:

@@ -53,7 +53,7 @@ export default function FieldTelemetryCard({
     const fetchSensor = async () => {
       try {
         const smapParam = telemetry?.smapSoilMoisture ? `?smap_rootzone=${telemetry.smapSoilMoisture}` : '';
-        const res = await fetch(`http://127.0.0.1:8000/api/sensors/soil-moisture/latest${smapParam}`);
+        const res = await fetch(`/api/sensors/soil-moisture/latest${smapParam}`);
         if (res.ok && isMounted) {
           const data = await res.json();
           setSensorData(data);
@@ -464,16 +464,6 @@ export default function FieldTelemetryCard({
                         <span className="text-[11px] font-mono text-zinc-500">
                           {t('telemetry.radarFallback', {}, 'Ground Truth: NASA SMAP L4 Radar')}
                         </span>
-                        <button
-                          type="button"
-                          disabled={isSimulatingSensor}
-                          onClick={handleToggleBroadcast}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 hover:border-emerald-500/40 transition cursor-pointer disabled:opacity-50"
-                          title="Simulate edge node transmission in code"
-                        >
-                          <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{t('telemetry.startVirtualBroadcast', {}, '📡 Start Virtual Edge Broadcast')}</span>
-                        </button>
                       </div>
                     </div>
                   )}

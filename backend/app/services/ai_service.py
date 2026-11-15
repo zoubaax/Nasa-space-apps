@@ -83,12 +83,14 @@ class AiService:
 
         loc_country = (getattr(location, "country", None) or "").lower()
         loc_name = (getattr(location, "name", None) or "").lower()
+        loc_c_code = (getattr(location, "country_code", None) or "").lower()
         lat = float(getattr(location, "latitude", 0.0) or 0.0)
         lon = float(getattr(location, "longitude", 0.0) or 0.0)
 
         # 1. Morocco (Territorial bounding box + names/country keywords) -> Moroccan Darija
         is_morocco = (
-            "morocco" in loc_country
+            loc_c_code == "ma"
+            or "morocco" in loc_country
             or "maroc" in loc_country
             or "morocco" in loc_name
             or "المغرب" in loc_name
@@ -104,29 +106,56 @@ class AiService:
         if is_morocco:
             return "darija"
 
-        # 2. France / Francophone Europe
-        if "france" in loc_country or "france" in loc_name or "toulouse" in loc_name or "paris" in loc_name or (42.0 <= lat <= 51.5 and -5.0 <= lon <= 8.5):
+        # 2. Arab Countries (All 22 Arab League nations) -> Arabic (ar)
+        arabic_codes = {
+            "dz", "tn", "ly", "eg", "sd", "sa", "ae", "qa", "kw", "bh", "om", "ye",
+            "jo", "lb", "sy", "iq", "ps", "mr", "so", "dj", "km"
+        }
+        arabic_keywords = [
+            "egypt", "algeria", "algerie", "tunisia", "tunisie", "libya", "sudan",
+            "saudi", "emirates", "qatar", "kuwait", "bahrain", "oman", "yemen",
+            "jordan", "lebanon", "syria", "iraq", "palestine", "mauritania", "somalia",
+            "مصر", "الجزائر", "تونس", "ليبيا", "السودان", "السعودية", "الإمارات",
+            "قطر", "الكويت", "البحرين", "عمان", "اليمن", "الأردن", "لبنان", "سوريا", "العراق", "فلسطين"
+        ]
+        if loc_c_code in arabic_codes or any(k in loc_country or k in loc_name for k in arabic_keywords):
+            return "ar"
+
+        # 3. France / Francophone Europe
+        if loc_c_code == "fr" or "france" in loc_country or "france" in loc_name or "toulouse" in loc_name or "paris" in loc_name or (42.0 <= lat <= 51.5 and -5.0 <= lon <= 8.5):
             return "fr"
 
-        # 3. Spain / Latin America
-        if "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name or (36.0 <= lat <= 43.8 and -9.3 <= lon <= 3.3):
+        # 4. Spain / Latin America
+        if loc_c_code in ("es", "mx", "ar", "co", "cl", "pe") or "spain" in loc_country or "españa" in loc_country or "spain" in loc_name or "seville" in loc_name or "madrid" in loc_name or (36.0 <= lat <= 43.8 and -9.3 <= lon <= 3.3):
             return "es"
 
-        # 4. Germany
-        if "germany" in loc_country or "deutschland" in loc_country:
+        # 5. Germany / Austria / Switzerland
+        if loc_c_code in ("de", "at", "ch") or "germany" in loc_country or "deutschland" in loc_country:
             return "de"
 
-        # 5. Japan
-        if "japan" in loc_country or "nippon" in loc_country:
+        # 6. Japan
+        if loc_c_code == "jp" or "japan" in loc_country or "nippon" in loc_country:
             return "ja"
 
-        # 6. Turkey
-        if "turkey" in loc_country or "türkiye" in loc_country:
+        # 7. Turkey
+        if loc_c_code == "tr" or "turkey" in loc_country or "türkiye" in loc_country:
             return "tr"
 
-        # 7. Brazil / Portugal
-        if "brazil" in loc_country or "portugal" in loc_country:
+        # 8. Brazil / Portugal
+        if loc_c_code in ("br", "pt") or "brazil" in loc_country or "portugal" in loc_country:
             return "pt"
+
+        # 9. Italy
+        if loc_c_code == "it" or "italy" in loc_country or "italia" in loc_country:
+            return "it"
+
+        # 10. Russia
+        if loc_c_code == "ru" or "russia" in loc_country:
+            return "ru"
+
+        # 11. China
+        if loc_c_code == "cn" or "china" in loc_country:
+            return "zh"
 
         return "en"
 
@@ -141,7 +170,7 @@ class AiService:
         # Check Arabic script presence or common Darija keywords
         arabic_chars = len(re.findall(r"[\u0600-\u06FF]", text))
         if arabic_chars > 2:
-            return "darija"
+            return "ar" if location_lang == "ar" else "darija"
         darija_words = {"wash", "chhal", "chnou", "kifach", "dial", "dyal", "bzaf", "fella7", "sa9i", "nesqi", "terba"}
         words = set(re.findall(r"\w+", text.lower()))
         if words.intersection(darija_words):
@@ -338,6 +367,44 @@ TARGET LANGUAGE: {detected_lang.upper()}
 - {agro.get('water_message', 'الري التكميلي مطلوب حسب حاجة المحصول.')}
 
 ⚠️ **تنبيه علمي :** هاد القياسات مأخوذة من أقمار وكالة NASA الاصطناعية على مساحة شبكية تقريبية (9-11 كلم)، وما كتعوضش التحليل المباشر بتربة الحقل."""
+        elif lang == "ar":
+            reply = f"""### 🌾 التقرير الزراعي المناخي للذكاء الفائق (SI) - {loc.get('name')} (سنة {request.year})
+
+**1. حالة رطوبة التربة (NASA SMAP L4):**
+- **رطوبة منطقة الجذور (0-100 سم):** {rz_sm if rz_sm is not None else 'غير متوفرة'} م³/م³.
+- **رطوبة الطبقة السطحية (0-5 سم):** {surf_sm if surf_sm is not None else 'غير متوفرة'} م³/م³.
+- **مؤشر الجفاف المائي (Percentile):** {pctl if pctl is not None else 'غير متوفر'}%.
+- **درجة حرارة مهد البذور (0-10 سم):** {t_l1 if t_l1 is not None else 'غير متوفرة'}°م.
+
+**2. المعطيات المناخية (NASA POWER):**
+- **إجمالي التساقطات المطرية:** {precip if precip is not None else 'غير متوفر'} ملم.
+- **متوسط درجة الحرارة:** {mean_t if mean_t is not None else 'غير متوفر'}°م.
+- **عدد الأيام الجافة:** {dry_d if dry_d is not None else 'غير متوفر'} يوم.
+
+**3. التوجيه الزراعي (FieldShift Agro):**
+- **حالة الإجهاد المائي:** `{water_st}`.
+- {agro.get('water_message', 'الري التكميلي مطلوب حسب مراحل نمو المحصول.')}
+
+⚠️ **تنبيه علمي:** هذه القياسات مستخرجة من أقمار وكالة ناسا الفضائية بدقة شبكية (~9-11 كم)، ولا تغني عن فحص مجسات التربة الميدانية."""
+        elif lang == "es":
+            reply = f"""### 🌾 Informe Agroclimático FIELDShift SI — {loc.get('name')} ({request.year})
+
+**1. Estado Hídrico del Suelo (NASA SMAP L4):**
+- **Humedad zona radicular (0-100 cm):** {rz_sm if rz_sm is not None else 'N/D'} m³/m³.
+- **Humedad superficial (0-5 cm):** {surf_sm if surf_sm is not None else 'N/D'} m³/m³.
+- **Percentil de sequía radicular:** {pctl if pctl is not None else 'N/D'}%.
+- **Temperatura lecho de siembra (0-10 cm):** {t_l1 if t_l1 is not None else 'N/D'} °C.
+
+**2. Contexto Climatológico (NASA POWER):**
+- **Precipitación acumulada:** {precip if precip is not None else 'N/D'} mm.
+- **Temperatura media:** {mean_t if mean_t is not None else 'N/D'} °C.
+- **Días secos (< 1 mm):** {dry_d if dry_d is not None else 'N/D'} días.
+
+**3. Recomendaciones Agronómicas:**
+- **Estado de estrés hídrico:** `{water_st}`.
+- {agro.get('water_message', 'Ajustar el riego según el estado fenológico de los cultivos.')}
+
+⚠️ **Aviso Científico:** Observaciones satelitales NASA SMAP (~9-11 km)."""
         elif lang == "fr":
             reply = f"""### 🌾 Diagnostic Agro-Climatique FIELDShift SI — {loc.get('name')} ({request.year})
 

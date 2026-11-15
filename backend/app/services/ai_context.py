@@ -194,8 +194,14 @@ class AiContextBuilder:
 
         # 5. Gather In-Situ IoT Soil Sensor (ESP32 Capacitive v1.2 on GPIO34)
         try:
-            from app.api.deps import get_sensor_service
-            sensor_service = get_sensor_service()
+            # Use the app-wide shared SensorService (the one receiving ESP32 packets),
+            # otherwise a fresh instance would never see recent transmissions.
+            from app.main import app as _app
+            from app.services.sensor_service import SensorService
+            sensor_service = getattr(_app.state, "sensor_service", None)
+            if sensor_service is None:
+                sensor_service = SensorService(self._climate._settings)
+                _app.state.sensor_service = sensor_service
             smap_rz = None
             if "smap_l4" in evidence and "annual_metrics" in evidence["smap_l4"]:
                 smap_rz = evidence["smap_l4"]["annual_metrics"].get("sm_rootzone", {}).get("mean")

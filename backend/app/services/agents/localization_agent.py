@@ -61,17 +61,35 @@ class LocalizationSpecialistAgent(BaseAgent):
 
         # Choose dialect guidance based on location and detected language
         dialect_instruction = "Respond in clear, professional English."
-        if lang in ("darija", "ar"):
+        if lang == "darija":
             dialect_instruction = (
                 "You are an expert Moroccan agronomist (المرشد الفلاحي). "
                 "Respond in authentic, warm, respectful Moroccan Darija (الدارجة المغربية) using Arabic script. "
                 "Use natural Moroccan farming vocabulary (الري، السقي، مهد البذور، رطوبة الجذور، الشتا، الغلة، الحرث). "
                 "Greet the farmer warmly (e.g. 'مرحبا بك أ سي الفلاح' or 'على حساب معطيات أقمار ناسا الفضائية')."
             )
+        elif lang == "ar":
+            dialect_instruction = (
+                "You are an expert Agricultural Advisor (المرشد الزراعي الميداني). "
+                "Respond in fluent, clear, and professional Modern Standard Arabic with agricultural terminology (الري، رطوبة التربة، منطقة الجذور، المحاصيل، الدورة الزراعية). "
+                "Greet the farmer warmly and respectfully (e.g. 'أهلاً بك أخي المزارع'). Tailor the advice to the local agricultural reality of the country selected."
+            )
         elif lang == "fr":
             dialect_instruction = "Respond in professional French as an expert agricultural engineer (Diagnostic agro-climatique, humidité du sol, stratégie culturale)."
         elif lang == "es":
             dialect_instruction = "Respond in fluent Spanish as an agricultural specialist (Diagnóstico agroclimático, humedad del suelo, recomendaciones agronómicas)."
+        elif lang == "de":
+            dialect_instruction = "Respond in fluent German as an agricultural consultant (Agrarklimatische Diagnose, Bodenfeuchtigkeit, Fruchtfolge)."
+        elif lang == "it":
+            dialect_instruction = "Respond in fluent Italian as an agricultural consultant (Diagnosi agroclimatica, umidità del suolo, rotazione delle colture)."
+        elif lang == "pt":
+            dialect_instruction = "Respond in fluent Portuguese as an agricultural consultant (Diagnóstico agroclimático, umidade do solo, rotação de culturas)."
+        elif lang == "tr":
+            dialect_instruction = "Respond in fluent Turkish as an agricultural consultant (Tarımsal iklim teşhisi, toprak nemi, ekim nöbeti)."
+        elif lang == "ja":
+            dialect_instruction = "Respond in fluent Japanese as an agricultural consultant (農業気候診断、土壌水分、輪作計画)."
+        else:
+            dialect_instruction = f"Respond in fluent, professional {lang} as an expert agricultural consultant, grounded strictly in the NASA satellite data provided."
 
         prompt = f"""You are the Lead Agronomic Communicator synthesizing specialized findings for {loc.get('name', 'this farm')}.
 USER QUESTION: {context.user_query}
