@@ -30,20 +30,20 @@ Farmer's Eye integrates high-resolution NASA satellite datasets (SMAP Level-4 so
 
 ```mermaid
 flowchart TD
-    User([User / Frontend Client]) <-->|HTTP POST / SSE Stream| API[FastAPI Router: app/api/ai.py]
-    API <--> Orch[Orchestrator Service]
+    User(["User / Frontend Client"]) <-->|HTTP POST / SSE Stream| API["FastAPI Router: app/api/ai.py"]
+    API <--> Orch["Orchestrator Service"]
 
-    subgraph Data Gathering & Domain Agents
-        Orch -->|Fan-Out Async| ClimateAgent[Climate Specialist\nNASA POWER API]
-        Orch -->|Fan-Out Async| SoilAgent[Soil & Hydrology Specialist\nSMAP L4 / GEE]
-        ClimateAgent --> AgroAgent[Agronomy & Simulation Specialist\nFarmer's Eye Agro Rules & Sim]
+    subgraph DomainAgents["Data Gathering & Domain Agents"]
+        Orch -->|Fan-Out Async| ClimateAgent["Climate Specialist\nNASA POWER API"]
+        Orch -->|Fan-Out Async| SoilAgent["Soil & Hydrology Specialist\nSMAP L4 / GEE"]
+        ClimateAgent --> AgroAgent["Agronomy & Simulation Specialist\nFarmer's Eye Agro Rules & Sim"]
         SoilAgent --> AgroAgent
     end
 
-    subgraph Verification & Localization
-        AgroAgent --> GuardrailAgent[Scientific Guardrail Sentinel\nFact Cross-Checker]
-        GuardrailAgent --> OrchSynthesizer[Orchestrator Synthesis]
-        OrchSynthesizer --> Localizer[Localization & Dialect Specialist\nDarija / FR / EN]
+    subgraph Verif["Verification & Localization"]
+        AgroAgent --> GuardrailAgent["Scientific Guardrail Sentinel\nFact Cross-Checker"]
+        GuardrailAgent --> OrchSynthesizer["Orchestrator Synthesis"]
+        OrchSynthesizer --> Localizer["Localization & Dialect Specialist\nDarija / FR / EN"]
     end
 
     Localizer --> API
@@ -119,14 +119,14 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Farmer as User (Frontend)
-    participant API as FastAPI Router
-    participant Orch as Orchestrator
-    participant Climate as Climate Specialist
-    participant Soil as Soil Specialist
-    participant Agro as Agronomy Specialist
-    participant Guard as Guardrail Sentinel
-    participant Local as Localization Specialist
+    actor Farmer as "User (Frontend)"
+    participant API as "FastAPI Router"
+    participant Orch as "Orchestrator"
+    participant Climate as "Climate Specialist"
+    participant Soil as "Soil Specialist"
+    participant Agro as "Agronomy Specialist"
+    participant Guard as "Guardrail Sentinel"
+    participant Local as "Localization Specialist"
 
     Farmer->>API: POST /api/ai/chat (Message + Geo Location)
     API->>Orch: execute_pipeline(request)

@@ -14,23 +14,23 @@ Traditional precision agriculture software suffers from a fatal user-experience 
 
 ```mermaid
 flowchart TD
-    subgraph Traditional Ag-Tech (Boring & Inaccessible)
-        Old1[Complex GIS Shapefiles] --> Old2[Raw CSV Data Tables]
-        Old2 --> Old3[Dry Scientific PDFs in Foreign Jargon]
-        Old3 --> Old4[Zero Smallholder Adoption]
+    subgraph TraditionalAgTech["Traditional Ag-Tech (Boring & Inaccessible)"]
+        Old1["Complex GIS Shapefiles"] --> Old2["Raw CSV Data Tables"]
+        Old2 --> Old3["Dry Scientific PDFs in Foreign Jargon"]
+        Old3 --> Old4["Zero Smallholder Adoption"]
     end
 
-    subgraph Farmer's Eye (Immersive & Creative)
-        New1[3D Planetary Flight & Mission HUD] --> New2["Earth Trials" 4 Virtual Labs]
-        New2 --> New3[Crop Battle: Head-to-Head Showdowns]
-        New2 --> New4[Climate Attack: Stress-Testing Shocks]
-        New2 --> New5[Farm Time Machine: 2023 Megadrought Benchmarking]
-        New2 --> New6[AI Scientific Tribunal in Moroccan Darija]
-        New6 --> New7[Empowered Smallholder Farmer]
+    subgraph FarmersEye["Farmer's Eye (Immersive & Creative)"]
+        New1["3D Planetary Flight & Mission HUD"] --> New2["Earth Trials: 4 Virtual Labs"]
+        New2 --> New3["Crop Battle: Head-to-Head Showdowns"]
+        New2 --> New4["Climate Attack: Stress-Testing Shocks"]
+        New2 --> New5["Farm Time Machine: 2023 Megadrought Benchmarking"]
+        New2 --> New6["AI Scientific Tribunal in Moroccan Darija"]
+        New6 --> New7["Empowered Smallholder Farmer"]
     end
 
-    style Traditional Ag-Tech (Boring & Inaccessible) fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style Farmer's Eye (Immersive & Creative) fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TraditionalAgTech fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style FarmersEye fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
 ---
@@ -75,14 +75,14 @@ Farmers fear the unknown. Farmer's Eye lets them subject their candidate crop ro
 
 ```mermaid
 flowchart LR
-    FarmConfig[Candidate Farm Plan] --> ShockChooser{Climate Attack Shock}
+    FarmConfig["Candidate Farm Plan"] --> ShockChooser{"Climate Attack Shock"}
     
-    ShockChooser -->|Shock 1| D[🌪️ Severe Drought\n-35% Seasonal Rainfall]
-    ShockChooser -->|Shock 2| H[🔥 Chergui Heatwave\n+3.5°C & VPD Spike in April]
-    ShockChooser -->|Shock 3| L[🌧️ Delayed Autumn Rains\n-55% Autumn Germination Moisture]
+    ShockChooser -->|Shock 1| D["🌪️ Severe Drought: -35% Seasonal Rainfall"]
+    ShockChooser -->|Shock 2| H["🔥 Chergui Heatwave: +3.5°C & VPD Spike in April"]
+    ShockChooser -->|Shock 3| L["🌧️ Delayed Autumn Rains: -55% Autumn Germination Moisture"]
 
-    D & H & L --> Engine[Real-Time FAO-56 Simulation Engine]
-    Engine --> Verdict[Stress Verdict: Survives vs. Collapses]
+    D & H & L --> Engine["Real-Time FAO-56 Simulation Engine"]
+    Engine --> Verdict["Stress Verdict: Survives vs. Collapses"]
 ```
 
 1. **Severe Drought Shock ($-35\%$ rainfall):** Multiplies daily NASA precipitation time series by $0.65$. Shows the farmer whether the legume or early barley rotation preserves enough subsoil moisture to prevent terminal wilting.
@@ -122,18 +122,18 @@ On the hero dashboard, an animated 3D Agronomist mascot welcomes the farmer with
 
 ```mermaid
 flowchart TD
-    subgraph Macro Scale: NASA SMAP L4
-        S1[NASA SMAP Level-4 Satellite Orbit] --> S2[9 km x 9 km EASE-Grid 2.0 Pixel]
-        S2 --> S3[Macro-Hydrology & Regional Drought Baseline]
+    subgraph MacroScale["Macro Scale: NASA SMAP L4"]
+        S1["NASA SMAP Level-4 Satellite Orbit"] --> S2["9 km x 9 km EASE-Grid 2.0 Pixel"]
+        S2 --> S3["Macro-Hydrology & Regional Drought Baseline"]
     end
 
-    subgraph Micro Scale: In-Situ IoT Sensor
-        T1[Capacitive Soil Probe v1.2 in Field] --> T2[ESP32 Microcontroller GPIO34]
-        T2 --> T3[15 cm Local Root-Zone Volumetric Moisture]
+    subgraph MicroScale["Micro Scale: In-Situ IoT Sensor"]
+        T1["Capacitive Soil Probe v1.2 in Field"] --> T2["ESP32 Microcontroller GPIO34"]
+        T2 --> T3["15 cm Local Root-Zone Volumetric Moisture"]
     end
 
-    S3 & T3 --> Fusion[Creative Two-Tier Spatial Visualizer]
-    Fusion --> UI[Split Telemetry HUD\nSatellite Macro-Context vs. Field Ground Truth]
+    S3 & T3 --> Fusion["Creative Two-Tier Spatial Visualizer"]
+    Fusion --> UI["Split Telemetry HUD: Satellite Macro-Context vs. Field Ground Truth"]
 ```
 
 A common pitfall in satellite data applications is misleading users into believing a $9\text{ km}$ satellite pixel represents their specific 1-hectare parcel. Farmer's Eye solves this creatively:

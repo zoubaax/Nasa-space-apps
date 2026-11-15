@@ -20,23 +20,23 @@ In arid and semi-arid agro-ecosystems worldwide, climate change is no longer a d
 
 ```mermaid
 flowchart LR
-    subgraph Traditional Monoculture
-        M1[Continuous Wheat Monocrop] --> M2[Severe Root-Zone Water Deficit]
-        M2 --> M3[Pathogen Accumulation: Fusarium]
-        M3 --> M4[Soil Organic Carbon Collapse]
-        M4 --> M5[Yield Failure & Debt Cycle]
+    subgraph TraditionalMono["Traditional Monoculture"]
+        M1["Continuous Wheat Monocrop"] --> M2["Severe Root-Zone Water Deficit"]
+        M2 --> M3["Pathogen Accumulation: Fusarium"]
+        M3 --> M4["Soil Organic Carbon Collapse"]
+        M4 --> M5["Yield Failure & Debt Cycle"]
     end
 
-    subgraph Farmer's Eye Impact Loop
-        F1[NASA SMAP & POWER Observation] --> F2[Optimized Triennial Rotation\nWheat ➔ Legume ➔ Barley]
-        F2 --> F3[Save 934 m³/ha Water Demand]
-        F2 --> F4[Fix 30-50 kg N/ha Naturally]
-        F2 --> F5[Break Fungal Disease Cycles]
-        F3 & F4 & F5 --> F6[Sustainable Yield & Climate Resilience]
+    subgraph FarmersEyeLoop["Farmer's Eye Impact Loop"]
+        F1["NASA SMAP & POWER Observation"] --> F2["Optimized Triennial Rotation: Wheat to Legume to Barley"]
+        F2 --> F3["Save 934 m³/ha Water Demand"]
+        F2 --> F4["Fix 30-50 kg N/ha Naturally"]
+        F2 --> F5["Break Fungal Disease Cycles"]
+        F3 & F4 & F5 --> F6["Sustainable Yield & Climate Resilience"]
     end
 
-    style Traditional Monoculture fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style Farmer's Eye Impact Loop fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TraditionalMono fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style FarmersEyeLoop fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
 ---
@@ -105,16 +105,16 @@ Continuous wheat allows cereal-specific soil pathogens to multiply exponentially
 A technology can have impeccable scientific equations, but if smallholders cannot understand or adopt it, its real-world impact is zero. Farmer's Eye was engineered specifically to break socio-economic adoption barriers:
 
 ```mermaid
-graph TD
-    A[Socio-Economic Inclusivity] --> B[Vernacular AI: Moroccan Darija]
-    A --> C[Ultra-Low Cost IoT: ESP32 $8 Probe]
-    A --> D[Zero-Bandwidth Architectural Caching]
-    A --> E[Transparent Evidence Guardrails]
+flowchart TD
+    A["Socio-Economic Inclusivity"] --> B["Vernacular AI: Moroccan Darija"]
+    A --> C["Ultra-Low Cost IoT: ESP32 $8 Probe"]
+    A --> D["Zero-Bandwidth Architectural Caching"]
+    A --> E["Transparent Evidence Guardrails"]
 
-    B --> B1[Eliminates linguistic exclusion\nSpeaks peasant idioms: Bour, Chergui, Hamri]
-    C --> C1[Accessible to smallholders with <5 ha\nDemocratizes 15cm soil telemetry]
-    D --> D1[Fast client loads over 3G rural mobile\nPre-indexed regional polygons]
-    E --> E1[No false promises\nHonest distinction between 9km satellite & local soil]
+    B --> B1["Eliminates linguistic exclusion: Speaks peasant idioms (Bour, Chergui, Hamri)"]
+    C --> C1["Accessible to smallholders with under 5 ha: Democratizes 15cm soil telemetry"]
+    D --> D1["Fast client loads over 3G rural mobile: Pre-indexed regional polygons"]
+    E --> E1["No false promises: Honest distinction between 9km satellite & local soil"]
 ```
 
 ### 4.1 Native Moroccan Darija (الدارجة المغربية الفلاحية)

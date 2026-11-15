@@ -15,28 +15,28 @@ The 2026 NASA Space Apps Challenge prompt, **"Field Shift: Adapting Farms with N
 
 ```mermaid
 flowchart TD
-    subgraph NASA Earth Observation Orbit
-        SMAP[NASA SMAP Level-4\nRoot-Zone & Surface Moisture\n9km EASE-Grid 2.0]
-        POWER[NASA POWER Daily Point\nMERRA-2 Solar & Agroclimatology]
-        GPM[NASA GPM IMERG\nCalibrated Precipitation Accumulation]
-        CMR[NASA CMR Catalog\nGranule Discovery & Provenance]
+    subgraph NASAOrbit["NASA Earth Observation Orbit"]
+        SMAP["NASA SMAP Level-4: Root-Zone & Surface Moisture (9km EASE-Grid 2.0)"]
+        POWER["NASA POWER Daily Point: MERRA-2 Solar & Agroclimatology"]
+        GPM["NASA GPM IMERG: Calibrated Precipitation Accumulation"]
+        CMR["NASA CMR Catalog: Granule Discovery & Provenance"]
     end
 
-    subgraph Farmer's Eye Core Pipeline
-        Ingest[Data Ingestion & QC Layer\n-999 Filter & Coordinate Reprojection]
-        Physics[Deterministic FAO-56 Engine\nPenman-Monteith ET₀ & Soil Depletion]
-        Fusion[Two-Tier Spatial Fusion\nMacro 9km Satellite vs Micro 15cm IoT]
-        Tribunal[Multi-Agent Advisory in Darija\nActionable Rotation Decisions]
+    subgraph CorePipeline["Farmer's Eye Core Pipeline"]
+        Ingest["Data Ingestion & QC Layer: -999 Filter & Coordinate Reprojection"]
+        Physics["Deterministic FAO-56 Engine: Penman-Monteith ET0 & Soil Depletion"]
+        Fusion["Two-Tier Spatial Fusion: Macro 9km Satellite vs Micro 15cm IoT"]
+        Tribunal["Multi-Agent Advisory in Darija: Actionable Rotation Decisions"]
     end
 
     SMAP & POWER & GPM & CMR --> Ingest
     Ingest --> Physics
     Physics --> Fusion
     Fusion --> Tribunal
-    Tribunal --> Action[Field Shift Executed: Monoculture Replaced by Resilient Triennale]
+    Tribunal --> Action["Field Shift Executed: Monoculture Replaced by Resilient Triennale"]
 
-    style NASA Earth Observation Orbit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Farmer's Eye Core Pipeline fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NASAOrbit fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CorePipeline fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
 ---
@@ -102,28 +102,28 @@ Many hackathon entries make an irresponsible scientific claim: they claim to "me
 **Farmer's Eye rejects this false claim and implements a strict Two-Tier Spatial Provenance Architecture:**
 
 ```mermaid
-graph TD
-    subgraph Tier 1: Macro-Scale Earth Observation (NASA SMAP)
-        S1[NASA SMAP Level-4 Orbit] --> S2[9 km x 9 km EASE-Grid Cell]
-        S2 --> S3[Regional Aquifer Status]
-        S2 --> S4[Multi-Year Regional Drought Trend]
-        S2 --> S5[Macro Hydrological Context]
+flowchart TD
+    subgraph Tier1["Tier 1: Macro-Scale Earth Observation (NASA SMAP)"]
+        S1["NASA SMAP Level-4 Orbit"] --> S2["9 km x 9 km EASE-Grid Cell"]
+        S2 --> S3["Regional Aquifer Status"]
+        S2 --> S4["Multi-Year Regional Drought Trend"]
+        S2 --> S5["Macro Hydrological Context"]
     end
 
-    subgraph Tier 2: Micro-Scale In-Situ Ground Truth (ESP32 IoT)
-        P1[Capacitive Soil Probe v1.2] --> P2[15 cm Local Root Zone]
-        P2 --> P3[Immediate Seedbed Germination Moisture]
-        P2 --> P4[Field Irrigation Trigger]
-        P2 --> P5[Real-Time Topsoil Telemetry]
+    subgraph Tier2["Tier 2: Micro-Scale In-Situ Ground Truth (ESP32 IoT)"]
+        P1["Capacitive Soil Probe v1.2"] --> P2["15 cm Local Root Zone"]
+        P2 --> P3["Immediate Seedbed Germination Moisture"]
+        P2 --> P4["Field Irrigation Trigger"]
+        P2 --> P5["Real-Time Topsoil Telemetry"]
     end
 
-    S3 & S4 & S5 --> Context[Regional Context Banner\n'Macro Satellite Cell: 9km']
-    P3 & P4 & P5 --> Action[Local Field Decision Banner\n'Point Telemetry: 15cm']
+    S3 & S4 & S5 --> Context["Regional Context Banner: Macro Satellite Cell 9km"]
+    P3 & P4 & P5 --> Action["Local Field Decision Banner: Point Telemetry 15cm"]
 
-    Context & Action --> SplitHUD[Farmer's Eye Split Telemetry HUD]
+    Context & Action --> SplitHUD["Farmer's Eye Split Telemetry HUD"]
 
-    style Tier 1: Macro-Scale Earth Observation (NASA SMAP) fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Tier 2: Micro-Scale In-Situ Ground Truth (ESP32 IoT) fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tier1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Tier2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
 * **Tier 1 (NASA Macro-Scale Context, 9 km):** Informs strategic long-term decisions—such as choosing whether next season's 3-year rotation should be a high-water monoculture or a drought-adapted triennale.

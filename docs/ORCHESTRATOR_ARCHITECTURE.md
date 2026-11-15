@@ -13,25 +13,25 @@ The Farmer's Eye Orchestrator decomposes intelligence into **autonomous, special
 
 ```mermaid
 flowchart TD
-    User([User / React Frontend]) <-->|HTTP POST / SSE Stream| API[FastAPI Gateway: app/api/ai.py]
-    API <--> Orch[Central Supervisor Orchestrator\napp/services/orchestrator/supervisor.py]
+    User(["User / React Frontend"]) <-->|HTTP POST / SSE Stream| API["FastAPI Gateway: app/api/ai.py"]
+    API <--> Orch["Central Supervisor Orchestrator\napp/services/orchestrator/supervisor.py"]
 
-    subgraph Phase 1: Parallel Data Gathering
-        Orch -->|Fan-Out Async 1| Climate[Climate Specialist Agent\nNASA POWER API Service]
-        Orch -->|Fan-Out Async 2| Soil[Soil & Hydrology Agent\nNASA SMAP L4 / GEE Service]
-        Orch -->|Fan-Out Async 3| IoT[In-Situ Sensor Agent\nESP32 Telemetry Service]
+    subgraph Phase1["Phase 1: Parallel Data Gathering"]
+        Orch -->|Fan-Out Async 1| Climate["Climate Specialist Agent\nNASA POWER API Service"]
+        Orch -->|Fan-Out Async 2| Soil["Soil & Hydrology Agent\nNASA SMAP L4 / GEE Service"]
+        Orch -->|Fan-Out Async 3| IoT["In-Situ Sensor Agent\nESP32 Telemetry Service"]
     end
 
-    subgraph Phase 2: Agronomic Simulation & Physics
-        Climate & Soil & IoT --> Agro[Agronomy & Simulation Agent\nDeterministic FAO-56 Engine]
+    subgraph Phase2["Phase 2: Agronomic Simulation & Physics"]
+        Climate & Soil & IoT --> Agro["Agronomy & Simulation Agent\nDeterministic FAO-56 Engine"]
     end
 
-    subgraph Phase 3: Scientific Verification
-        Agro --> Guard[Scientific Guardrail Sentinel\nDeterministic Rule Checker]
+    subgraph Phase3["Phase 3: Scientific Verification"]
+        Agro --> Guard["Scientific Guardrail Sentinel\nDeterministic Rule Checker"]
     end
 
-    subgraph Phase 4: Localization & Dialect Synthesis
-        Guard --> Localizer[Localization & Dialect Agent\nMoroccan Darija / FR / EN / ES]
+    subgraph Phase4["Phase 4: Localization & Dialect Synthesis"]
+        Guard --> Localizer["Localization & Dialect Agent\nMoroccan Darija / FR / EN / ES"]
     end
 
     Localizer --> Orch
@@ -277,15 +277,15 @@ Each agent in the system is an autonomous worker operating with explicit, typed 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Farmer as User (Frontend)
-    participant API as FastAPI Router (/api/ai/chat)
-    participant Orch as Supervisor Orchestrator
-    participant Climate as Climate Agent (NASA POWER)
-    participant Soil as Soil Agent (NASA SMAP)
-    participant IoT as In-Situ IoT Agent (ESP32)
-    participant Agro as Agro Simulation Agent (FAO-56)
-    participant Guard as Guardrail Sentinel
-    participant Local as Localization Agent (Darija)
+    actor Farmer as "User (Frontend)"
+    participant API as "FastAPI Router"
+    participant Orch as "Supervisor Orchestrator"
+    participant Climate as "Climate Agent (NASA POWER)"
+    participant Soil as "Soil Agent (NASA SMAP)"
+    participant IoT as "In-Situ IoT Agent (ESP32)"
+    participant Agro as "Agro Simulation Agent (FAO-56)"
+    participant Guard as "Guardrail Sentinel"
+    participant Local as "Localization Agent (Darija)"
 
     Farmer->>API: POST /api/ai/chat (Prompt + Lat/Lon + Farm Profile)
     API->>Orch: orchestrate(request)

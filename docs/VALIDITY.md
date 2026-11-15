@@ -18,23 +18,23 @@ The fatal weakness of most generative AI applications in agriculture is the reli
 
 ```mermaid
 flowchart TD
-    RawData[Raw NASA Climate & Satellite Data] --> DetCore[Deterministic Physics Core\nFAO-56 Penman-Monteith & SCS-CN Infiltration]
+    RawData["Raw NASA Climate & Satellite Data"] --> DetCore["Deterministic Physics Core: FAO-56 Penman-Monteith & SCS-CN Infiltration"]
     
-    subgraph Deterministic Physics Layer (Zero LLM)
-        DetCore --> ET0[Reference ET₀ Calculation]
-        DetCore --> Kc[Phenological Kc Progression]
-        DetCore --> WaterBal[Daily Root-Zone Water Balance]
-        WaterBal --> Audit[Mass Balance Conservation Audit\nResidual < 1e-12 mm]
+    subgraph PhysicsLayer["Deterministic Physics Layer (Zero LLM)"]
+        DetCore --> ET0["Reference ET0 Calculation"]
+        DetCore --> Kc["Phenological Kc Progression"]
+        DetCore --> WaterBal["Daily Root-Zone Water Balance"]
+        WaterBal --> Audit["Mass Balance Conservation Audit (Residual < 1e-12 mm)"]
     end
 
-    Audit --> Dossier[Immutable Ground-Truth Evidence Dossier]
-    Dossier --> LLM[AI Synthesis & Dialect Translation]
-    LLM --> Guardrail{Scientific Guardrail Sentinel}
+    Audit --> Dossier["Immutable Ground-Truth Evidence Dossier"]
+    Dossier --> LLM["AI Synthesis & Dialect Translation"]
+    LLM --> Guardrail{"Scientific Guardrail Sentinel"}
     
-    Guardrail -->|Passes All 5 Verification Rules| User([User UI / Smallholder Farmer])
-    Guardrail -->|Fails Rule| Reject[Blocked / Corrected to Exact Dossier Values]
+    Guardrail -->|Passes All 5 Verification Rules| User(["User UI / Smallholder Farmer"])
+    Guardrail -->|Fails Rule| Reject["Blocked / Corrected to Exact Dossier Values"]
 
-    style Deterministic Physics Layer (Zero LLM) fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PhysicsLayer fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style Guardrail fill:#fff3e0,stroke:#e65100,stroke-width:2px
 ```
 
@@ -81,11 +81,11 @@ $$ET_c = K_c \times ET_0$$
 The engine implements dynamic, piecewise-linear interpolation of $K_c$ across the four standardized FAO-56 phenological growth stages:
 
 ```mermaid
-xychart-beta
-    title "Staged FAO-56 Crop Coefficient (Kc) Trajectory"
-    x-axis ["Initial (30d)", "Development (40d)", "Mid-Season (55d)", "Late Season (40d)", "Harvest"]
-    y-axis "Crop Coefficient (Kc)" 0.0 --> 1.4
-    line [0.35, 0.75, 1.15, 0.65, 0.25]
+flowchart LR
+    S1["Initial Stage (30d)\nKc = 0.35"] --> S2["Development Stage (40d)\nKc rises 0.35 ➔ 1.15"]
+    S2 --> S3["Mid-Season Stage (55d)\nKc = 1.15 (Peak)"]
+    S3 --> S4["Late Season Stage (40d)\nKc drops 1.15 ➔ 0.25"]
+    S4 --> S5["Harvest Stage\nKc = 0.25"]
 ```
 
 ```python

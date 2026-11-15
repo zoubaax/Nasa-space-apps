@@ -100,28 +100,28 @@ NARRATOR: "Delivered directly in Moroccan Darija to leave no farmer behind. Farm
 
 ```mermaid
 flowchart TD
-    App[App Container] --> Header[Header: NASA Space Apps Badge & i18n Selector]
-    App --> Hero[Hero Banner: 3D Mascot & Welcome Speech Cloud]
-    App --> MainGrid[Split Command Grid]
+    App["App Container"] --> Header["Header: NASA Space Apps Badge & i18n Selector"]
+    App --> HeroBanner["Hero Banner: 3D Mascot & Welcome Speech Cloud"]
+    App --> MainGrid["Split Command Grid"]
 
-    subgraph Left Panel: Geospatial Visualization
-        MainGrid --> MapContainer[MapLibre 3D Planetary Globe]
-        MapContainer --> FlyControls[Preset Flight Buttons: Saïss / Chaouia / Gharb]
-        MapContainer --> TelemetryHUD[Direct-DOM Real-Time Coordinate Overlay]
+    subgraph LeftPanel["Left Panel: Geospatial Visualization"]
+        MainGrid --> MapContainer["MapLibre 3D Planetary Globe"]
+        MapContainer --> FlyControls["Preset Flight Buttons: Saïss / Chaouia / Gharb"]
+        MapContainer --> TelemetryHUD["Direct-DOM Real-Time Coordinate Overlay"]
     end
 
-    subgraph Right Panel: The "Earth Trials" Labs
-        MainGrid --> LabTabs[Laboratory Tab Switcher]
-        LabTabs --> Tab1[⚔️ Crop Battle Lab]
-        LabTabs --> Tab2[🌪️ Climate Attack Lab]
-        LabTabs --> Tab3[⏳ Farm Time Machine Lab]
-        LabTabs --> Tab4[⚖️ AI Scientific Tribunal]
+    subgraph RightPanel["Right Panel: The Earth Trials Labs"]
+        MainGrid --> LabTabs["Laboratory Tab Switcher"]
+        LabTabs --> Tab1["⚔️ Crop Battle Lab"]
+        LabTabs --> Tab2["🌪️ Climate Attack Lab"]
+        LabTabs --> Tab3["⏳ Farm Time Machine Lab"]
+        LabTabs --> Tab4["⚖️ AI Scientific Tribunal"]
     end
 
-    App --> TelemetryBar[Bottom Bar: Dual-Tier SMAP 9km vs In-Situ ESP32 15cm Probe]
+    App --> TelemetryBar["Bottom Bar: Dual-Tier SMAP 9km vs In-Situ ESP32 15cm Probe"]
 
-    style Left Panel: Geospatial Visualization fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
-    style Right Panel: The "Earth Trials" Labs fill:#1e1e38,stroke:#8b5cf6,stroke-width:2px,color:#fff
+    style LeftPanel fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style RightPanel fill:#1e1e38,stroke:#8b5cf6,stroke-width:2px,color:#fff
 ```
 
 ---
