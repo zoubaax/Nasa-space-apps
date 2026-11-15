@@ -1,6 +1,7 @@
 # Farmer's Eye — Multi-Agent Orchestrator Architecture Specification
 > **System:** Farmer's Eye Hierarchical Multi-Agent Platform  
 > **Status:** Production Architecture Blueprint  
+> **Live Documentation Portal:** [https://nasa-docs.vercel.app/](https://nasa-docs.vercel.app/)  
 > **Purpose:** Detailed architectural specification of the central Supervisor Orchestrator, its specialized domain sub-agents, data contracts, streaming protocols, and deterministic verification guardrails.
 
 ---

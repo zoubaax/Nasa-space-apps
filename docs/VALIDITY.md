@@ -2,6 +2,7 @@
 > **Competition:** 2026 NASA Space Apps Challenge  
 > **Challenge Track:** *Field Shift: Adapting Farms with NASA Data*  
 > **Judging Dimension:** **VALIDITY & SCIENTIFIC RIGOR** (20% of Global Score)  
+> **Live Documentation Portal:** [https://nasa-docs.vercel.app/](https://nasa-docs.vercel.app/)  
 > **Status:** ✅ **Mathematically Proven via Deterministic FAO-56 Physics & Sub-Picometer Mass Conservation**
 
 ---

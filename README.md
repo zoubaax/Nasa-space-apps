@@ -4,6 +4,7 @@
 ### Adaptive Crop Rotation with NASA Earth Observations & In-Situ IoT
 
 [![NASA Space Apps Challenge 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026%20Global%20Challenge-blue.svg?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
+[![Live Documentation](https://img.shields.io/badge/Live%20Docs-nasa--docs.vercel.app-2563eb.svg?style=for-the-badge&logo=vercel&logoColor=white)](https://nasa-docs.vercel.app/)
 [![Challenge Track](https://img.shields.io/badge/Track-Field%20Shift%3A%20Adapting%20Farms%20with%20NASA%20Data-06b6d4.svg?style=for-the-badge)](https://www.spaceappschallenge.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React 19](https://img.shields.io/badge/React%2019-Vite%208-61DAFB.svg?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
@@ -12,7 +13,7 @@
 
 **A scientifically defensible, explainable digital twin and decision-support platform that fuses regional NASA Earth observation satellites, localized farm IoT sensors, and deterministic FAO-56 crop models to compare 3-season crop rotation scenarios under drought stress — without hallucinated AI numbers.**
 
-[Documentation Matrix](#-clickable-documentation-matrix) • [Quickstart Guide](#-quickstart-guide-in-60-seconds) • [System Architecture](#-system-architecture) • [5 Judging Criteria](#-evaluation-against-the-5-nasa-judging-criteria)
+[🌐 Live Documentation Portal](https://nasa-docs.vercel.app/) • [Documentation Matrix](#-clickable-documentation-matrix) • [Quickstart Guide](#-quickstart-guide-in-60-seconds) • [System Architecture](#-system-architecture) • [5 Judging Criteria](#-evaluation-against-the-5-nasa-judging-criteria)
 
 ---
 
@@ -20,10 +21,13 @@
 
 ## 📑 Clickable Documentation Matrix
 
+> 🌐 **Interactive Web Documentation Portal:** All technical specifications, scientific proofs, evaluation dossiers, and interactive benchmarks are hosted live on the web at [**https://nasa-docs.vercel.app/**](https://nasa-docs.vercel.app/).
+
 To facilitate thorough evaluation by NASA Space Apps judges and peer reviewers, our comprehensive system specifications, scientific validation audits, judging dossiers, and hardware blueprints are cataloged below. Click any link to jump directly to the detailed technical dossier:
 
 | 📂 Evaluation Pillar / Domain | 📄 Document / Whitepaper | 🎯 Primary Audience | 🔍 Key Contents & Verification Proof |
 | :--- | :--- | :--- | :--- |
+| **🌐 Live Web Portal** | [**`nasa-docs.vercel.app`**](https://nasa-docs.vercel.app/) | All Judges & Reviewers | Live interactive web documentation portal aggregating all Farmer's Eye technical dossiers, proofs, and benchmarks. |
 | **1. Impact** | [`docs/IMPACT.md`](docs/IMPACT.md) | NASA Impact Judges | Real-world Saïss drought crisis, $-934\text{ m}^3\text{/ha}$ water demand avoidance, biological $N_2$ fixation, and smallholder equity. |
 | **2. Creativity** | [`docs/CREATIVITY.md`](docs/CREATIVITY.md) | NASA Innovation Judges | "Earth Trials" 4-laboratory digital twin (Crop Battle, Climate Attack, Time Machine, AI Tribunal) & authentic Moroccan Darija AI. |
 | **3. Validity** | [`docs/VALIDITY.md`](docs/VALIDITY.md) | Agronomists & Scientists | Deterministic FAO-56 Penman-Monteith physics, USDA Curve Number infiltration, machine mass balance residual ($2.84 \times 10^{-14}\text{ mm}$). |

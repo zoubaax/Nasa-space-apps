@@ -2,6 +2,7 @@
 > **Competition:** 2026 NASA Space Apps Challenge  
 > **Challenge Track:** *Field Shift: Adapting Farms with NASA Data*  
 > **Judging Dimension:** **RELEVANCE & NASA DATA UTILIZATION** (20% of Global Score)  
+> **Live Documentation Portal:** [https://nasa-docs.vercel.app/](https://nasa-docs.vercel.app/)  
 > **Status:** ✅ **End-to-End Ingestion, Assimilation & Actionable Grounding of NASA Earth Observations**
 
 ---

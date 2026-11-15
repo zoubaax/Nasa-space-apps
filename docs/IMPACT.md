@@ -2,6 +2,7 @@
 > **Competition:** 2026 NASA Space Apps Challenge  
 > **Challenge Track:** *Field Shift: Adapting Farms with NASA Data*  
 > **Judging Dimension:** **IMPACT** (20% of Global Score)  
+> **Live Documentation Portal:** [https://nasa-docs.vercel.app/](https://nasa-docs.vercel.app/)  
 > **Status:** ✅ **Fully Validated with Quantitative Agro-Hydrological & Socio-Economic Metrics**
 
 ---
