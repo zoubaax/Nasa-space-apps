@@ -133,10 +133,16 @@ export default function EarthOrbitGlobe({
       });
 
       // 4. In background, set real loading state and request authentic observations
-      setEnvironmentalData({ isLoading: true, isLiveBackend: false });
+      setEnvironmentalData({ isLoading: true, isLiveBackend: false, isSmapLoading: true });
 
-      // Request authentic observations from FastAPI backend
-      fetchEnvironmentalTelemetry(targetCoords[0], targetCoords[1]).then((liveTelemetry) => {
+      // Request authentic observations with progressive rendering (Climate in <1s, SMAP in ~2-7s)
+      fetchEnvironmentalTelemetry(
+        targetCoords[0],
+        targetCoords[1],
+        (partialTelemetry) => {
+          setEnvironmentalData(partialTelemetry);
+        }
+      ).then((liveTelemetry) => {
         setEnvironmentalData(liveTelemetry);
       });
 

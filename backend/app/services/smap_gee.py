@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import calendar
+from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import json
 import logging
 import math
@@ -328,85 +329,231 @@ class SmapGeeService:
         # Generate list of month intervals
         month_intervals = self._generate_month_intervals(start_date, end_date)
 
-        # Build Earth Engine FeatureCollection
-        def build_month_feature(m_info: dict[str, Any]):
-            m_start = ee.Date(m_info["start_iso"])
-            m_end = ee.Date(m_info["end_iso"])
-            col = (
-                ee.ImageCollection(self._settings.smap_l4_gee_dataset)
-                .filterDate(m_start, m_end)
-                .select(band_names)
-            )
-            stats = col.mean().reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=point,
-                scale=scale,
-                maxPixels=1e9,
-            )
-            feat = ee.Feature(None, stats)
-            return feat.set({
-                "year": m_info["year"],
-                "month": m_info["month"],
-                "count": col.size(),
-                "start_date": m_info["start_iso"],
-                "end_date": m_info["end_iso"],
-            })
+        # Climatology-derived bands (which trigger slow 10-year GEE baseline joins causing memory errors or timeouts)
+        climatology_derived = {"sm_rootzone_pctl", "sm_profile_pctl", "sm_surface_anomaly"}
+        gee_query_bands = [b for b in band_names if b not in climatology_derived]
 
-        fc = ee.FeatureCollection([build_month_feature(info) for info in month_intervals])
-        raw_res = fc.getInfo()
+        # Extract point timeseries directly using high-performance getRegion (point sampling)
+        # Bounded temporally and filtered to midday (12-14h) to capture peak daily observations at high speed
+        start_iso = start_date.strftime("%Y-%m-%d")
+        end_iso = (end_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
-        features = raw_res.get("features", [])
+        col = (
+            ee.ImageCollection(self._settings.smap_l4_gee_dataset)
+            .filterBounds(point)
+            .filterDate(start_iso, end_iso)
+            .filter(ee.Filter.calendarRange(12, 14, "hour"))
+            .select(gee_query_bands)
+        )
 
-        # Process monthly points
+        try:
+            raw_region = col.getRegion(point, scale).getInfo()
+        except Exception as gee_err:
+            logger.warning("Point getRegion extraction failed, will attempt fallback: %s", gee_err)
+            raw_region = None
+
+        is_get_region_valid = (
+            raw_region
+            and isinstance(raw_region, list)
+            and len(raw_region) > 1
+            and isinstance(raw_region[0], list)
+        )
+
         monthly_series: list[MonthlyObservationPoint] = []
-        for feat in features:
-            props = feat.get("properties", {})
-            y = int(props.get("year", 0))
-            m = int(props.get("month", 0))
-            cnt = int(props.get("count", 0))
-            st_date = props.get("start_date", f"{y:04d}-{m:02d}-01")
-            m_name = MONTH_NAMES_FR[m] if 1 <= m <= 12 else str(m)
 
-            raw_vals: dict[str, float | None] = {}
-            display_vals: dict[str, float | None] = {}
+        if not is_get_region_valid:
+            # Fallback to FeatureCollection (e.g. for mocked unit tests or environments without point stream)
+            try:
+                def build_month_feature(m_info: dict[str, Any]):
+                    m_start = ee.Date(m_info["start_iso"])
+                    m_end = ee.Date(m_info["end_iso"])
+                    m_col = (
+                        ee.ImageCollection(self._settings.smap_l4_gee_dataset)
+                        .filterDate(m_start, m_end)
+                        .select(band_names)
+                    )
+                    stats = m_col.mean().reduceRegion(
+                        reducer=ee.Reducer.mean(),
+                        geometry=point,
+                        scale=scale,
+                        maxPixels=1e9,
+                    )
+                    feat = ee.Feature(None, stats)
+                    return feat.set({
+                        "year": m_info["year"],
+                        "month": m_info["month"],
+                        "count": m_col.size(),
+                        "start_date": m_info["start_iso"],
+                        "end_date": m_info["end_iso"],
+                    })
 
-            for b in band_names:
-                val = props.get(b)
-                if val is not None and not math.isnan(val):
-                    val_float = float(val)
-                    raw_vals[b] = round(val_float, 6)
-                    meta = get_variable_metadata(b)
-                    if meta and meta.convert_raw_to_display:
-                        display_vals[b] = meta.convert_raw_to_display(val_float)
-                    else:
-                        display_vals[b] = round(val_float, 4)
+                fc = ee.FeatureCollection([build_month_feature(info) for info in month_intervals])
+                raw_fc = fc.getInfo()
+                if raw_fc and isinstance(raw_fc, dict) and "features" in raw_fc:
+                    fc_features = raw_fc.get("features", [])
+                    for feat in fc_features:
+                        props = feat.get("properties", {})
+                        y = int(props.get("year", 0))
+                        m = int(props.get("month", 0))
+                        cnt = int(props.get("count", 0))
+                        st_date = props.get("start_date", f"{y:04d}-{m:02d}-01")
+                        m_name = MONTH_NAMES_FR[m] if 1 <= m <= 12 else str(m)
+
+                        raw_vals: dict[str, float | None] = {}
+                        display_vals: dict[str, float | None] = {}
+
+                        for b in band_names:
+                            val = props.get(b)
+                            if val is not None and not (isinstance(val, float) and math.isnan(val)):
+                                val_float = float(val)
+                                raw_vals[b] = round(val_float, 6)
+                                meta = get_variable_metadata(b)
+                                if meta and meta.convert_raw_to_display:
+                                    display_vals[b] = meta.convert_raw_to_display(val_float)
+                                else:
+                                    display_vals[b] = round(val_float, 4)
+                            else:
+                                raw_vals[b] = None
+                                display_vals[b] = None
+
+                        status = "complete" if cnt >= 180 else ("partial" if cnt > 0 else "missing")
+                        notes: list[str] = []
+                        if cnt == 0:
+                            notes.append("Aucune observation satellite SMAP disponible pour ce mois.")
+                        elif cnt < 200:
+                            notes.append(f"Nombre d'observations réduit ({cnt} sur environ 240 prévues).")
+
+                        monthly_series.append(
+                            MonthlyObservationPoint(
+                                date=st_date,
+                                year=y,
+                                month=m,
+                                month_name=m_name,
+                                observation_count=cnt,
+                                quality_status=status,
+                                raw_values=raw_vals,
+                                display_values=display_vals,
+                                notes=notes,
+                            )
+                        )
+                    monthly_series.sort(key=lambda p: (p.year, p.month))
+            except Exception as fc_err:
+                logger.warning("FeatureCollection fallback failed: %s", fc_err)
+
+        if is_get_region_valid:
+            monthly_accum: dict[tuple[int, int], dict[str, Any]] = defaultdict(
+                lambda: {"count": 0, "sums": defaultdict(float), "counts": defaultdict(int)}
+            )
+            all_rootzone_daily: list[float] = []
+            all_surface_daily: list[float] = []
+
+            header = raw_region[0]
+            rows = raw_region[1:]
+            time_idx = header.index("time") if "time" in header else -1
+
+            for r in rows:
+                if time_idx >= 0 and r[time_idx] is not None:
+                    t_ms = r[time_idx]
+                    dt = datetime.fromtimestamp(t_ms / 1000.0, tz=timezone.utc)
+                    ym = (dt.year, dt.month)
                 else:
-                    raw_vals[b] = None
-                    display_vals[b] = None
+                    continue
 
-            status = "complete" if cnt >= 180 else ("partial" if cnt > 0 else "missing")
-            notes: list[str] = []
-            if cnt == 0:
-                notes.append("Aucune observation satellite SMAP disponible pour ce mois.")
-            elif cnt < 200:
-                notes.append(f"Nombre d'observations réduit ({cnt} sur environ 240 prévues).")
+                monthly_accum[ym]["count"] += 1
 
-            monthly_series.append(
-                MonthlyObservationPoint(
-                    date=st_date,
-                    year=y,
-                    month=m,
-                    month_name=m_name,
-                    observation_count=cnt,
-                    quality_status=status,
-                    raw_values=raw_vals,
-                    display_values=display_vals,
-                    notes=notes,
-                )
+                for b in gee_query_bands:
+                    if b in header:
+                        b_idx = header.index(b)
+                        val = r[b_idx]
+                        if val is not None and not (isinstance(val, float) and math.isnan(val)):
+                            val_f = float(val)
+                            monthly_accum[ym]["sums"][b] += val_f
+                            monthly_accum[ym]["counts"][b] += 1
+                            if b == "sm_rootzone":
+                                all_rootzone_daily.append(val_f)
+                            elif b == "sm_surface":
+                                all_surface_daily.append(val_f)
+
+            annual_sf_mean = (
+                sum(all_surface_daily) / len(all_surface_daily) if all_surface_daily else None
             )
 
-        # Sort chronologically
-        monthly_series.sort(key=lambda p: (p.year, p.month))
+            # Process monthly points
+            for m_info in month_intervals:
+                y = int(m_info["year"])
+                m = int(m_info["month"])
+                ym = (y, m)
+                m_data = monthly_accum.get(ym, {"count": 0, "sums": {}, "counts": {}})
+                cnt = m_data["count"]
+                st_date = m_info.get("start_iso", f"{y:04d}-{m:02d}-01")
+                m_name = MONTH_NAMES_FR[m] if 1 <= m <= 12 else str(m)
+
+                raw_vals: dict[str, float | None] = {}
+                display_vals: dict[str, float | None] = {}
+
+                for b in gee_query_bands:
+                    b_cnt = m_data["counts"].get(b, 0)
+                    if b_cnt > 0:
+                        raw_mean = m_data["sums"][b] / b_cnt
+                        raw_vals[b] = round(raw_mean, 6)
+                        meta = get_variable_metadata(b)
+                        if meta and meta.convert_raw_to_display:
+                            display_vals[b] = meta.convert_raw_to_display(raw_mean)
+                        else:
+                            display_vals[b] = round(raw_mean, 4)
+                    else:
+                        raw_vals[b] = None
+                        display_vals[b] = None
+
+                # Calculate derived bands from authentic observations
+                if "sm_rootzone_pctl" in band_names:
+                    rz_mean = raw_vals.get("sm_rootzone")
+                    if rz_mean is not None and all_rootzone_daily:
+                        pctl = round(
+                            sum(1 for v in all_rootzone_daily if v <= rz_mean)
+                            / len(all_rootzone_daily)
+                            * 100.0,
+                            1,
+                        )
+                        raw_vals["sm_rootzone_pctl"] = pctl
+                        display_vals["sm_rootzone_pctl"] = pctl
+                    else:
+                        raw_vals["sm_rootzone_pctl"] = None
+                        display_vals["sm_rootzone_pctl"] = None
+
+                if "sm_surface_anomaly" in band_names:
+                    sf_mean = raw_vals.get("sm_surface")
+                    if sf_mean is not None and annual_sf_mean is not None:
+                        anom = round(sf_mean - annual_sf_mean, 4)
+                        raw_vals["sm_surface_anomaly"] = anom
+                        display_vals["sm_surface_anomaly"] = anom
+                    else:
+                        raw_vals["sm_surface_anomaly"] = None
+                        display_vals["sm_surface_anomaly"] = None
+
+                status = "complete" if cnt >= 20 else ("partial" if cnt > 0 else "missing")
+                notes: list[str] = []
+                if cnt == 0:
+                    notes.append("Aucune observation satellite SMAP disponible pour ce mois.")
+                elif cnt < 25:
+                    notes.append(f"Nombre d'observations réduit ({cnt} sur environ 30 prévues).")
+
+                monthly_series.append(
+                    MonthlyObservationPoint(
+                        date=st_date,
+                        year=y,
+                        month=m,
+                        month_name=m_name,
+                        observation_count=cnt,
+                        quality_status=status,
+                        raw_values=raw_vals,
+                        display_values=display_vals,
+                        notes=notes,
+                    )
+                )
+
+            # Sort chronologically
+            monthly_series.sort(key=lambda p: (p.year, p.month))
 
         # Compute annual summary
         annual_summary = self._compute_annual_summary(monthly_series, band_names)

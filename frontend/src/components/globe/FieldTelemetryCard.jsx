@@ -57,6 +57,11 @@ export default function FieldTelemetryCard({
               <TbLoader2 className="w-3 h-3 animate-spin text-cyan-400" />
               <span>Acquiring NASA…</span>
             </span>
+          ) : telemetry?.isSmapLoading ? (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+              <TbLoader2 className="w-3 h-3 animate-spin text-cyan-400" />
+              <span>Streaming SMAP…</span>
+            </span>
           ) : telemetry?.isLiveBackend ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live NASA Feed
@@ -170,6 +175,21 @@ export default function FieldTelemetryCard({
                       )}
                     </div>
                   )}
+                </div>
+              ) : telemetry?.isSmapLoading ? (
+                <div className="p-3 rounded-xl bg-zinc-900/40 border border-cyan-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400">
+                      <TbLoader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-zinc-300">NASA SMAP L4 Soil Moisture</span>
+                      <span className="text-[10px] font-mono text-cyan-400 block animate-pulse">
+                        Querying GEE Level-4 Radar Assimilation…
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">9 km Grid</span>
                 </div>
               ) : null}
 

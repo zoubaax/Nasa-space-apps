@@ -127,184 +127,182 @@ export function classifyClimate(precipMm, tempC) {
  * from the FastAPI backend (with reverse proxy via /api).
  * Returns strict live data or explicit null/unobserved states without synthetic dummy values.
  */
-export async function fetchEnvironmentalTelemetry(lng, lat) {
+export async function fetchEnvironmentalTelemetry(lng, lat, onProgressiveUpdate) {
   try {
     const latFixed = Number(lat.toFixed(4));
     const lngFixed = Number(lng.toFixed(4));
 
-    // Parallel fetch from FastAPI backend
-    const [climateResult, smapResult] = await Promise.allSettled([
-      fetch(`/api/climate/summary?latitude=${latFixed}&longitude=${lngFixed}&start_date=2025-01-01&end_date=2025-12-31`),
-      fetch(`/api/smap-gee/timeseries?latitude=${latFixed}&longitude=${lngFixed}&year=2025`),
-    ]);
-
-    let rainfall = null;
-    let meanTemp = null;
-    let minTemp = null;
-    let maxTemp = null;
-    let dryDays = null;
-    let hotDays = null;
-    let coldDays = null;
-    let humidity = null;
-    let solarRadiation = null;
-    let windSpeed = null;
-
-    let smapMoisture = null;
-    let surfaceMoisture = null;
-    let profileMoisture = null;
-    let droughtPctl = null;
-    let soilTempLayer1 = null;
-    let vegetationGreenness = null;
-    let leafAreaIndex = null;
-    let infiltrationFlux = null;
-
-    let rawClimate = null;
-    let rawSmap = null;
-    let hasLiveObservations = false;
-
-    // Process NASA POWER Climate Summary
-    if (climateResult.status === 'fulfilled' && climateResult.value.ok) {
-      const climateJson = await climateResult.value.json();
-      rawClimate = climateJson;
-
-      const rainVal =
-        climateJson.indicators?.total_precipitation ??
-        climateJson.indicators?.total_precipitation_mm?.value;
-      if (typeof rainVal === 'number' && !isNaN(rainVal)) {
-        rainfall = Math.round(rainVal * 10) / 10;
-        hasLiveObservations = true;
-      }
-
-      const tempVal =
-        climateJson.indicators?.average_temperature ??
-        climateJson.indicators?.mean_temperature_c?.value;
-      if (typeof tempVal === 'number' && !isNaN(tempVal)) {
-        meanTemp = Number(tempVal.toFixed(1));
-        hasLiveObservations = true;
-      }
-
-      if (typeof climateJson.indicators?.minimum_temperature === 'number') {
-        minTemp = Number(climateJson.indicators.minimum_temperature.toFixed(1));
-      }
-      if (typeof climateJson.indicators?.maximum_temperature === 'number') {
-        maxTemp = Number(climateJson.indicators.maximum_temperature.toFixed(1));
-      }
-
-      dryDays =
-        climateJson.indicators?.dry_days ??
-        climateJson.indicators?.dry_days_count?.value ??
-        null;
-      hotDays =
-        climateJson.indicators?.hot_days ??
-        climateJson.indicators?.hot_days_count?.value ??
-        null;
-      coldDays =
-        climateJson.indicators?.cold_days ??
-        null;
-      humidity =
-        climateJson.indicators?.average_relative_humidity ??
-        climateJson.indicators?.relative_humidity_pct?.value ??
-        null;
-      solarRadiation =
-        climateJson.indicators?.average_solar_radiation ??
-        climateJson.indicators?.solar_radiation_mj?.value ??
-        null;
-      windSpeed =
-        climateJson.indicators?.average_wind_speed ??
-        null;
-    }
-
-    let isRegionalSmap = false;
-    let smapDistanceKm = null;
-
-    // Process NASA SMAP Level-4 GEE Timeseries
-    if (smapResult.status === 'fulfilled' && smapResult.value.ok) {
-      const smapJson = await smapResult.value.json();
-      rawSmap = smapJson;
-
-      if (Array.isArray(smapJson.notes)) {
-        const regNote = smapJson.notes.find((n) => typeof n === 'string' && n.includes('Assimilated from nearest regional NASA SMAP L4'));
-        if (regNote) {
-          isRegionalSmap = true;
-          const matchDist = regNote.match(/(\d+)\s*km/);
-          if (matchDist) smapDistanceKm = parseInt(matchDist[1], 10);
-        }
-      }
-
-      // Extract from summary_cards array or direct annual_metrics
-      if (Array.isArray(smapJson.summary_cards)) {
-        const findVal = (id) => smapJson.summary_cards.find((c) => c.id === id)?.value;
-        const rz = findVal('sm_rootzone');
-        const sf = findVal('sm_surface');
-        const pf = findVal('sm_profile');
-        const pc = findVal('sm_rootzone_pctl');
-        const tp = findVal('soil_temp_layer1');
-        const vg = findVal('vegetation_greenness_fraction');
-        const lai = findVal('leaf_area_index');
-        const inf = findVal('soil_water_infiltration_flux');
-
-        if (typeof rz === 'number') smapMoisture = Number(rz.toFixed(3));
-        if (typeof sf === 'number') surfaceMoisture = Number(sf.toFixed(3));
-        if (typeof pf === 'number') profileMoisture = Number(pf.toFixed(3));
-        if (typeof pc === 'number') droughtPctl = Number(pc.toFixed(1));
-        if (typeof tp === 'number') soilTempLayer1 = Number(tp.toFixed(1));
-        if (typeof vg === 'number') vegetationGreenness = Number(vg.toFixed(1));
-        if (typeof lai === 'number') leafAreaIndex = Number(lai.toFixed(2));
-        if (typeof inf === 'number') infiltrationFlux = Number(inf.toFixed(2));
-
-        if (smapMoisture !== null) hasLiveObservations = true;
-      } else if (smapJson.annual_metrics) {
-        if (typeof smapJson.annual_metrics.sm_rootzone?.mean === 'number') {
-          smapMoisture = Number(smapJson.annual_metrics.sm_rootzone.mean.toFixed(3));
-          hasLiveObservations = true;
-        }
-        if (typeof smapJson.annual_metrics.sm_surface?.mean === 'number') {
-          surfaceMoisture = Number(smapJson.annual_metrics.sm_surface.mean.toFixed(3));
-        }
-        if (typeof smapJson.annual_metrics.sm_rootzone_pctl?.mean === 'number') {
-          droughtPctl = Number(smapJson.annual_metrics.sm_rootzone_pctl.mean.toFixed(1));
-        }
-        if (typeof smapJson.annual_metrics.soil_temp_layer1?.mean === 'number') {
-          soilTempLayer1 = Number(smapJson.annual_metrics.soil_temp_layer1.mean.toFixed(1));
-        }
-      }
-    }
-
-    const climateZone = classifyClimate(rainfall, meanTemp);
-
-    return {
+    let state = {
       isLoading: false,
-      isLiveBackend: hasLiveObservations,
-      climateZone,
-      annualRainfallMm: rainfall,
-      meanTempC: meanTemp,
-      minTempC: minTemp,
-      maxTempC: maxTemp,
-      smapMoistureM3: smapMoisture,
-      surfaceMoistureM3: surfaceMoisture,
-      profileMoistureM3: profileMoisture,
-      droughtPercentile: droughtPctl,
-      soilTempLayer1,
-      isRegionalSmap,
-      smapDistanceKm,
-      vegetationGreenness,
-      leafAreaIndex,
-      infiltrationFlux,
-      dryDays,
-      hotDays,
-      coldDays,
-      humidity: humidity !== null ? Number(humidity.toFixed(1)) : null,
-      solarRadiation: solarRadiation !== null ? Number(solarRadiation.toFixed(1)) : null,
-      windSpeed: windSpeed !== null ? Number(windSpeed.toFixed(1)) : null,
-      rawClimate,
-      rawSmap,
-      error: hasLiveObservations ? null : 'No terrestrial NASA observation found at this coordinate.',
+      isLiveBackend: false,
+      isSmapLoading: true,
+      climateZone: 'Continental / Temperate',
+      annualRainfallMm: null,
+      meanTempC: null,
+      minTempC: null,
+      maxTempC: null,
+      smapMoistureM3: null,
+      surfaceMoistureM3: null,
+      profileMoistureM3: null,
+      droughtPercentile: null,
+      soilTempLayer1: null,
+      isRegionalSmap: false,
+      smapDistanceKm: null,
+      vegetationGreenness: null,
+      leafAreaIndex: null,
+      infiltrationFlux: null,
+      dryDays: null,
+      hotDays: null,
+      coldDays: null,
+      humidity: null,
+      solarRadiation: null,
+      windSpeed: null,
+      rawClimate: null,
+      rawSmap: null,
+      error: null,
     };
+
+    // 1. Fetch NASA POWER Climate Summary (fast: ~0.5s)
+    const climatePromise = fetch(
+      `/api/climate/summary?latitude=${latFixed}&longitude=${lngFixed}&start_date=2025-01-01&end_date=2025-12-31`
+    ).then(async (resp) => {
+      if (resp.ok) {
+        const climateJson = await resp.json();
+        state.rawClimate = climateJson;
+
+        const rainVal =
+          climateJson.indicators?.total_precipitation ??
+          climateJson.indicators?.total_precipitation_mm?.value;
+        if (typeof rainVal === 'number' && !isNaN(rainVal)) {
+          state.annualRainfallMm = Math.round(rainVal * 10) / 10;
+          state.isLiveBackend = true;
+        }
+
+        const tempVal =
+          climateJson.indicators?.average_temperature ??
+          climateJson.indicators?.mean_temperature_c?.value;
+        if (typeof tempVal === 'number' && !isNaN(tempVal)) {
+          state.meanTempC = Number(tempVal.toFixed(1));
+          state.isLiveBackend = true;
+        }
+
+        if (typeof climateJson.indicators?.minimum_temperature === 'number') {
+          state.minTempC = Number(climateJson.indicators.minimum_temperature.toFixed(1));
+        }
+        if (typeof climateJson.indicators?.maximum_temperature === 'number') {
+          state.maxTempC = Number(climateJson.indicators.maximum_temperature.toFixed(1));
+        }
+
+        state.dryDays =
+          climateJson.indicators?.dry_days ??
+          climateJson.indicators?.dry_days_count?.value ??
+          null;
+        state.hotDays =
+          climateJson.indicators?.hot_days ??
+          climateJson.indicators?.hot_days_count?.value ??
+          null;
+        state.coldDays = climateJson.indicators?.cold_days ?? null;
+        state.humidity =
+          typeof climateJson.indicators?.average_relative_humidity === 'number'
+            ? Number(climateJson.indicators.average_relative_humidity.toFixed(1))
+            : null;
+        state.solarRadiation =
+          typeof climateJson.indicators?.average_solar_radiation === 'number'
+            ? Number(climateJson.indicators.average_solar_radiation.toFixed(1))
+            : null;
+        state.windSpeed =
+          typeof climateJson.indicators?.average_wind_speed === 'number'
+            ? Number(climateJson.indicators.average_wind_speed.toFixed(1))
+            : null;
+
+        state.climateZone = classifyClimate(state.annualRainfallMm, state.meanTempC);
+
+        // Deliver immediate partial update with climate metrics
+        if (typeof onProgressiveUpdate === 'function') {
+          onProgressiveUpdate({ ...state });
+        }
+      }
+    }).catch((err) => {
+      console.warn('NASA POWER climate fetch warning:', err);
+    });
+
+    // 2. Fetch NASA SMAP Level-4 GEE Timeseries
+    const smapPromise = fetch(
+      `/api/smap-gee/timeseries?latitude=${latFixed}&longitude=${lngFixed}&year=2025`
+    ).then(async (resp) => {
+      if (resp.ok) {
+        const smapJson = await resp.json();
+        state.rawSmap = smapJson;
+
+        if (Array.isArray(smapJson.notes)) {
+          const regNote = smapJson.notes.find(
+            (n) => typeof n === 'string' && n.includes('Assimilated from nearest regional NASA SMAP L4')
+          );
+          if (regNote) {
+            state.isRegionalSmap = true;
+            const matchDist = regNote.match(/(\d+)\s*km/);
+            if (matchDist) state.smapDistanceKm = parseInt(matchDist[1], 10);
+          }
+        }
+
+        if (Array.isArray(smapJson.summary_cards)) {
+          const findVal = (id) => smapJson.summary_cards.find((c) => c.id === id)?.value;
+          const rz = findVal('sm_rootzone');
+          const sf = findVal('sm_surface');
+          const pf = findVal('sm_profile');
+          const pc = findVal('sm_rootzone_pctl');
+          const tp = findVal('soil_temp_layer1');
+          const vg = findVal('vegetation_greenness_fraction');
+          const lai = findVal('leaf_area_index');
+          const inf = findVal('soil_water_infiltration_flux');
+
+          if (typeof rz === 'number') {
+            state.smapMoistureM3 = Number(rz.toFixed(3));
+            state.isLiveBackend = true;
+          }
+          if (typeof sf === 'number') state.surfaceMoistureM3 = Number(sf.toFixed(3));
+          if (typeof pf === 'number') state.profileMoistureM3 = Number(pf.toFixed(3));
+          if (typeof pc === 'number') state.droughtPercentile = Number(pc.toFixed(1));
+          if (typeof tp === 'number') state.soilTempLayer1 = Number(tp.toFixed(1));
+          if (typeof vg === 'number') state.vegetationGreenness = Number(vg.toFixed(1));
+          if (typeof lai === 'number') state.leafAreaIndex = Number(lai.toFixed(2));
+          if (typeof inf === 'number') state.infiltrationFlux = Number(inf.toFixed(2));
+        } else if (smapJson.annual_metrics) {
+          if (typeof smapJson.annual_metrics.sm_rootzone?.mean === 'number') {
+            state.smapMoistureM3 = Number(smapJson.annual_metrics.sm_rootzone.mean.toFixed(3));
+            state.isLiveBackend = true;
+          }
+          if (typeof smapJson.annual_metrics.sm_surface?.mean === 'number') {
+            state.surfaceMoistureM3 = Number(smapJson.annual_metrics.sm_surface.mean.toFixed(3));
+          }
+          if (typeof smapJson.annual_metrics.sm_rootzone_pctl?.mean === 'number') {
+            state.droughtPercentile = Number(smapJson.annual_metrics.sm_rootzone_pctl.mean.toFixed(1));
+          }
+          if (typeof smapJson.annual_metrics.soil_temp_layer1?.mean === 'number') {
+            state.soilTempLayer1 = Number(smapJson.annual_metrics.soil_temp_layer1.mean.toFixed(1));
+          }
+        }
+      }
+    }).catch((err) => {
+      console.warn('NASA SMAP GEE fetch warning:', err);
+    }).finally(() => {
+      state.isSmapLoading = false;
+      if (typeof onProgressiveUpdate === 'function') {
+        onProgressiveUpdate({ ...state });
+      }
+    });
+
+    await Promise.allSettled([climatePromise, smapPromise]);
+    state.isSmapLoading = false;
+    state.error = state.isLiveBackend ? null : 'No terrestrial NASA observation found at this coordinate.';
+
+    return { ...state };
   } catch (err) {
     console.warn('Backend telemetry request failed:', err);
     return {
       isLoading: false,
       isLiveBackend: false,
+      isSmapLoading: false,
       error: 'Backend communication error: ' + (err.message || 'Service unreachable'),
     };
   }

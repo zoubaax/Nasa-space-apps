@@ -48,6 +48,8 @@ frontend/dist/
 .npm
 .eslintcache
 
+backend/data/
+
 # IDE & OS
 .vscode/
 .idea/
